@@ -98,8 +98,7 @@ Fold these back into the source repo.)
 ## Git
 
 - Commit messages: imperative summary line; end with the Co-Authored-By trailer.
-- Default branch is currently `master`; rename to `main` before pushing to a host
-  that expects it.
+- Default branch is `main` (tracks `origin/main` on GitLab). Do not use `master`.
 - Commit-message tool gotcha: PowerShell here-string syntax (`@'...'@`) is NOT a
   here-string in the Bash tool - the `@` chars get passed literally into the
   message (e.g. a subject like `@ Rename ...`). For multi-paragraph messages,
