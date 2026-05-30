@@ -7,6 +7,20 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 ## [Unreleased]
 
 ### Added
+- Docstring standard (since pipeline docs live in the code): a task docstring IS
+  its documentation - state purpose + input/output contract + quirks, do NOT
+  restate the `run()` code or settle for a one-line "brief description". Same for
+  the `tasks.py` module docstring and the data doc. Captured in SKILL.md ("Task
+  docstrings"), the "Add a new task" example now models it, and reference.md's
+  task-design best practices were aligned (also fixing a stale "name tasks with
+  verbs" bullet that contradicted the output-naming convention).
+- Task-naming convention: name a task for the OUTPUT it produces (a noun, e.g.
+  `OEWSWages` / `DataOEWS`), not the verb it performs; avoid generic
+  `GetData` / `LoadData` / `Process`. A plain-language "load the X data" request
+  is treated as "create a new output-named task" - and the scaffold's
+  `GetData` / `Process` are placeholder names to REPLACE, never to write real
+  logic into. Captured in SKILL.md ("Naming tasks", "Add a new task", scaffold
+  + onboarding notes) and reference.md.
 - Iterate-then-run guidance for the common data-science loop: d6tflow caches by
   task identity (class + params), so PARAMETER changes auto-detect but CODE edits
   do NOT - an edited-but-unreset task is silently skipped on the next run. The

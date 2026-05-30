@@ -34,6 +34,11 @@ faster.
 Building blocks: Inherit from d6tflow task class, have `run()` method, save
 outputs automatically, uniquely identified by class name + parameters.
 
+**Naming**: name a task for the OUTPUT it produces (a noun: `OEWSWages`,
+`CleanedSales`, `TrainedModel`, `DataOEWS`), not the verb it performs. Avoid
+generic names like `GetData` / `LoadData` / `Process`. Some examples below use
+older verb-style names for brevity; prefer output names in real code.
+
 ```python
 import d6tflow
 import pandas as pd
@@ -360,14 +365,18 @@ class MyTask(d6tflow.tasks.TaskPqPandas):
 
 Do:
 - Keep tasks focused on a single responsibility
-- Use descriptive task names (verbs: Load, Clean, Transform, Train, Predict)
-- Add docstrings explaining what the task does
+- Name tasks for their OUTPUT (a noun: `OEWSWages`, `CleanedSales`,
+  `TrainedModel`), not the verb they perform (see "Tasks > Naming")
+- Write the docstring as real documentation: purpose + input/output contract +
+  quirks. It explains intent; do NOT restate the run() code (a short snippet
+  only when it is the clearest way to state a contract)
 - Use type hints for clarity
 - Validate inputs and outputs with assertions
 
 Don't:
 - Create monolithic tasks that do everything
-- Use generic names like `Task1`, `Task2`
+- Use generic names like `GetData`, `Process`, `Task1`
+- Paste the code into the docstring, or settle for a one-line "brief description"
 - Skip error handling
 - Assume data shape/columns without validation
 

@@ -100,7 +100,8 @@ Instead, welcome the user and orient them toward getting started. Cover, briefly
   task type, has a `run()` that ends in `self.save(...)`); wire dependencies with
   `@d6tflow.requires(...)`. (See "Add a new task" below.)
 - How to **load data**: drop raw source files (`.csv`/`.xlsx`) into `data/` and
-  read them in a `GetData`-style task; downstream tasks read upstream output with
+  read them in a data-loading task named for what it produces (e.g. `DataOEWS`,
+  not `GetData` - see "Naming tasks"); downstream tasks read upstream output with
   `self.inputLoad()`.
 - How to **run the flow**: `python run.py` (it runs the final task set in
   `flow.py`); preview first with `flow.preview()`.
@@ -129,9 +130,10 @@ The docstrings and the data doc are where the project writes down what it knows 
 keep them accurate and the per-session re-scan disappears.
 
 Document pipeline meaning IN THE CODE: a module docstring at the top of `tasks.py`
-for the workflow goal, a docstring on each task for what it does. Capture data
-findings in `docs/d6tflow-data.md`, deleting its `PLACEHOLDER` marker once filled.
-Do not leave a marker on something you have actually filled.
+for the workflow goal, and a real docstring on each task (see "Task docstrings" -
+intent + input/output contract, not restated code). Capture data findings in
+`docs/d6tflow-data.md`, deleting its `PLACEHOLDER` marker once filled. Do not
+leave a marker on something you have actually filled.
 
 ### Deep exploration is opt-in
 
@@ -176,9 +178,11 @@ Use this marker to orient cheaply:
   that marker line.
 
 When you build the real pipeline, delete the `PLACEHOLDER SCAFFOLD` lines along
-with the dummy logic, write a real `tasks.py` module docstring + task docstrings,
-and fill the data doc (removing its marker). A project with no `PLACEHOLDER`
-markers left anywhere is a real, captured project.
+with the dummy logic, write real tasks named for their output (see "Naming
+tasks" - replace `GetData` / `Process`, do not write into them), add a real
+`tasks.py` module docstring + task docstrings, and fill the data doc (removing
+its marker). A project with no `PLACEHOLDER` markers left anywhere is a real,
+captured project.
 
 ---
 
@@ -309,23 +313,65 @@ Instead, STOP and ask the user to close the file, then retry the read.
 
 ## Common Workflow Patterns
 
+### Naming tasks (name for the OUTPUT, not the verb)
+
+A task's name should describe the output it produces, not the action it performs.
+The output is what downstream code and the cache are keyed on, so the name reads
+as a noun: `OEWSWages`, `CleanedSales`, `FeatureMatrix`, `TrainedModel`. For a
+task whose job is to load/produce a named dataset, `Data<Name>` is a fine pattern
+(`DataOEWS`); a plain `<Name>` describing the output (`OEWS`) is equally good.
+Avoid generic verb names like `GetData`, `LoadData`, `Process`, `Run` - they say
+nothing about what comes out and collide across projects.
+
+A plain-language request to "load the OEWS data" (or "load X", "get X", "pull X")
+IS a request to create such a task - create a NEW, output-named task for it
+(e.g. `DataOEWS`); do not load the data inline or outside the task structure.
+
+The scaffold's `GetData` / `Process` are PLACEHOLDER names. Building the real
+pipeline means writing new, output-named tasks and deleting the placeholders -
+NOT renaming-in-place or writing your real logic into `GetData`. Never extend
+`GetData` / `Process`; replace them.
+
+### Task docstrings (they ARE the docs)
+
+Pipeline documentation lives in the code, so a task's docstring is its
+documentation - write it properly, not as a throwaway "brief description". State:
+
+- what the task PRODUCES (one line: the purpose / output);
+- its input -> output contract (what it consumes and from where; what columns /
+  keys it saves - this is what downstream tasks and readers depend on);
+- any non-obvious decision, assumption, or quirk (point to
+  `docs/d6tflow-data.md` for data-specific ones).
+
+Do NOT restate the code. The docstring explains intent and contract; the body
+shows how. Include a short snippet only when it is the clearest way to state a
+contract (e.g. an output column list) - never a copy of the run() logic. Same
+rule for the `tasks.py` module docstring (the workflow goal) and the data doc:
+describe and decide, do not paste code.
+
 ### Add a new task
-1. Define the task in `tasks.py`:
+1. Define the task in `tasks.py`, named for its output (see "Naming tasks") with
+   a docstring that IS its documentation (see "Task docstrings"):
 ```python
-@d6tflow.requires(UpstreamTask)
-class NewTask(d6tflow.tasks.TaskPqPandas):
-    """Brief description of what this task does"""
+@d6tflow.requires(DataOEWS)
+class OEWSWages(d6tflow.tasks.TaskPqPandas):
+    """Median hourly and annual wage per occupation x metro area.
+
+    In:  OEWS MSA estimates (from DataOEWS).
+    Out: one row per (occ_code, area); the wage-percentile columns. Null where
+         BLS suppressed small cells - see docs/d6tflow-data.md.
+    """
     param1 = d6tflow.Parameter()
 
     def run(self):
         df = self.inputLoad()
-        # process data
-        self.save(df_processed)
+        # ... transform ...
+        self.save(df_out)
 ```
 2. Add parameters to `flow_params.py`: `params['param1'] = 'value'` (comment what
    the parameter means there).
-3. If it is the new final task, set `task = tasks.NewTask` in `flow.py`.
-4. Give the task a clear docstring (that IS its documentation); update the
+3. If it is the new final task, set `task = tasks.OEWSWages` in `flow.py`.
+4. The docstring is the task's documentation - keep it accurate. Update the
    `tasks.py` module docstring if the workflow's goal changed.
 
 ### Modify an existing task (the common iterate loop)
