@@ -59,7 +59,9 @@ claude --plugin-dir D:\OneDrive\dev\d6tlib\d6tflow-claude-plugin   # load withou
 ## Release
 
 1. Edit skill / docs.
-2. Bump `version` in `.claude-plugin/plugin.json` (semver).
+2. Set `version` in `.claude-plugin/plugin.json` to the release date in
+   `YY.M.D` format (e.g. `26.5.30`). Use no zero-padding. If you cut more than
+   one release in a day, append a counter (`26.5.30.1`, `26.5.30.2`).
 3. Add a dated entry to `docs/CHANGELOG.md`.
 4. Commit. Consumers tracking this repo get it via
    `/plugin marketplace update d6tflow`.

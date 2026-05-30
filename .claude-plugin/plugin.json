@@ -1,7 +1,7 @@
 {
   "name": "d6tflow",
   "description": "Build and work with d6tflow data-science pipelines (Luigi-based: tasks, dependencies, parameters, caching, reproducible workflows).",
-  "version": "0.1.0",
+  "version": "26.5.30",
   "author": {
     "name": "Oryx Intel",
     "email": "dev@oryxintel.com"
