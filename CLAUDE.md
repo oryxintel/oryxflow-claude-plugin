@@ -79,3 +79,8 @@ verified, delete the `~/.claude/skills/d6tflow` copy so they cannot drift.
 - Commit messages: imperative summary line; end with the Co-Authored-By trailer.
 - Default branch is currently `master`; rename to `main` before pushing to a host
   that expects it.
+- Commit-message tool gotcha: PowerShell here-string syntax (`@'...'@`) is NOT a
+  here-string in the Bash tool - the `@` chars get passed literally into the
+  message (e.g. a subject like `@ Rename ...`). For multi-paragraph messages,
+  use repeated `-m` flags with normal quoted strings in the Bash tool, or use
+  the `@'...'@` here-string only in the PowerShell tool. Don't mix the two.
