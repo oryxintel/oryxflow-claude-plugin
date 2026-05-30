@@ -11,7 +11,7 @@ or modifying pipeline tasks, running workflows, or analyzing outputs.
 ## Contents
 
 ```
-d6tflow-plugin/
+d6tflow-claude-plugin/
 |-- .claude-plugin/
 |   |-- plugin.json        # plugin manifest
 |   `-- marketplace.json   # lets this repo act as its own marketplace
@@ -35,14 +35,15 @@ This repo is its own marketplace, so it can be installed directly.
 Or with a full git URL:
 
 ```
-/plugin marketplace add https://your.git.host/path/d6tflow-plugin.git
+/plugin marketplace add https://your.git.host/path/d6tflow-claude-plugin.git
 /plugin install d6tflow@d6tflow
 ```
 
 ### From a local clone
 
 ```
-/plugin marketplace add D:\OneDrive\dev\d6tlib\d6tflow-plugin
+/plugin marketplace add /path/to/d6tflow-claude-plugin
+/plugin marketplace add D:\OneDrive\dev\d6tlib\d6tflow-claude-plugin   # e.g.
 /plugin install d6tflow@d6tflow
 ```
 
@@ -54,7 +55,8 @@ auto-activate it when you work in a d6tflow project.
 Iterate without installing - load the plugin directly for one session:
 
 ```
-claude --plugin-dir D:\OneDrive\dev\d6tlib\d6tflow-plugin
+claude --plugin-dir /path/to/d6tflow-claude-plugin
+claude --plugin-dir D:\OneDrive\dev\d6tlib\d6tflow-claude-plugin   # e.g.
 ```
 
 After editing `SKILL.md` / `reference.md`, run `/reload-plugins` to pick up

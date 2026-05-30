@@ -48,7 +48,7 @@ README.md            # install + quickstart for plugin users
 ## Develop / test loop
 
 ```
-claude --plugin-dir D:\OneDrive\dev\d6tlib\d6tflow-plugin   # load without installing
+claude --plugin-dir D:\OneDrive\dev\d6tlib\d6tflow-claude-plugin   # load without installing
 /reload-plugins                                              # after each edit
 /plugin validate .                                           # check both manifests
 ```
