@@ -3,9 +3,15 @@ name: d6tflow
 description: >-
   Build and work with d6tflow data-science pipelines (Luigi-based: tasks,
   dependencies, parameters, caching, reproducible workflows). Use when working
-  in a d6tflow project - editing tasks.py / flow.py / run.py / cfg.py /
-  flow_params.py, adding or modifying pipeline tasks, running workflows with
-  run.py, or analyzing outputs in visualize.py / visualize.ipynb.
+  in a d6tflow project - the tasks.py / flow.py / run.py / cfg.py /
+  flow_params.py files, pipeline tasks, workflow runs, or output analysis.
+when_to_use: >-
+  Trigger on requests like: create or modify a task, make one task depend on
+  another, add or change a parameter, set the final task; run the flow, preview
+  the flow (flow.preview), check what is cached, or re-run / reset a task; load
+  or plot a task's output; explore or inspect the data (the opt-in deep dive);
+  or summarize what the pipeline does.
+argument-hint: "[explore]"
 allowed-tools: Read Edit Write Grep Glob Bash
 shell: powershell
 ---
@@ -57,6 +63,11 @@ not trust it as a project fact."
 No `PLACEHOLDER` markers left anywhere = a real, captured project.
 
 ### Default invocation is LIGHTWEIGHT - do not auto-explore
+
+(The skill is invoked as `/d6tflow:d6tflow`; the bare `/d6tflow` and
+`/d6tflow explore` written here and below are shorthand for that, with `explore`
+passed as the argument. Most of the time it auto-activates and the user just
+talks to it - no command needed.)
 
 When the skill loads (e.g. plain `/d6tflow`) with no specific task, orient
 cheaply and then STOP. Do the minimum:

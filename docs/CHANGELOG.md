@@ -7,10 +7,30 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 ## [Unreleased]
 
 ### Added
+- `docs/design/architecture.md` - a system map for developers (human or Claude):
+  component table, the three interacting artifacts, load tiers, control/data
+  flows, invariants, and a "where to change X" playbook. Linked as read-first
+  from the root `CLAUDE.md`. Moved `design-notes.md` into `docs/design/`
+  alongside it (rationale companion to the map).
 - Fresh-scaffold onboarding now surfaces a couple of plain-language example
   requests ("create a task ...", "run the flow", "explore the data", etc.) so a
   first-time user learns how to drive the skill. Mirrored as a "Things you can
   ask" list in `README.md` under "Using the skill".
+- `when_to_use` frontmatter on the skill, carrying the invocation trigger
+  phrases (create/modify task, run/preview the flow, re-run/reset, load/plot
+  output, explore the data, summarize the pipeline) - the documented home for
+  example invocations, used for auto-activation discovery.
+- `argument-hint: [explore]` on the skill so the `explore` deep-dive argument
+  shows during autocomplete.
+
+### Changed
+- Tightened the skill `description` (what it does + core trigger) now that
+  `when_to_use` carries the example requests; the two share a 1,536-char cap.
+- Skill body notes that `/d6tflow` / `/d6tflow explore` are shorthand for the
+  real `/d6tflow:d6tflow [explore]` invocation form.
+- `commands/project-init.md` is now `disable-model-invocation: true` - the
+  scaffold writes files, so it is manual-trigger only (type the command), not
+  auto-invoked. README "Using the skill" notes this.
 
 ## [26.5.30.1] - 2026-05-30
 

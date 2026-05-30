@@ -1,5 +1,6 @@
 ---
 description: Scaffold a new d6tflow project into the current directory from the bundled minimal template (skip-existing, never overwrite).
+disable-model-invocation: true
 ---
 
 # Scaffold a new d6tflow project

@@ -67,7 +67,11 @@ tasks with your real pipeline (documented via task docstrings) and fill
 Once installed, the skill is always available - there is nothing to turn on per
 session. It auto-activates when you work in a d6tflow project: editing the
 pipeline files, adding or modifying tasks, running flows, or analyzing outputs.
-You can also invoke it explicitly any time with `/d6tflow:d6tflow`.
+You can also invoke it explicitly any time with `/d6tflow:d6tflow`, or pass the
+deep-dive argument with `/d6tflow:d6tflow explore`.
+
+Scaffolding a new project is a separate, manually-triggered command -
+`/d6tflow:project-init` - it is not auto-invoked, since it writes files.
 
 Things you can ask, in plain language:
 

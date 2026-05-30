@@ -4,6 +4,10 @@ This repo is the **source of a Claude Code plugin**. A session here is for
 *developing the plugin*, NOT for using it. You are editing skill source; do not
 try to run the d6tflow skill against this repo (there is no data pipeline here).
 
+**Read `docs/design/architecture.md` first.** It is the map of this repo - the
+component table, the control/data flows, the invariants, and a "to change X, edit
+Y" playbook. It exists so you can edit the right file without exploring.
+
 For the meaning of d6tflow itself (tasks, flows, the data-project conventions),
 read `skills/d6tflow/SKILL.md` - but treat it as the *artifact you maintain*, not
 as instructions for this session.
@@ -35,7 +39,9 @@ resources/
                      #   what project-init copies into a new project
 docs/
   CHANGELOG.md       # user-facing change history
-  design-notes.md    # WHY the skill is shaped the way it is (read before edits)
+  design/
+    architecture.md  # system map + where-to-change playbook (read this first)
+    design-notes.md  # WHY each non-obvious decision was made
 README.md            # install + quickstart for plugin users
 ```
 
@@ -48,8 +54,8 @@ README.md            # install + quickstart for plugin users
   an agent needs every time; push depth, tables, and long examples into
   `reference.md` (general) or `ml-patterns.md` (ML), each pointed to from
   `SKILL.md`. Do not let `SKILL.md` bloat - it costs context on every activation.
-  See `docs/design-notes.md` for the reasoning.
-- When you change skill behavior, update `docs/design-notes.md` if the *rationale*
+  See `docs/design/design-notes.md` for the reasoning.
+- When you change skill behavior, update `docs/design/design-notes.md` if the *rationale*
   changed, and `docs/CHANGELOG.md` always.
 
 ## Develop / test loop
