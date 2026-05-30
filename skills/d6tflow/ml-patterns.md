@@ -1,58 +1,72 @@
-# Claude Instructions: Building ML Pipelines with d6tflow
+# d6tflow ML Pipeline Patterns
 
-## ML Pipeline Architecture
+Concrete, copy-adaptable task templates for machine-learning pipelines built with
+d6tflow. Loaded ON DEMAND by the `d6tflow` skill - pull this in only when the work
+is ML (feature engineering, model training, backtesting, predictions). For the
+general library reference see [reference.md](reference.md); for the essentials see
+[SKILL.md](SKILL.md).
+
+## ML pipeline architecture
 
 Standard pipeline structure:
+
 ```
-Data Loading → Feature Engineering → Model Training → Evaluation → Predictions
+Data loading -> Feature engineering -> Model training -> Evaluation -> Predictions
 ```
 
 Typical task sequence:
+
 ```
-FeaturesRaw → FeaturesTransform → ModelTrain → ModelPerformanceIS → ModelPredictOS → ModelPredictCurrent
+FeaturesRaw -> FeaturesTransform -> ModelTrain -> ModelPerformanceIS
+            -> ModelPredictOS -> ModelPredictCurrent
 ```
 
 ---
 
-## Core Principles
+## Core principles
 
-### 1. Data Structure Requirements
+### 1. Data structure requirements
 
 Define grouping columns in `cfg.py`:
+
 ```python
-cfg.col_g_entity = ['sector', 'id']           # Entity identifiers
-cfg.col_g_time = ['date']                      # Time column
-cfg.col_g_entity_time = ['sector', 'id', 'date']  # Combined
+cfg.col_g_entity = ['sector', 'id']               # Entity identifiers
+cfg.col_g_time = ['date']                          # Time column
+cfg.col_g_entity_time = ['sector', 'id', 'date']   # Combined
 ```
 
-### 2. Feature Organization
+### 2. Feature organization
 
 Organize features by type in `cfg.py`:
+
 ```python
-cfg.col_X = ['feature1', 'feature2', ...]           # All features
-cfg.col_X_rate = ['unemployment_rate', ...]         # Rate features (use diff not pct_change)
-cfg.col_X_level = ['gdp', 'price', ...]            # Level features (use pct_change)
+cfg.col_X = ['feature1', 'feature2', ...]      # All features
+cfg.col_X_rate = ['unemployment_rate', ...]    # Rate features (use diff, not pct_change)
+cfg.col_X_level = ['gdp', 'price', ...]        # Level features (use pct_change)
 ```
 
-### 3. Multiple Output Pattern
+### 3. Multiple output pattern
 
 Use `persist` for tasks with multiple outputs:
+
 ```python
 class MyTask(d6tflow.tasks.TaskPqPandas):
-    persist = ['all', 'x', 'y']  # or persists for dict outputs
+    persist = ['all', 'x', 'y']  # or 'persists' for dict outputs
 
     def run(self):
         self.save([df_all, df_X, df_y], from_list=True)
 ```
 
 Load multiple outputs:
+
 ```python
 df_all, df_X, df_y = self.inputLoad()
 ```
 
-### 4. Metadata Pattern
+### 4. Metadata pattern
 
 Store models and non-DataFrame objects in metadata:
+
 ```python
 # Save
 self.save(df)
@@ -66,13 +80,12 @@ model = meta['model']
 
 ---
 
-## Pattern 1: Feature Engineering
+## Pattern 1: Feature engineering
 
-### FeaturesRaw - Merge Data Sources
+### FeaturesRaw - merge data sources
 
-**Purpose**: Merge multiple data sources, create derived features
+Purpose: merge multiple data sources, create derived features.
 
-**Template**:
 ```python
 @d6tflow.requires(DataSource1, DataSource2)
 class FeaturesRaw(d6tflow.tasks.TaskPqPandas):
@@ -98,23 +111,18 @@ class FeaturesRaw(d6tflow.tasks.TaskPqPandas):
         self.save(df_merged)
 ```
 
-**Key concepts**:
-- Merge on entity + time keys
-- Validate: no duplicates, minimal data loss
-- Use `how='left'` to preserve primary dataset
+Key concepts: merge on entity + time keys; validate no duplicates and minimal data
+loss; use `how='left'` to preserve the primary dataset.
 
----
+### FeaturesTransform - transform for modeling
 
-### FeaturesTransform - Transform for Modeling
+Purpose: transform features (normalize, rank, time-series features), split X/y.
 
-**Purpose**: Transform features (normalize, rank, create time series features), split X/y
-
-**Template**:
 ```python
 @d6tflow.requires(FeaturesRaw)
 class FeaturesTransform(d6tflow.tasks.TaskPqPandas):
     """Transform features for modeling"""
-    transformx = d6tflow.Parameter()  # Transformation method
+    transformx = d6tflow.Parameter()  # Feature transformation method
     transformy = d6tflow.Parameter()  # Target transformation
     persist = ['all', 'x', 'y']
 
@@ -122,15 +130,14 @@ class FeaturesTransform(d6tflow.tasks.TaskPqPandas):
         df = self.input().load()
         df = df.sort_values(['entity_id', 'date'])  # Adjust to your columns
 
-        # === Transform Features ===
+        # Transform features and target
         df_X = self.transform_features(df)
-
-        # === Transform Target ===
         df_y = self.transform_target(df)
 
-        # === Handle Missing Values ===
+        # Handle missing values
         df_X = df_X.dropna()
-        assert df_X.shape[0] / df.shape[0] > 0.8, f"Dropped {100*(1-df_X.shape[0]/df.shape[0]):.1f}% of data"
+        assert df_X.shape[0] / df.shape[0] > 0.8, \
+            f"Dropped {100*(1-df_X.shape[0]/df.shape[0]):.1f}% of data"
 
         # Keep only rows with valid features
         df = df.loc[df_X.index]
@@ -143,20 +150,14 @@ class FeaturesTransform(d6tflow.tasks.TaskPqPandas):
         """Apply feature transformation based on transformx parameter"""
         if self.transformx == 'raw':
             return df[cfg.col_X].copy()
-
         elif self.transformx == 'normalized':
-            # Z-score normalization
             df_X = df[cfg.col_X].copy()
-            df_X = (df_X - df_X.mean()) / df_X.std()
-            return df_X
-
+            return (df_X - df_X.mean()) / df_X.std()       # Z-score
         elif self.transformx == 'rank':
-            # Cross-sectional percentile ranking
             df_X = df[cfg.col_X].copy()
             for col in cfg.col_X:
-                df_X[col] = df.groupby('date')[col].rank(pct=True)
+                df_X[col] = df.groupby('date')[col].rank(pct=True)  # Cross-sectional
             return df_X
-
         else:
             raise NotImplementedError(f"transformx={self.transformx}")
 
@@ -164,36 +165,25 @@ class FeaturesTransform(d6tflow.tasks.TaskPqPandas):
         """Apply target transformation based on transformy parameter"""
         if self.transformy == 'raw':
             return df['target']
-
         elif self.transformy == 'rank':
-            # Cross-sectional percentile ranking
             return df.groupby('date')['target'].rank(pct=True)
-
         else:
             raise NotImplementedError(f"transformy={self.transformy}")
 ```
 
-**Common transformations**:
-- `raw`: Use features as-is
-- `normalized`: Z-score normalization
-- `rank`: Cross-sectional percentile ranking (0-1 scale)
-- `log`: Log transformation for skewed data
-
-**Critical steps**:
-1. Sort by entity + time before transformations
-2. Apply transformations separately to features and target
-3. Drop NaN after transformations, validate <20% loss
-4. Return `[df_all, df_X, df_y]`
+Common transformations: `raw` (as-is), `normalized` (z-score), `rank`
+(cross-sectional percentile, 0-1), `log` (skewed data). Critical steps: sort by
+entity + time first; transform features and target separately; drop NaN after
+transformations and validate <20% loss; return `[df_all, df_X, df_y]`.
 
 ---
 
-## Pattern 2: Model Training
+## Pattern 2: Model training
 
-### ModelTrain - Train ML Model
+### ModelTrain - train ML model
 
-**Purpose**: Train model, save model object in metadata, calculate SHAP values
+Purpose: train model, save the model object in metadata, calculate SHAP values.
 
-**Template**:
 ```python
 @d6tflow.requires(FeaturesTransform)
 class ModelTrain(d6tflow.tasks.TaskPqPandas):
@@ -206,9 +196,7 @@ class ModelTrain(d6tflow.tasks.TaskPqPandas):
 
         # Exclude rows with missing targets
         idxSel = df_all['target'].notna()
-        df_all = df_all[idxSel]
-        df_X = df_X[idxSel]
-        df_y = df_y[idxSel]
+        df_all, df_X, df_y = df_all[idxSel], df_X[idxSel], df_y[idxSel]
 
         # Train model
         model = self.train_model(df_X, df_y)
@@ -230,51 +218,40 @@ class ModelTrain(d6tflow.tasks.TaskPqPandas):
         if self.model == 'lgbm':
             import lightgbm
             return lightgbm.LGBMRegressor(random_state=42).fit(X, y)
-
         elif self.model == 'rf':
             from sklearn.ensemble import RandomForestRegressor
             return RandomForestRegressor(random_state=42).fit(X, y)
-
         elif self.model == 'ols':
             from sklearn.linear_model import LinearRegression
             return LinearRegression().fit(X, y)
-
         else:
             raise NotImplementedError(f"model={self.model}")
 ```
 
-**Critical steps**:
-1. **Exclude missing targets** before training (recent periods may not have forward returns)
-2. **Save model in metadata** (not main output)
-3. **Calculate SHAP explainer** during training for tree models (reuse later)
-4. **Add predictions** to DataFrame as `y_pred` column
-5. **Always set random_state** for reproducibility
+Critical steps: exclude missing targets before training (recent periods may not
+have forward returns); save the model in metadata (not the main output); calculate
+the SHAP explainer during training for tree models (reuse later); add a `y_pred`
+column; always set `random_state` for reproducibility.
 
-**For classification**:
+For classification (imbalanced data):
+
 ```python
 def train_model(self, X, y):
     import lightgbm
-
-    # Handle imbalanced data
     if self.imbalanced:
         from imblearn.over_sampling import SMOTE
         X, y = SMOTE(random_state=42).fit_resample(X, y)
-
-    return lightgbm.LGBMClassifier(
-        class_weight='balanced',
-        random_state=42
-    ).fit(X, y)
+    return lightgbm.LGBMClassifier(class_weight='balanced', random_state=42).fit(X, y)
 ```
 
 ---
 
-## Pattern 3: Model Performance
+## Pattern 3: Model performance
 
-### ModelPerformanceIS - In-Sample Metrics
+### ModelPerformanceIS - in-sample metrics
 
-**Purpose**: Calculate performance metrics and feature importance
+Purpose: calculate performance metrics and feature importance.
 
-**Template**:
 ```python
 @d6tflow.requires(ModelTrain)
 class ModelPerformanceIS(d6tflow.tasks.TaskPickle):
@@ -286,8 +263,6 @@ class ModelPerformanceIS(d6tflow.tasks.TaskPickle):
         model = meta['model']
 
         metrics = {}
-
-        # === Calculate Metrics ===
         df_valid = df_all[['y', 'y_pred']].dropna()
 
         if self.is_regression():
@@ -299,43 +274,34 @@ class ModelPerformanceIS(d6tflow.tasks.TaskPickle):
             metrics['accuracy'] = accuracy_score(df_valid['y'], df_valid['y_pred'])
             metrics['auc'] = roc_auc_score(df_valid['y'], df_valid['y_pred'])
 
-        # === Feature Importance (tree models) ===
+        # Feature importance (tree models)
         if self.model in ['lgbm', 'rf', 'xgb']:
             import shap
-
-            # SHAP-based importance
             shap_values = shap.Explainer(model)(df_X)
             mean_abs_shap = np.abs(shap_values.values).mean(axis=0)
-
-            df_importance = pd.DataFrame({
-                'feature': df_X.columns,
-                'importance': mean_abs_shap
+            metrics['feature_importance'] = pd.DataFrame({
+                'feature': df_X.columns, 'importance': mean_abs_shap
             }).sort_values('importance', ascending=False)
-
-            metrics['feature_importance'] = df_importance
             metrics['shap_values'] = shap_values
 
         self.save(metrics)
 
     def is_regression(self):
-        """Check if this is a regression task"""
         return self.model in ['lgbm', 'rf', 'ols'] and not hasattr(self, 'classification')
 ```
 
-**Key metrics**:
-- **Regression**: RMSE, R², MAE
-- **Classification**: Accuracy, AUC, Precision/Recall
-- **Feature Importance**: Mean absolute SHAP values (tree models)
+Key metrics - regression: RMSE, R2, MAE. Classification: accuracy, AUC,
+precision/recall. Feature importance: mean absolute SHAP values (tree models).
 
 ---
 
-## Pattern 4: Out-of-Sample Predictions
+## Pattern 4: Out-of-sample predictions
 
-### ModelPredictOS - Expanding Window Backtest
+### ModelPredictOS - expanding-window backtest
 
-**Purpose**: Generate out-of-sample predictions using expanding window to avoid lookahead bias
+Purpose: generate out-of-sample predictions using an expanding window to avoid
+lookahead bias.
 
-**Template**:
 ```python
 @d6tflow.requires(ModelTrain, FeaturesTransform)
 class ModelPredictOS(d6tflow.tasks.TaskPqPandas):
@@ -343,22 +309,17 @@ class ModelPredictOS(d6tflow.tasks.TaskPqPandas):
     forecast_periods = d6tflow.IntParameter()  # Periods ahead to predict
 
     def run(self):
-        # Load in-sample data and full dataset
         (df_trainIS, _, _), (df_full, df_X_full, df_y_full) = self.inputLoad()
         model = self.metaLoad(key=0)['model']
 
-        # Get unique dates
         dates_train = sorted(df_trainIS['date'].unique())
         dates_all = sorted(df_full['date'].unique())
-
-        # Start after minimum training period (e.g., 5 years)
-        min_periods = 20  # Adjust based on your data frequency
+        min_periods = 20  # Minimum training period; adjust to data frequency
 
         df_full['y_pred_os'] = np.nan
 
         # Expanding window loop
         for train_date in dates_train[min_periods:]:
-            # Calculate prediction date (N periods forward)
             pred_date = dates_all[dates_all.index(train_date) + self.forecast_periods]
 
             if train_date <= df_trainIS['date'].max():
@@ -374,35 +335,33 @@ class ModelPredictOS(d6tflow.tasks.TaskPqPandas):
         self.saveMeta({'backtest_start': dates_train[min_periods]})
 ```
 
-**Critical concept**: **Expanding window** prevents lookahead bias
-- Train on all data from start to time T
-- Predict for time T + N (never use future data for training)
-- Retrain model for each historical period
+Critical concept - the expanding window prevents lookahead bias: train on all data
+from the start to time T, predict for time T + N, never use future data for
+training, and retrain for each historical period.
 
-**Alternative: Rolling window** (not recommended - loses data):
+Alternative (rolling window, not recommended - loses data):
+
 ```python
-# Rolling window: train on [T-window:T], predict T+N
+# Train on [T-window:T], predict T+N
 idx_train = (df['date'] > train_date - window) & (df['date'] <= train_date)
 ```
 
 ---
 
-## Pattern 5: Current Period Predictions
+## Pattern 5: Current-period predictions
 
-### ModelPredictCurrent - Latest Predictions
+### ModelPredictCurrent - latest predictions
 
-**Purpose**: Generate predictions for the most recent period with SHAP values
+Purpose: generate predictions for the most recent period, with SHAP values.
 
-**Template**:
 ```python
 @d6tflow.requires(ModelTrain, FeaturesTransform)
 class ModelPredictCurrent(d6tflow.tasks.TaskPqPandas):
     """Generate predictions for current period"""
-    period_current = d6tflow.Parameter()  # e.g., '2025Q2', '2025-01-01'
+    period_current = d6tflow.Parameter()  # e.g. '2025Q2', '2025-01-01'
     persist = ['predictions', 'features', 'shap']
 
     def run(self):
-        # Get full dataset (includes current period)
         _, (df_all, df_X, _) = self.inputLoad()
         meta = self.metaLoad(key=0)
         model = meta['model']
@@ -414,43 +373,31 @@ class ModelPredictCurrent(d6tflow.tasks.TaskPqPandas):
 
         df_current = df_all[idx_current].copy()
         df_X_current = df_X[idx_current].copy()
-
-        # Generate predictions
         df_current['y_pred'] = model.predict(df_X_current)
 
-        # Calculate SHAP values for interpretability
+        # SHAP values for interpretability
         df_shap = pd.DataFrame()
         if 'shap-explainer' in meta:
             shap_values = meta['shap-explainer'](df_X_current)
             df_shap = pd.DataFrame(
-                shap_values.values,
-                columns=df_X_current.columns,
-                index=df_X_current.index
+                shap_values.values, columns=df_X_current.columns, index=df_X_current.index
             )
 
-        # Sort by prediction score
         df_current = df_current.sort_values('y_pred', ascending=False)
-
-        self.save({
-            'predictions': df_current,
-            'features': df_X_current,
-            'shap': df_shap
-        })
+        self.save({'predictions': df_current, 'features': df_X_current, 'shap': df_shap})
 ```
 
-**Key steps**:
-1. Filter to specific prediction period
-2. Use model trained on all historical data
-3. Calculate SHAP values for top predictions (interpretability)
-4. Sort by prediction score
+Key steps: filter to the prediction period; use the model trained on all historical
+data; calculate SHAP values for interpretability; sort by prediction score.
 
 ---
 
-## Common Feature Engineering Patterns
+## Common feature-engineering patterns
 
-### Time-Based Features
+### Time-based features
 
-**Year-over-Year Changes**:
+Year-over-year changes:
+
 ```python
 # For rates (use diff)
 df['unemployment_rate_yoy'] = df.groupby('entity_id')['unemployment_rate'].diff(4)
@@ -462,19 +409,22 @@ df['gdp_yoy'] = df.groupby('entity_id')['gdp'].pct_change(4, fill_method=None)
 df['gdp_yoy'] = df['gdp_yoy'].clip(df['gdp_yoy'].quantile(0.01), df['gdp_yoy'].quantile(0.99))
 ```
 
-**Moving Averages**:
+Moving averages:
+
 ```python
 df['price_ma_4'] = df.groupby('entity_id')['price'].transform(lambda x: x.rolling(4).mean())
 df['price_ma_12'] = df.groupby('entity_id')['price'].transform(lambda x: x.rolling(12).mean())
 ```
 
-**Momentum Features**:
+Momentum features:
+
 ```python
 df['momentum'] = df.groupby('entity_id')['price'].pct_change(4)
 df['acceleration'] = df.groupby('entity_id')['momentum'].diff(1)
 ```
 
-**Forward Targets** (for prediction):
+Forward targets (for prediction):
+
 ```python
 # Simple forward shift
 df['target_fwd'] = df.groupby('entity_id')['target'].shift(-forecast_periods)
@@ -486,66 +436,55 @@ def calc_cagr(x, periods_per_year):
 df['return_cagr'] = df.groupby('entity_id')['return'].rolling(12).apply(
     lambda x: calc_cagr(x, periods_per_year=4)
 ).reset_index(0, drop=True)
-
 df['return_cagr_fwd'] = df.groupby('entity_id')['return_cagr'].shift(-forecast_periods)
 ```
 
-### Cross-Sectional Features
+### Cross-sectional features
 
-**Percentile Ranking**:
 ```python
-# Rank within each time period (cross-sectional)
+# Percentile ranking within each time period
 df['feature_rank'] = df.groupby('date')['feature'].rank(pct=True)
-```
 
-**Relative to Benchmark**:
-```python
-# Entity feature vs median
+# Relative to benchmark (vs median)
 median_by_date = df.groupby('date')['feature'].transform('median')
 df['feature_vs_median'] = df['feature'] - median_by_date
-```
 
-**Sector-Relative**:
-```python
-# Rank within sector within time period
+# Sector-relative: rank within sector within time period
 df['feature_sector_rank'] = df.groupby(['date', 'sector'])['feature'].rank(pct=True)
 ```
 
 ---
 
-## SHAP Value Patterns
+## SHAP value patterns
 
-### During Training
+During training:
+
 ```python
 import shap
 explainer = shap.Explainer(model, df_X)
 self.saveMeta({'shap-explainer': explainer})
 ```
 
-### For Predictions
+For predictions:
+
 ```python
 explainer = meta['shap-explainer']
 shap_values = explainer(df_X)
-
-# Convert to DataFrame
-df_shap = pd.DataFrame(
-    shap_values.values,
-    columns=df_X.columns,
-    index=df_X.index
-)
+df_shap = pd.DataFrame(shap_values.values, columns=df_X.columns, index=df_X.index)
 ```
 
-### Feature Importance from SHAP
+Feature importance from SHAP:
+
 ```python
 # Mean absolute SHAP = feature importance
 mean_abs_shap = np.abs(shap_values.values).mean(axis=0)
 df_importance = pd.DataFrame({
-    'feature': df_X.columns,
-    'importance': mean_abs_shap
+    'feature': df_X.columns, 'importance': mean_abs_shap
 }).sort_values('importance', ascending=False)
 ```
 
-### Prediction Decomposition
+Prediction decomposition:
+
 ```python
 # Top features driving predictions
 top_features = df_shap.std().sort_values(ascending=False).index[:10].tolist()
@@ -555,96 +494,79 @@ df_breakdown = df_shap[top_features].copy()
 df_breakdown['base_value'] = explainer.expected_value
 df_breakdown['other_features'] = df_shap.sum(1) - df_shap[top_features].sum(1)
 df_breakdown['prediction'] = df_breakdown['base_value'] + df_shap.sum(1)
-
-# Validate
 assert np.allclose(df_breakdown['prediction'], predictions)
 ```
 
 ---
 
-## Best Practices
+## Best practices
 
-### Data Preparation
-- **Merge validation**: Check no duplicates, minimal data loss
-- **Sort before transformations**: Always sort by entity + time
-- **Handle missing values**: Drop after transformations, validate <20% loss
-- **No lookahead bias**: Never use future data in features (check shifts)
+Data preparation:
+- Merge validation: check no duplicates, minimal data loss.
+- Sort before transformations: always sort by entity + time.
+- Handle missing values: drop after transformations, validate <20% loss.
+- No lookahead bias: never use future data in features (check shifts).
 
-### Feature Engineering
-- **Rates vs levels**: Use `diff()` for rates, `pct_change()` for levels
-- **Clip outliers**: After pct_change, clip extreme values
-- **Cross-sectional ranks**: Use `groupby(date).rank(pct=True)`
-- **Time series features**: Use `groupby(entity_id).rolling()`
+Feature engineering:
+- Rates vs levels: use `diff()` for rates, `pct_change()` for levels.
+- Clip outliers after `pct_change`.
+- Cross-sectional ranks: `groupby('date').rank(pct=True)`.
+- Time-series features: `groupby('entity_id').rolling()`.
 
-### Model Training
-- **Exclude missing targets**: Filter before training (recent periods may lack forward returns)
-- **Set random_state**: Always for reproducibility
-- **Save in metadata**: Models go in metadata, not main output
-- **SHAP explainer**: Calculate during training, reuse for predictions
-- **Add predictions**: Include `y_pred` column in output DataFrame
+Model training:
+- Exclude missing targets before training.
+- Set `random_state` for reproducibility.
+- Save models in metadata, not the main output.
+- Calculate the SHAP explainer during training; reuse for predictions.
+- Add a `y_pred` column to the output.
 
-### Out-of-Sample Testing
-- **Use expanding window**: Train on [0:T], predict T+N
-- **Avoid lookahead**: Never train on future data
-- **Retrain each period**: For realistic backtest
+Out-of-sample testing:
+- Use an expanding window: train on [0:T], predict T+N.
+- Avoid lookahead: never train on future data.
+- Retrain each period for a realistic backtest.
 
-### SHAP Values
-- **Tree models only**: LGBM, RF, XGBoost (not linear models)
-- **Calculate once**: During training, save in metadata
-- **Reuse explainer**: From metadata for predictions
-- **Mean absolute**: For feature importance ranking
+SHAP values:
+- Tree models only (LGBM, RF, XGBoost - not linear models).
+- Calculate once during training, save in metadata.
+- Reuse the explainer from metadata for predictions.
+- Use mean absolute SHAP for feature-importance ranking.
 
 ---
 
-## Quick Reference
+## Quick reference
 
-**Common groupby operations**:
+Common groupby operations:
+
 ```python
-df.groupby('entity_id')['feature'].diff(4)          # YoY diff
-df.groupby('entity_id')['feature'].pct_change(4)    # YoY % change
-df.groupby('entity_id')['feature'].shift(-4)        # Forward shift
-df.groupby('date')['feature'].rank(pct=True)        # Cross-sectional rank
+df.groupby('entity_id')['feature'].diff(4)           # YoY diff
+df.groupby('entity_id')['feature'].pct_change(4)     # YoY % change
+df.groupby('entity_id')['feature'].shift(-4)         # Forward shift
+df.groupby('date')['feature'].rank(pct=True)         # Cross-sectional rank
 df.groupby('entity_id')['feature'].rolling(4).mean() # Moving average
 ```
 
-**Load model and metadata**:
+Load model and metadata:
+
 ```python
 meta = self.metaLoad(key=0)  # From first dependency
 model = meta['model']
 explainer = meta['shap-explainer']
 ```
 
-**Multiple outputs**:
-```python
-# Save
-self.save([df_all, df_X, df_y], from_list=True)
-
-# Load
-df_all, df_X, df_y = self.inputLoad()
-```
-
-**SHAP feature importance**:
-```python
-mean_abs_shap = np.abs(shap_values.values).mean(axis=0)
-```
-
 ---
 
-## Task Organization Checklist
+## Task organization checklist
 
 When building an ML pipeline, create these tasks in order:
 
-1. **FeaturesRaw**: Merge data sources, create base features
-2. **FeaturesTransform**: Transform features (normalize/rank), split X/y
-3. **ModelTrain**: Train model, save in metadata, calculate SHAP
-4. **ModelPerformanceIS**: In-sample metrics, feature importance
-5. **ModelPredictOS**: Out-of-sample backtest (expanding window)
-6. **ModelPredictCurrent**: Current period predictions with SHAP
-7. **RunAll**: Orchestration task (aggregates all steps)
+1. FeaturesRaw - merge data sources, create base features.
+2. FeaturesTransform - transform features (normalize/rank), split X/y.
+3. ModelTrain - train model, save in metadata, calculate SHAP.
+4. ModelPerformanceIS - in-sample metrics, feature importance.
+5. ModelPredictOS - out-of-sample backtest (expanding window).
+6. ModelPredictCurrent - current-period predictions with SHAP.
+7. RunAll - orchestration task (aggregates all steps).
 
-Each task should:
-- Have clear docstring describing purpose
-- Validate inputs/outputs with assertions
-- Return appropriate output format (DataFrame, dict, pickle)
-- Use meaningful variable names
-- Follow consistent naming conventions
+Each task should: have a clear docstring; validate inputs/outputs with assertions;
+return the appropriate output format (DataFrame, dict, pickle); use meaningful
+names and consistent conventions.

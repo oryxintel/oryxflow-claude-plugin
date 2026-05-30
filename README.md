@@ -8,18 +8,15 @@ It ships one skill, `d6tflow`, that activates when you work in a d6tflow project
 - editing `tasks.py` / `flow.py` / `run.py` / `cfg.py` / `flow_params.py`, adding
 or modifying pipeline tasks, running workflows, or analyzing outputs.
 
-## Contents
+## Quickstart
 
-```
-d6tflow-claude-plugin/
-|-- .claude-plugin/
-|   |-- plugin.json        # plugin manifest
-|   `-- marketplace.json   # lets this repo act as its own marketplace
-`-- skills/
-    `-- d6tflow/
-        |-- SKILL.md       # skill entry point (loaded into context)
-        `-- reference.md   # full reference, loaded on demand
-```
+Already installed? Two things to know:
+
+- Scaffold a new project: run `/d6tflow:project-init` in an empty directory.
+- Use it: just start working in a d6tflow project and the skill auto-activates,
+  or invoke it manually with `/d6tflow:d6tflow`.
+
+New here? Start with [Install](#install).
 
 ## Install
 
@@ -47,10 +44,43 @@ Or with a full git URL:
 /plugin install d6tflow@d6tflow
 ```
 
-Once installed, invoke the skill manually with `/d6tflow:d6tflow`, or let Claude
-auto-activate it when you work in a d6tflow project.
+To pull a newer version later: `/plugin marketplace update d6tflow`.
 
-## Local development
+## Start a new project
+
+In an empty directory, scaffold a runnable d6tflow project:
+
+```
+/d6tflow:project-init
+```
+
+This copies a minimal template into the current directory - the project wiring
+(`tasks.py`, `cfg.py`, `flow.py`, `run.py`, `flow_params.py`, `visualize.py`),
+a project `CLAUDE.md`, a `.gitignore` / `.creds.yaml.example`, and a
+`docs/d6tflow-data.md` skeleton for data findings. It never overwrites existing
+files. `python run.py` works immediately; replace the `PLACEHOLDER SCAFFOLD`
+tasks with your real pipeline (documented via task docstrings) and fill
+`docs/d6tflow-data.md` as you learn about the data.
+
+## Using the skill
+
+Once installed, the skill is always available - there is nothing to turn on per
+session. It auto-activates when you work in a d6tflow project: editing the
+pipeline files, adding or modifying tasks, running flows, or analyzing outputs.
+You can also invoke it explicitly any time with `/d6tflow:d6tflow`.
+
+Things you can ask, in plain language:
+
+- "what does this pipeline do?" - summarize the flow
+- "explore the data" - opt-in deep dive that profiles `data/` and writes findings
+- "create a task `<Name>` that does ..." / "make `<Task>` depend on `<Other>`"
+- "add a parameter `<name>`" / "change `<param>` to `<value>`"
+- "run the flow" - runs `python run.py`
+- "preview the flow" / "what will run?" - shows `flow.preview()`
+- "re-run `<Task>`" - force a cached task to recompute
+- "load the output of `<Task>`" / "plot the results"
+
+## Developing the plugin
 
 Iterate without installing - load the plugin directly for one session:
 
@@ -59,11 +89,45 @@ claude --plugin-dir /path/to/d6tflow-claude-plugin
 claude --plugin-dir D:\OneDrive\dev\d6tlib\d6tflow-claude-plugin   # e.g.
 ```
 
-After editing `SKILL.md` / `reference.md`, run `/reload-plugins` to pick up
-changes. Validate the manifests with `/plugin validate .` (or
-`claude plugin validate .`).
+After editing any plugin file (`SKILL.md`, `reference.md`, `commands/*`,
+`resources/*`), run `/reload-plugins` to pick up changes - the files are read
+live from disk, so no version bump or reinstall is needed. Validate the
+manifests with `/plugin validate .` (or `claude plugin validate .`).
 
-## Releasing
+`/reload-plugins` only works in this `--plugin-dir` mode. If you instead
+*installed* the plugin (from git or a local clone), edits do not show up via
+reload - you have to release them (below) and run
+`/plugin marketplace update d6tflow`. Running both `--plugin-dir` and an install
+on the same machine gives two copies that can drift, so pick one: `--plugin-dir`
+for development, an install for real use.
 
-Bump `version` in `.claude-plugin/plugin.json` and commit. Installs that track
-this repo pick up the new version on `/plugin marketplace update d6tflow`.
+### Releasing
+
+1. Set `version` in `.claude-plugin/plugin.json` to the release date in `YY.M.D`
+   format (e.g. `26.5.30`; append `.N` for multiple releases in a day).
+2. Add a dated entry to `docs/CHANGELOG.md`.
+3. Commit (and push, if consumers install from git).
+
+Installed copies pick up the change when their owner runs
+`/plugin marketplace update d6tflow`. The version bump is the signal that there
+is something new - skip it and the update may not register. (Git installs with
+no pinned version fall back to the commit SHA, so a new commit counts as new;
+but since we set an explicit version, it must be bumped.)
+
+## Contents
+
+```
+d6tflow-claude-plugin/
+|-- .claude-plugin/
+|   |-- plugin.json        # plugin manifest
+|   `-- marketplace.json   # lets this repo act as its own marketplace
+|-- commands/
+|   `-- project-init.md    # /d6tflow:project-init - scaffold a new project
+|-- resources/
+|   `-- template-minimal/  # the files project-init copies into a new project
+`-- skills/
+    `-- d6tflow/
+        |-- SKILL.md       # skill entry point (loaded into context)
+        |-- reference.md   # full reference, loaded on demand
+        `-- ml-patterns.md # ML pipeline task templates, loaded on demand
+```

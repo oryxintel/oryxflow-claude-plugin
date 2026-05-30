@@ -21,30 +21,50 @@ operations - use the existing project files.
 
 For the full library reference (task types, advanced patterns, data-science
 recipes, debugging table, deep project-structure walkthrough), see
-[reference.md](reference.md). Load it on demand when you need detail beyond the
-essentials below.
+[reference.md](reference.md). For machine-learning pipelines (feature
+engineering, model training, SHAP, expanding-window backtests), see
+[ml-patterns.md](ml-patterns.md). Load either on demand when you need detail
+beyond the essentials below.
 
 ---
 
-## Session Start: Read the Docs, Don't Re-Scan
+## Session Start: Orient from Code + Data Doc, Don't Re-Scan
 
-This project carries its own memory in two files. Read them FIRST on every
-session and treat them as the source of truth - do NOT re-explore the whole
-project to rediscover what they already record.
+A d6tflow project documents itself in two places. Read these FIRST and trust
+them - do NOT re-explore the whole project to rediscover what they already say:
 
-- `docs/claude-project.md` - the pipeline: tasks, dependencies, parameters.
-- `docs/claude-data-doc.md` - the data: schema, quality issues, business rules,
-  quirks.
+- **The pipeline lives in the code.** `tasks.py` carries a module docstring (the
+  workflow's goal/overview) and a docstring on each task (what it does); the DAG
+  is the `@d6tflow.requires(...)` decorators (`flow.preview()` summarizes it for
+  complex graphs); parameter meaning is commented where set in `flow_params.py`.
+  There is NO separate pipeline doc - the code is the source of truth, so it
+  cannot drift.
+- **`docs/d6tflow-data.md`** - the data: sources, schema, quality issues,
+  business rules, quirks. This is the one fact set with no code home (findings
+  about external data, accumulated over time), so it lives in a file. A bigger
+  project may split it into more `docs/d6tflow-data*.md` files (e.g. per source).
+
+### The PLACEHOLDER marker tells you what is real
+
+One uniform signal: a `PLACEHOLDER` marker means "not real yet - replace it, do
+not trust it as a project fact."
+
+- `tasks.py` / `flow_params.py` carry `# PLACEHOLDER SCAFFOLD` above the dummy
+  logic (and the `tasks.py` module docstring is a placeholder until the real
+  goal is written).
+- `docs/d6tflow-data.md` carries a `PLACEHOLDER` comment on line 1.
+
+No `PLACEHOLDER` markers left anywhere = a real, captured project.
 
 ### Default invocation is LIGHTWEIGHT - do not auto-explore
 
 When the skill loads (e.g. plain `/d6tflow`) with no specific task, orient
 cheaply and then STOP. Do the minimum:
 
-1. Read both docs if they exist.
-2. If docs are missing, glance at the content files only to classify the project:
-   does `tasks.py` still carry the `PLACEHOLDER SCAFFOLD` marker? -> fresh
-   scaffold. Otherwise -> built pipeline (docs just not written yet).
+1. Read the `tasks.py` module docstring + task docstrings, and
+   `docs/d6tflow-data.md`. If the markers are gone, trust them.
+2. If `tasks.py` still carries `PLACEHOLDER SCAFFOLD` -> fresh scaffold.
+   Otherwise -> built pipeline (data doc maybe just not written yet).
 3. Report the state in a sentence or two and ask what the user wants to do.
    For a built pipeline, summarize what it does. For a fresh scaffold, give the
    friendly onboarding orientation below instead of describing scaffold guts.
@@ -70,6 +90,11 @@ Instead, welcome the user and orient them toward getting started. Cover, briefly
 - How to **run the flow**: `python run.py` (it runs the final task set in
   `flow.py`); preview first with `flow.preview()`.
 
+You can mention they can drive all of this in plain language - e.g. "create a
+task `<Name>` that does ...", "make `<Task>` depend on `<Other>`", "run the
+flow", "preview the flow", "re-run `<Task>`", "load the output of `<Task>`", or
+"explore the data". Keep this to a couple of examples, not a full catalog.
+
 Then offer the two natural next steps and ask which they want:
 - `/d6tflow explore` - if they already have source data in `data/` to inspect.
 - Describe the analysis goal + inputs, and you will replace the scaffold with
@@ -81,15 +106,17 @@ Do NOT, on a plain invocation: list/inspect `data/`, read raw source files,
 write or run `eda/` scripts, or build the docs. That is expensive exploration
 and it is the USER's call to start it - see "Deep exploration is opt-in" below.
 
-When the user DOES give a concrete task: if docs are present and current, trust
-them and open only the files that task touches. Don't broadly re-scan to
-re-derive structure the docs already describe.
+When the user DOES give a concrete task: if the code is documented (docstrings)
+and the data doc is filled, trust them and open only the files that task touches.
+Don't broadly re-scan to re-derive what they already describe.
 
-The docs are the cache. Keep them accurate and the per-session scan disappears.
+The docstrings and the data doc are where the project writes down what it knows -
+keep them accurate and the per-session re-scan disappears.
 
-Do NOT pre-create empty doc files. Their absence is the signal "not captured yet
--> scan." An empty-but-present file would defeat that check. Create a doc only
-when you have real content to put in it, using the templates below.
+Document pipeline meaning IN THE CODE: a module docstring at the top of `tasks.py`
+for the workflow goal, a docstring on each task for what it does. Capture data
+findings in `docs/d6tflow-data.md`, deleting its `PLACEHOLDER` marker once filled.
+Do not leave a marker on something you have actually filled.
 
 ### Deep exploration is opt-in
 
@@ -108,9 +135,10 @@ When explore IS requested:
   check it if `data/` has no raw files.
 - Inspect schema with an `eda/` script (per the no-inline-Python rule), not ad
   hoc commands.
-- Capture what you learn into `docs/claude-project.md` + `docs/claude-data-doc.md`
-  (templates below) so the next session reads instead of re-exploring. This
-  write-up is the payoff of exploring - don't skip it.
+- Capture what you learn: data findings into `docs/d6tflow-data.md` (fill the
+  scaffolded skeleton, removing the `PLACEHOLDER` marker); pipeline meaning as
+  docstrings in `tasks.py` (module docstring for the goal, a docstring per task).
+  This write-up is the payoff of exploring - don't skip it.
 
 ### Recognizing a fresh scaffold (the PLACEHOLDER marker)
 
@@ -128,9 +156,14 @@ Use this marker to orient cheaply:
   `PLACEHOLDER SCAFFOLD` marker, nothing project-specific has been built yet.
   That marker IS the "fresh scaffold" signal - you do not need to read and judge
   the logic to decide. Your job is to REPLACE the marked block, not extend it.
+- **Data doc** (`docs/d6tflow-data.md`) - same rule: a `PLACEHOLDER` marker on
+  line 1 means not captured yet. Filling it means writing real facts and deleting
+  that marker line.
 
 When you build the real pipeline, delete the `PLACEHOLDER SCAFFOLD` lines along
-with the dummy logic. Their absence (plus populated docs) signals "real project."
+with the dummy logic, write a real `tasks.py` module docstring + task docstrings,
+and fill the data doc (removing its marker). A project with no `PLACEHOLDER`
+markers left anywhere is a real, captured project.
 
 ---
 
@@ -272,20 +305,22 @@ class NewTask(d6tflow.tasks.TaskPqPandas):
         # process data
         self.save(df_processed)
 ```
-2. Add parameters to `flow_params.py`: `params['param1'] = 'value'`
+2. Add parameters to `flow_params.py`: `params['param1'] = 'value'` (comment what
+   the parameter means there).
 3. If it is the new final task, set `task = tasks.NewTask` in `flow.py`.
-4. Document it in `docs/claude-project.md`.
+4. Give the task a clear docstring (that IS its documentation); update the
+   `tasks.py` module docstring if the workflow's goal changed.
 
 ### Modify an existing task
 1. Edit the task in `tasks.py`.
 2. Force re-run: uncomment `flow.reset(tasks.ModifiedTask)` in `run.py`.
 3. Run `python run.py`.
-4. Update `docs/claude-project.md`.
+4. Keep the task's docstring accurate.
 
 ### Change parameters
 1. Edit `flow_params.py`: `params['param'] = 'new_value'`.
 2. Run `python run.py` (the change is auto-detected).
-3. Update `docs/claude-project.md` if the parameter meaning changed.
+3. Update the parameter's comment in `flow_params.py` if its meaning changed.
 
 ### Debug workflow issues
 ```python
@@ -313,78 +348,34 @@ flow.reset(tasks.Task); flow.run()     # Force re-run
 
 ## Project Documentation to Maintain
 
-These files are per-project (not part of this skill). They are the session cache
-read at "Session Start" above - keeping them current is what lets future
-sessions skip re-scanning, so update them as part of the same change, not later:
+This is what a future session reads at "Session Start" above to skip
+re-scanning, so update it as part of the same change, not later. Document in code
+by default; use a file only for what has no code home:
 
-- `docs/claude-project.md` - THIS project's tasks, dependencies, parameters.
-  Update after adding tasks or changing parameters/dependencies/logic.
-- `docs/claude-data-doc.md` - Data findings: schema, quality issues, business
-  rules, quirks. Update when discovering schema details or data issues.
+- **Pipeline -> in the code.** Per-task meaning is the task docstring; the
+  workflow goal/overview is the `tasks.py` module docstring; parameter meaning is
+  a comment where set in `flow_params.py`; structure is the
+  `@d6tflow.requires(...)` decorators (`flow.preview()` summarizes it). Do NOT
+  keep a separate pipeline doc - it would only duplicate the code and drift.
+- **`docs/d6tflow-data.md`** - data findings: sources, schema, quality issues,
+  business rules, quirks. This has no code home (findings about external data,
+  accumulated over time), so it lives in a file. Update when you discover schema
+  details or data issues.
 
 If you finish a change without updating these, the next session pays the scan
-cost you just avoided. Treat the doc update as part of "done."
+cost you just avoided. Treat it as part of "done."
 
-### Doc templates
-
-Use these skeletons when first creating the docs. Keep them short and factual -
-they are a cache to read fast, not prose. Fill what is known; for a fresh
-scaffold, say so plainly (e.g. "boilerplate GetData/Process, no real data yet").
-
-`docs/claude-project.md`:
-```markdown
-# <project> - Pipeline
-
-## Goal
-<1-2 lines: what this workflow produces and why>
-
-## Pipeline (task DAG)
-<UpstreamTask> -> <DownstreamTask> -> <FinalTask>
-
-| Task | Type | Depends on | Does |
-|------|------|-----------|------|
-| GetData | TaskPqPandas | - | <what it loads/produces> |
-| Process | TaskPqPandas | GetData | <transformation> |
-
-## Parameters
-| Name | Type | Default | Meaning |
-|------|------|---------|---------|
-| <param> | <Parameter type> | <default> | <what it controls> |
-
-## Flow config
-- Final task: <tasks.X>  (set in flow.py)
-- Params source: flow_params.py
-
-## Open questions / TODO
-- <unknowns, placeholders still to replace>
-```
-
-`docs/claude-data-doc.md`:
-```markdown
-# <project> - Data
-
-## Sources
-- <file / DB / API>: <what it is, how accessed>
-
-## Schema
-| Column | Type | Notes |
-|--------|------|-------|
-| <col> | <dtype> | <meaning, units> |
-
-## Quality issues & quirks
-- <nulls, dupes, encoding, outliers, gotchas>
-
-## Business rules
-- <domain rules that affect transforms>
-
-## Open questions
-- <unresolved data questions>
-```
+A project scaffolded with `/d6tflow:project-init` ships `docs/d6tflow-data.md` as
+a short `PLACEHOLDER` skeleton; fill it in place and delete the marker line. If it
+is absent, recreate it with the headings: sources / schema / quality issues /
+business rules / open questions.
 
 ---
 
 ## Additional Resources
 
 - [reference.md](reference.md) - comprehensive d6tflow patterns and reference.
+- [ml-patterns.md](ml-patterns.md) - ML pipeline task templates (features,
+  training, SHAP, expanding-window backtest). Load on demand for ML work.
 - d6tflow docs: https://d6tflow.readthedocs.io/
 - d6tflow GitHub: https://github.com/d6t/d6tflow

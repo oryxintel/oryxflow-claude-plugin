@@ -49,7 +49,6 @@ class LoadData(d6tflow.tasks.TaskPqPandas):
 | Task Type | Output Format | Use Case |
 |-----------|---------------|----------|
 | `TaskPqPandas` | Parquet | DataFrames (default choice, fast) |
-| `TaskCachePandas` | Pickle | DataFrames (legacy, slower) |
 | `TaskCSVPandas` | CSV | DataFrames (human-readable) |
 | `TaskExcelPandas` | Excel | DataFrames (for reports) |
 | `TaskPickle` | Pickle | Any Python object (models, dicts, lists) |
