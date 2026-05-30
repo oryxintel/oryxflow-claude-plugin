@@ -1,0 +1,14 @@
+{
+  "name": "d6tflow",
+  "owner": {
+    "name": "Oryx Intel",
+    "email": "dev@oryxintel.com"
+  },
+  "plugins": [
+    {
+      "name": "d6tflow",
+      "source": "./",
+      "description": "Build and work with d6tflow data-science pipelines (tasks, dependencies, parameters, caching, reproducible workflows)."
+    }
+  ]
+}
