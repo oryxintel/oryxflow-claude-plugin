@@ -71,16 +71,24 @@ claude --plugin-dir D:\OneDrive\dev\d6tlib\d6tflow-claude-plugin   # load withou
 
 ## Release
 
-1. Edit skill / docs.
-2. Set `version` in `.claude-plugin/plugin.json` to the release date in
-   `YY.M.D` format (e.g. `26.5.30`). Use no zero-padding. If you cut more than
-   one release in a day, append a counter (`26.5.30.1`, `26.5.30.2`).
-3. Add a dated entry to `docs/CHANGELOG.md`.
-4. Commit. Consumers tracking this repo get it via
+There is no `[Unreleased]` bucket. The TOP section of `docs/CHANGELOG.md` is the
+current working version (heading `## [YY.M.D[.N]] - YYYY-MM-DD`), and its version
+string matches `.claude-plugin/plugin.json`. While iterating, just add bullets to
+that top section under `### Added` / `### Changed` / `### Removed` - no promotion
+step.
+
+1. Edit skill / docs, and add a bullet to the top changelog section as you go.
+2. Decide the version when you cut a release:
+   - Same day, not yet consumed: keep the current `YY.M.D[.N]` as-is.
+   - New day, or a clean cut you want consumers to pull: start a NEW top section
+     with today's date (`YY.M.D`, no zero-padding; append `.N` for a second
+     release the same day) and set the matching `version` in `plugin.json`.
+3. Commit. Consumers tracking this repo get it via
    `/plugin marketplace update d6tflow`.
 
-If `version` is omitted, git installs pin to the commit SHA (every commit is a
-new version). We set an explicit version, so it MUST be bumped for updates to
+The changelog's top version and `plugin.json` `version` must always match. If
+`version` is omitted, git installs pin to the commit SHA (every commit is a new
+version). We set an explicit version, so it MUST be bumped for updates to
 propagate cleanly.
 
 ## Source-of-truth notes

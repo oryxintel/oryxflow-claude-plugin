@@ -123,9 +123,15 @@ for development, an install for real use.
 
 ### Releasing
 
-1. Set `version` in `.claude-plugin/plugin.json` to the release date in `YY.M.D`
-   format (e.g. `26.5.30`; append `.N` for multiple releases in a day).
-2. Add a dated entry to `docs/CHANGELOG.md`.
+The top section of `docs/CHANGELOG.md` is the current working version, and its
+version string matches `.claude-plugin/plugin.json`. There is no "Unreleased"
+bucket - add changelog bullets to that top section as you work.
+
+1. Add a changelog bullet for each change as you make it.
+2. To cut a release for consumers, set `version` in `.claude-plugin/plugin.json`
+   to the release date in `YY.M.D` format (e.g. `26.5.30`; append `.N` for
+   multiple releases in a day) and give the top changelog section the matching
+   heading.
 3. Commit (and push, if consumers install from git).
 
 Installed copies pick up the change when their owner runs
