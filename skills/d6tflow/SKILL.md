@@ -8,10 +8,11 @@ description: >-
 when_to_use: >-
   Trigger on requests like: add a new task that depends on an existing one
   (wired with @d6tflow.requires), create a task that loads a source, add a task
-  with multiple inputs, make one task depend on another, set the final task, or
-  add / change a parameter; run the flow, preview it (flow.preview), check what
-  is cached, or re-run / reset a task; load or plot a task's output; explore or
-  inspect the data (the opt-in deep dive); or summarize what the pipeline does.
+  with multiple inputs, update / modify an existing task, make one task depend on
+  another, set the final task, or add / change a parameter; run the flow, preview
+  it (flow.preview), check what is cached, or re-run / reset a task (reset before
+  re-running an edited task); load or plot a task's output; explore or inspect
+  the data (the opt-in deep dive); or summarize what the pipeline does.
 argument-hint: "[explore]"
 allowed-tools: Read Edit Write Grep Glob Bash
 shell: powershell
@@ -239,7 +240,9 @@ ALWAYS do this:
 - **Modify workflow logic** - Edit `tasks.py` (task classes),
   `flow_params.py` (parameters), or `flow.py` (which final task runs).
 - **Run the workflow** - Edit `run.py` if needed (e.g. uncomment reset calls),
-  then run `python run.py`.
+  then run `python run.py`. If a task's CODE was just edited, reset it first
+  (`flow.reset(tasks.X)`) - a plain run skips edited-but-unreset tasks. See
+  "Modify an existing task".
 - **Analyze outputs** - Edit `visualize.py` then run `python visualize.py`,
   or use `visualize.ipynb` interactively.
 
@@ -325,15 +328,25 @@ class NewTask(d6tflow.tasks.TaskPqPandas):
 4. Give the task a clear docstring (that IS its documentation); update the
    `tasks.py` module docstring if the workflow's goal changed.
 
-### Modify an existing task
-1. Edit the task in `tasks.py`.
-2. Force re-run: uncomment `flow.reset(tasks.ModifiedTask)` in `run.py`.
-3. Run `python run.py`.
+### Modify an existing task (the common iterate loop)
+1. Edit the task's `run()` in `tasks.py`.
+2. RESET IT BEFORE RUNNING. A code edit does NOT change the task's identity
+   (class + parameters), so d6tflow still considers it complete and a plain
+   `python run.py` will SKIP it and reuse the stale cached output. Reset the task
+   first: `flow.reset(tasks.ModifiedTask)`. Reset cascades downstream, so the one
+   reset also forces the tasks that depend on it to recompute.
+3. Run: add/uncomment `flow.reset(tasks.ModifiedTask)` in `run.py`, run
+   `python run.py`, then re-comment the reset line.
 4. Keep the task's docstring accurate.
+
+**Iterate-then-run rule**: if a task's code was edited this session (by you or
+the user) and you are then asked to "run the flow", do reset-then-run for that
+task - do NOT just `python run.py`, or the edit silently does nothing.
 
 ### Change parameters
 1. Edit `flow_params.py`: `params['param'] = 'new_value'`.
-2. Run `python run.py` (the change is auto-detected).
+2. Run `python run.py`. A parameter change IS auto-detected (it changes task
+   identity), so no reset is needed - unlike a code edit.
 3. Update the parameter's comment in `flow_params.py` if its meaning changed.
 
 ### Debug workflow issues

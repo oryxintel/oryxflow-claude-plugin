@@ -88,7 +88,9 @@ Build the pipeline:
 Run and inspect:
 - "run the flow" - runs `python run.py`
 - "preview the flow" / "what will run?" - shows `flow.preview()`
-- "re-run `<Task>`" / "reset `<Task>` and downstream" - recompute cached tasks
+- "update `<Task>` to ..." then "run the flow" - after a code edit the skill
+  resets the task before running (an unreset edit is silently skipped)
+- "re-run `<Task>`" / "reset `<Task>`" - recompute it; reset cascades downstream
 - "load the output of `<Task>`" / "plot the results"
 
 Understand:

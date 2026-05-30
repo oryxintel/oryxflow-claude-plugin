@@ -239,8 +239,17 @@ df_train = flow.outputLoad(SplitData, keys='train')  # Specific persist
 meta = flow.metaLoad(TrainModel)          # Metadata
 ```
 
-**When to reset**: Source data changed, task code changed, parameters changed
-(usually auto-detected), want fresh results.
+**When to reset**: Source data changed, task code changed, or you want fresh
+results. `flow.reset(TaskName)` cascades to downstream tasks, so resetting the
+one task you changed is enough.
+
+**Code edits vs parameter changes (the iterate gotcha)**: d6tflow caches by task
+identity = class + parameters. A PARAMETER change creates a new identity, so it
+is auto-detected and reruns on the next `flow.run()` with no reset. A CODE edit
+(changing a task's `run()` body) does NOT change identity - d6tflow still treats
+the task as complete and SKIPS it, reusing the stale output. So after editing a
+task's code you MUST `flow.reset(thatTask)` before running, or the edit silently
+has no effect. This is the most common d6tflow surprise when iterating.
 
 ### Important: Trust Auto File Management
 

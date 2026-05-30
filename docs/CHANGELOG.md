@@ -7,6 +7,12 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 ## [Unreleased]
 
 ### Added
+- Iterate-then-run guidance for the common data-science loop: d6tflow caches by
+  task identity (class + params), so PARAMETER changes auto-detect but CODE edits
+  do NOT - an edited-but-unreset task is silently skipped on the next run. The
+  skill now mandates `flow.reset(<EditedTask>)` (which cascades downstream)
+  before running an edited task, and treats "edited a task, now run the flow" as
+  reset-then-run. Captured in SKILL.md ("Modify an existing task") and reference.md.
 - `docs/design/architecture.md` - a system map for developers (human or Claude):
   component table, the three interacting artifacts, load tiers, control/data
   flows, invariants, and a "where to change X" playbook. Linked as read-first
