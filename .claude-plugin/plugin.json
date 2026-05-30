@@ -1,17 +1,17 @@
 {
   "name": "d6tflow",
-  "description": "Build and work with d6tflow data-science pipelines (Luigi-based: tasks, dependencies, parameters, caching, reproducible workflows).",
+  "description": "Build highly effective data science workflows with d6tflow - chain parameterized tasks with dependencies, cache intermediate results, and rerun intelligently after code or parameter changes to build better models faster.",
   "version": "26.5.30.1",
   "author": {
-    "name": "Oryx Intel",
-    "email": "dev@oryxintel.com"
+    "name": "d6t",
+    "email": "dev@databolt.tech"
   },
+  "homepage": "https://databolt.tech",
   "license": "MIT",
   "keywords": [
     "d6tflow",
     "data-science",
     "pipeline",
-    "luigi",
     "workflow"
   ]
 }

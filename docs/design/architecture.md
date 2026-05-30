@@ -13,7 +13,7 @@ it points to them:
 ## What this is (one paragraph)
 
 A single-skill Claude Code plugin for working in d6tflow data-science projects
-(d6tflow = a Luigi-based pipeline library). It ships the `d6tflow` skill (model-
+(d6tflow = a data-pipeline library). It ships the `d6tflow` skill (model-
 activated guidance) and a `/d6tflow:project-init` command (manual scaffold of a
 new project). The repo is also its own marketplace, so it installs directly from
 git or a local path.

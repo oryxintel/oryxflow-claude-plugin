@@ -1,16 +1,17 @@
 ---
 name: d6tflow
 description: >-
-  Build and work with d6tflow data-science pipelines (Luigi-based: tasks,
-  dependencies, parameters, caching, reproducible workflows). Use when working
-  in a d6tflow project - the tasks.py / flow.py / run.py / cfg.py /
-  flow_params.py files, pipeline tasks, workflow runs, or output analysis.
+  Build highly effective data science workflows with d6tflow (parameterized
+  tasks, dependencies, caching, reproducible pipelines). Use when working in a
+  d6tflow project - the tasks.py / flow.py / run.py / cfg.py / flow_params.py
+  files, pipeline tasks, workflow runs, or output analysis.
 when_to_use: >-
-  Trigger on requests like: create or modify a task, make one task depend on
-  another, add or change a parameter, set the final task; run the flow, preview
-  the flow (flow.preview), check what is cached, or re-run / reset a task; load
-  or plot a task's output; explore or inspect the data (the opt-in deep dive);
-  or summarize what the pipeline does.
+  Trigger on requests like: add a new task that depends on an existing one
+  (wired with @d6tflow.requires), create a task that loads a source, add a task
+  with multiple inputs, make one task depend on another, set the final task, or
+  add / change a parameter; run the flow, preview it (flow.preview), check what
+  is cached, or re-run / reset a task; load or plot a task's output; explore or
+  inspect the data (the opt-in deep dive); or summarize what the pipeline does.
 argument-hint: "[explore]"
 allowed-tools: Read Edit Write Grep Glob Bash
 shell: powershell
@@ -18,8 +19,10 @@ shell: powershell
 
 # Working with d6tflow Data Science Projects
 
-d6tflow is a Python library (built on Luigi) for reproducible, cacheable data
-pipelines with automatic dependency management and incremental computation.
+d6tflow is a Python library for building highly effective data science
+workflows. It lets you chain together complex, parameterized data flows and
+execute them, caching intermediate results and rerunning intelligently after
+code or parameter changes - so you build better models faster.
 
 **Key Principle**: Follow the established project structure and file
 organization. DO NOT create ad-hoc scripts or inline commands for workflow
@@ -101,10 +104,10 @@ Instead, welcome the user and orient them toward getting started. Cover, briefly
 - How to **run the flow**: `python run.py` (it runs the final task set in
   `flow.py`); preview first with `flow.preview()`.
 
-You can mention they can drive all of this in plain language - e.g. "create a
-task `<Name>` that does ...", "make `<Task>` depend on `<Other>`", "run the
-flow", "preview the flow", "re-run `<Task>`", "load the output of `<Task>`", or
-"explore the data". Keep this to a couple of examples, not a full catalog.
+You can mention they can drive all of this in plain language - e.g. "add a task
+`<Name>` that takes `<Upstream>`'s output and ..." (a new task wired with
+`@d6tflow.requires`), "run the flow", "load the output of `<Task>`", or "explore
+the data". Keep this to a couple of examples, not a full catalog.
 
 Then offer the two natural next steps and ask which they want:
 - `/d6tflow explore` - if they already have source data in `data/` to inspect.

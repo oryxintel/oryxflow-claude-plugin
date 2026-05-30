@@ -1,9 +1,10 @@
 {
   "name": "d6tflow",
   "owner": {
-    "name": "Oryx Intel",
-    "email": "dev@oryxintel.com"
+    "name": "d6t",
+    "email": "dev@databolt.tech"
   },
+  "description": "d6t marketplace for the d6tflow plugin - build highly effective data science workflows in Claude Code with d6tflow: parameterized, dependency-aware, cached tasks.",
   "plugins": [
     {
       "name": "d6tflow",

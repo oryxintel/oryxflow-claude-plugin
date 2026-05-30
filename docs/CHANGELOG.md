@@ -13,17 +13,35 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   from the root `CLAUDE.md`. Moved `design-notes.md` into `docs/design/`
   alongside it (rationale companion to the map).
 - Fresh-scaffold onboarding now surfaces a couple of plain-language example
-  requests ("create a task ...", "run the flow", "explore the data", etc.) so a
-  first-time user learns how to drive the skill. Mirrored as a "Things you can
-  ask" list in `README.md` under "Using the skill".
+  requests ("run the flow", "explore the data", etc.) so a first-time user
+  learns how to drive the skill. Mirrored as a "Things you can ask" list in
+  `README.md` under "Using the skill". The examples lead with the most common
+  build action - adding a new task wired to an upstream via `@d6tflow.requires`
+  - and the README list adds the root-task and multiple-input variants.
 - `when_to_use` frontmatter on the skill, carrying the invocation trigger
   phrases (create/modify task, run/preview the flow, re-run/reset, load/plot
   output, explore the data, summarize the pipeline) - the documented home for
   example invocations, used for auto-activation discovery.
 - `argument-hint: [explore]` on the skill so the `explore` deep-dive argument
   shows during autocomplete.
+- Top-level `description` in `marketplace.json` (was missing; the marketplace
+  listing showed a blank line for it).
+- `README.md` "Resources" section linking the upstream d6tflow docs / source for
+  the invoking user, with a placeholder note that the plugin's own public repo /
+  `homepage` / `repository` links will go there once the repo is public.
 
 ### Changed
+- Owner/author is now `d6t` / `dev@databolt.tech` (was `Oryx Intel` /
+  `dev@oryxintel.com`) in both manifests; added `homepage: https://databolt.tech`
+  to `plugin.json` and a "Maintainer" link in the README "Resources" section.
+- Removed all "Luigi" references (manifests, README, SKILL.md, reference.md,
+  template `CLAUDE.md`, architecture notes, and the `luigi` keyword) - d6tflow is
+  described on its own terms now.
+- Aligned every d6tflow description (both manifests, README intro, SKILL.md
+  body + frontmatter, reference.md) to the library's official framing: "build
+  highly effective data science workflows ... chain complex parameterized data
+  flows, cache intermediate results, rerun intelligently, build better models
+  faster" (was generic "reproducible data pipelines").
 - Tightened the skill `description` (what it does + core trigger) now that
   `when_to_use` carries the example requests; the two share a 1,536-char cap.
 - Skill body notes that `/d6tflow` / `/d6tflow explore` are shorthand for the

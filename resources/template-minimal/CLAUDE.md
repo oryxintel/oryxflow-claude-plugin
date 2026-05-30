@@ -1,7 +1,7 @@
 # CLAUDE.md - d6tflow data-science project
 
-This is a d6tflow data-science pipeline (Luigi-based: tasks, dependencies,
-parameters, caching). Follow the established project structure - do NOT create
+This is a d6tflow data-science pipeline (tasks, dependencies, parameters,
+caching). Follow the established project structure - do NOT create
 ad-hoc scripts or inline commands for workflow operations.
 
 ## Orientation: read the code + data doc first

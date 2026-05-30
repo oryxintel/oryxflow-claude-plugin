@@ -1,8 +1,10 @@
 # d6tflow plugin
 
-A Claude Code plugin for building and working with
-[d6tflow](https://github.com/d6t/d6tflow) data-science pipelines (Luigi-based:
-tasks, dependencies, parameters, caching, reproducible workflows).
+A Claude Code plugin for building highly effective data science workflows with
+[d6tflow](https://github.com/d6t/d6tflow): chain together complex,
+parameterized data flows with dependencies and caching, and rerun them
+intelligently after code or parameter changes - so you build better models
+faster.
 
 It ships one skill, `d6tflow`, that activates when you work in a d6tflow project
 - editing `tasks.py` / `flow.py` / `run.py` / `cfg.py` / `flow_params.py`, adding
@@ -75,14 +77,25 @@ Scaffolding a new project is a separate, manually-triggered command -
 
 Things you can ask, in plain language:
 
-- "what does this pipeline do?" - summarize the flow
-- "explore the data" - opt-in deep dive that profiles `data/` and writes findings
-- "create a task `<Name>` that does ..." / "make `<Task>` depend on `<Other>`"
-- "add a parameter `<name>`" / "change `<param>` to `<value>`"
+Build the pipeline:
+- "add a task `<Name>` that takes `<Upstream>`'s output and ..." - the common
+  case: a new task wired to an upstream with `@d6tflow.requires(<Upstream>)`
+- "create a task `<Name>` that loads `<source>`" - a root task (no dependency)
+- "add a task `<Name>` that depends on `<A>` and `<B>`" - multiple inputs
+- "make `<Task>` depend on `<Other>`" / "set `<Task>` as the final task"
+- "add a parameter `<name>` to `<Task>`" / "change `<param>` to `<value>`"
+
+Run and inspect:
 - "run the flow" - runs `python run.py`
 - "preview the flow" / "what will run?" - shows `flow.preview()`
-- "re-run `<Task>`" - force a cached task to recompute
+- "re-run `<Task>`" / "reset `<Task>` and downstream" - recompute cached tasks
 - "load the output of `<Task>`" / "plot the results"
+
+Understand:
+- "what does this pipeline do?" - summarize the flow
+- "explore the data" - opt-in deep dive that profiles `data/` and writes findings
+
+For more on d6tflow itself, see [Resources](#resources).
 
 ## Developing the plugin
 
@@ -135,3 +148,15 @@ d6tflow-claude-plugin/
         |-- reference.md   # full reference, loaded on demand
         `-- ml-patterns.md # ML pipeline task templates, loaded on demand
 ```
+
+## Resources
+
+Learn more about d6tflow itself (the underlying library this plugin helps you
+work with):
+
+- d6tflow documentation: https://d6tflow.readthedocs.io/
+- d6tflow source: https://github.com/d6t/d6tflow
+- Maintainer: https://databolt.tech
+
+This plugin's own repository and issue tracker are not public yet. Once they are,
+their link will live here (and in the plugin's `repository` manifest field).

@@ -7,9 +7,10 @@ structure walkthrough.
 
 ## What is d6tflow?
 
-**d6tflow** is a Python library for building data science workflows. It is built
-on top of **Luigi** (Spotify's workflow orchestration library) and designed
-specifically for data science and machine learning pipelines.
+**d6tflow** is a Python library for building highly effective data science
+workflows. It lets you chain together complex, parameterized data flows and
+execute them, caching intermediate calculations so you build better models
+faster.
 
 ### Key Benefits
 - **Dependency management**: Automatically runs tasks in the correct order
@@ -794,7 +795,6 @@ flow.run()
 
 - Official docs: https://d6tflow.readthedocs.io/
 - GitHub: https://github.com/d6t/d6tflow
-- Luigi docs: https://luigi.readthedocs.io/ (underlying framework)
 
 ---
 
