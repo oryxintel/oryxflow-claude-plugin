@@ -4,7 +4,34 @@ All notable changes to the d6tflow plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions are
 date-based (`YY.M.D`, e.g. `26.5.30`).
 
-## [Unreleased]
+## [26.5.30.3] - 2026-05-30
+
+### Added
+- Run-EDA-as-a-module rule: EDA scripts import project modules
+  (`from flow import flow`), so they must run as `python -m eda.<name>` from the
+  project root, NOT `python eda/<name>.py` (which puts `eda/` on `sys.path`
+  instead of the root, breaking `import flow` / `import tasks`). The skill also
+  forbids patching `sys.path` to work around it. Corrects the prior guidance in
+  SKILL.md ("Workflow Operations") that said to run `python eda/<name>.py`
+  directly.
+
+### Changed
+- Tightened and reorganized `SKILL.md` (~27% smaller: 486 -> 358 lines) with no
+  behavior change. The orientation material was the bloat - the PLACEHOLDER rule
+  was explained three times and task-naming four times; these are now stated
+  once, with pointers ("see Naming tasks", etc.) elsewhere. The plain-invocation
+  flow is a numbered decision procedure rather than repeated prose, and the
+  "Project Documentation to Maintain" section was merged into "Session Start"
+  (the code-is-source-of-truth story is now stated once). Every do/do-NOT rule
+  and code example is preserved. Rationale in `docs/design/design-notes.md` is
+  unchanged (two-tier split, orient-from-code, unified marker all still hold).
+- Trimmed redundancy in `reference.md`: the "define once, import everywhere"
+  rationale was stated three times (collapsed the `flow.py` and `flow_params.py`
+  best-practice blocks to point at "How the Files Work Together"), and the
+  duplicate docstring guidance + example under "Error Handling & Documentation"
+  now defers to the "Task Design" best practice.
+
+## [26.5.30.2] - 2026-05-30
 
 ### Added
 - Run-from-working-directory rule: the shell already starts in the project root,
@@ -67,6 +94,10 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   `homepage` / `repository` links will go there once the repo is public.
 
 ### Changed
+- Changelog workflow: dropped the `[Unreleased]` bucket. The top section is now
+  the current working version (matching `plugin.json` `version`); bullets are
+  added there directly as work happens. Release docs in `CLAUDE.md` and `README`
+  updated to match.
 - Owner/author is now `d6t` / `dev@databolt.tech` (was `Oryx Intel` /
   `dev@oryxintel.com`) in both manifests; added `homepage: https://databolt.tech`
   to `plugin.json` and a "Maintainer" link in the README "Resources" section.

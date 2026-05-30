@@ -454,20 +454,9 @@ class ValidatedTask(d6tflow.tasks.TaskPqPandas):
 
 ### 4. Error Handling & Documentation
 
-Use loguru for logging. Let the pipeline fail natively (avoid try-except). Add
-docstrings to every task.
-
-```python
-class CalculateReturns(d6tflow.tasks.TaskPqPandas):
-    """
-    Calculate forward returns for each asset
-    Input: DataFrame ['date', 'asset_id', 'price'], sorted by ['asset_id', 'date']
-    Output: + columns ['return_1d', 'return_5d', 'return_20d']
-    """
-    horizon_days = d6tflow.ListParameter(default=[1, 5, 20])
-    def run(self):
-        pass  # implementation
-```
+Use loguru for logging; let the pipeline fail natively (avoid try-except); give
+every task a real docstring (purpose + input/output contract + quirks - see
+"Task Design" above, and the SKILL "Task docstrings" rule).
 
 ---
 
@@ -659,23 +648,15 @@ params['regularize'] = True
 ```
 
 Best practices: define all task parameters here; can reference `cfg.py` values
-(e.g. `params['env'] = cfg.env`); comment/uncomment combinations for
-experiments. Keep separate from `cfg.py` for clarity.
-
-Why separate `cfg.py` and `flow_params.py`?
-- `cfg.py`: Global settings (environment, credentials, dates)
-- `flow_params.py`: Workflow-specific task parameters
-- Easier to manage multiple workflows or parameter sets
+(e.g. `params['env'] = cfg.env`); comment/uncomment combinations for experiments.
+Keep separate from `cfg.py` (global settings vs workflow params) so multiple
+workflows / parameter sets stay easy to manage.
 
 #### `flow.py` - Workflow Instance
 
-Defines the workflow instance imported by other scripts.
-
-Best practices: define once, import everywhere; easy to switch between final
-tasks; centralizes workflow configuration. Other scripts just need
-`from flow import flow`. DRY principle; consistency across `run.py`,
-`visualize.py`, `visualize.ipynb`; easy switching by changing the `task`
-variable.
+Defines the workflow instance imported by other scripts. Define once, import
+everywhere (`from flow import flow`); switch final tasks by changing the `task`
+variable. (Rationale under "How the Files Work Together".)
 
 #### `run.py` - Execute Workflow
 
