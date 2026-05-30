@@ -1,0 +1,81 @@
+# CLAUDE.md - working ON the d6tflow plugin
+
+This repo is the **source of a Claude Code plugin**. A session here is for
+*developing the plugin*, NOT for using it. You are editing skill source; do not
+try to run the d6tflow skill against this repo (there is no data pipeline here).
+
+For the meaning of d6tflow itself (tasks, flows, the data-project conventions),
+read `skills/d6tflow/SKILL.md` - but treat it as the *artifact you maintain*, not
+as instructions for this session.
+
+> Use paths relative to the repo root; don't hardcode absolute machine paths
+> (the repo is cloned to different locations by different people).
+
+## What this plugin is
+
+A single-skill Claude Code plugin. It ships the `d6tflow` skill, which activates
+when a user works in a d6tflow data-science project. This repo is also its own
+marketplace, so it can be installed directly from git or a local path.
+
+## Layout
+
+```
+.claude-plugin/
+  plugin.json        # manifest (name, version, description, author)
+  marketplace.json   # makes this repo installable as its own marketplace
+skills/
+  d6tflow/
+    SKILL.md         # skill entry point - ESSENTIALS only, always in context
+    reference.md     # full reference - loaded ON DEMAND, not by default
+docs/
+  CHANGELOG.md       # user-facing change history
+  design-notes.md    # WHY the skill is shaped the way it is (read before edits)
+README.md            # install + quickstart for plugin users
+```
+
+## Authoring conventions (match the existing files)
+
+- **ASCII only.** No emojis/unicode/smart quotes - the skill itself mandates this
+  for Windows safety, and the skill files practice it. Keep it that way.
+- **Wrap prose at ~78 columns.**
+- **Two-tier content split is load-bearing:** keep `SKILL.md` to the essentials
+  an agent needs every time; push depth, tables, and long examples into
+  `reference.md` with a pointer. Do not let `SKILL.md` bloat - it costs context
+  on every activation. See `docs/design-notes.md` for the reasoning.
+- When you change skill behavior, update `docs/design-notes.md` if the *rationale*
+  changed, and `docs/CHANGELOG.md` always.
+
+## Develop / test loop
+
+```
+claude --plugin-dir D:\OneDrive\dev\d6tlib\d6tflow-plugin   # load without installing
+/reload-plugins                                              # after each edit
+/plugin validate .                                           # check both manifests
+```
+
+`/plugin validate .` (or `claude plugin validate .`) checks `plugin.json` and
+`marketplace.json`. Run it before committing manifest changes.
+
+## Release
+
+1. Edit skill / docs.
+2. Bump `version` in `.claude-plugin/plugin.json` (semver).
+3. Add a dated entry to `docs/CHANGELOG.md`.
+4. Commit. Consumers tracking this repo get it via
+   `/plugin marketplace update d6tflow`.
+
+If `version` is omitted, git installs pin to the commit SHA (every commit is a
+new version). We set an explicit version, so it MUST be bumped for updates to
+propagate cleanly.
+
+## Source-of-truth note
+
+The skill also still exists at `~/.claude/skills/d6tflow` (the pre-plugin copy).
+This repo is becoming canonical. Avoid editing both - once the plugin is
+verified, delete the `~/.claude/skills/d6tflow` copy so they cannot drift.
+
+## Git
+
+- Commit messages: imperative summary line; end with the Co-Authored-By trailer.
+- Default branch is currently `master`; rename to `main` before pushing to a host
+  that expects it.

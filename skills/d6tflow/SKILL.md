@@ -46,6 +46,36 @@ cheaply and then STOP. Do the minimum:
    does `tasks.py` still carry the `PLACEHOLDER SCAFFOLD` marker? -> fresh
    scaffold. Otherwise -> built pipeline (docs just not written yet).
 3. Report the state in a sentence or two and ask what the user wants to do.
+   For a built pipeline, summarize what it does. For a fresh scaffold, give the
+   friendly onboarding orientation below instead of describing scaffold guts.
+
+#### Fresh-scaffold orientation (do not narrate the placeholder logic)
+
+The scaffold's placeholder internals - the dummy `DataFrame`, the example range,
+the "doubles it" step - are throwaway wiring meant to be replaced. They are NOT
+project facts, so do NOT report them ("GetData makes a dummy frame of range(10),
+Process optionally doubles it"). That exposes internals the user does not care
+about and reads as if the project does something it does not.
+
+Instead, welcome the user and orient them toward getting started. Cover, briefly:
+
+- This is a fresh d6tflow data-science project - the scaffold runs but does no
+  real work yet.
+- How to **create tasks**: define a task class in `tasks.py` (inherits a d6tflow
+  task type, has a `run()` that ends in `self.save(...)`); wire dependencies with
+  `@d6tflow.requires(...)`. (See "Add a new task" below.)
+- How to **load data**: drop raw source files (`.csv`/`.xlsx`) into `data/` and
+  read them in a `GetData`-style task; downstream tasks read upstream output with
+  `self.inputLoad()`.
+- How to **run the flow**: `python run.py` (it runs the final task set in
+  `flow.py`); preview first with `flow.preview()`.
+
+Then offer the two natural next steps and ask which they want:
+- `/d6tflow explore` - if they already have source data in `data/` to inspect.
+- Describe the analysis goal + inputs, and you will replace the scaffold with
+  real tasks.
+
+Keep it short and inviting - a few lines plus the offer, not a tutorial dump.
 
 Do NOT, on a plain invocation: list/inspect `data/`, read raw source files,
 write or run `eda/` scripts, or build the docs. That is expensive exploration
