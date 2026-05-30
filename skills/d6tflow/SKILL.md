@@ -83,6 +83,27 @@ cheaply and then STOP. Do the minimum:
 3. Report the state in a sentence or two and ask what the user wants to do.
    For a built pipeline, summarize what it does. For a fresh scaffold, give the
    friendly onboarding orientation below instead of describing scaffold guts.
+   Either way, END by surfacing example invocations (see "Example invocations to
+   offer") so the user can see how to drive the skill.
+
+#### Example invocations to offer
+
+In-session orientation is where the user discovers how to invoke the skill - the
+README is not visible mid-session and `argument-hint` only shows `[explore]`, so
+do not make them guess. After orienting, show a short, GROUPED set of things they
+can say. Pick a handful that fit the project state; do not dump the whole list:
+
+- Build: "load the `<X>` data" (creates an output-named loader task),
+  "add a task `<Name>` that takes `<Upstream>`'s output and ...",
+  "make `<A>` depend on `<B>`", "set `<Task>` as the final task",
+  "add a parameter `<name>`".
+- Run: "run the flow", "preview the flow", "re-run / reset `<Task>`".
+- Inspect: "load the output of `<Task>`", "plot the results".
+- Understand: "what does this pipeline do?", "explore the data".
+
+Tell the user they can ask "what can I do here?" anytime to see this again; the
+plugin README ("Things you can ask") has the fuller version. If the user asks how
+to use the skill / what they can do / for help, list these.
 
 #### Fresh-scaffold orientation (do not narrate the placeholder logic)
 
@@ -106,10 +127,8 @@ Instead, welcome the user and orient them toward getting started. Cover, briefly
 - How to **run the flow**: `python run.py` (it runs the final task set in
   `flow.py`); preview first with `flow.preview()`.
 
-You can mention they can drive all of this in plain language - e.g. "add a task
-`<Name>` that takes `<Upstream>`'s output and ..." (a new task wired with
-`@d6tflow.requires`), "run the flow", "load the output of `<Task>`", or "explore
-the data". Keep this to a couple of examples, not a full catalog.
+Surface the example invocations (see "Example invocations to offer" above) so
+they can see how to drive things in plain language.
 
 Then offer the two natural next steps and ask which they want:
 - `/d6tflow explore` - if they already have source data in `data/` to inspect.
@@ -250,6 +269,11 @@ ALWAYS do this:
 - **Analyze outputs** - Edit `visualize.py` then run `python visualize.py`,
   or use `visualize.ipynb` interactively.
 
+**Run from the working directory.** The shell already starts in the project root,
+so run `python run.py` / `python eda/<name>.py` / `python visualize.py` directly.
+Do NOT prepend `cd <project path>` - it is redundant and brittle when the path
+has spaces.
+
 NEVER write inline Python (no `python -c`, no inline snippets). ALL test / EDA /
 exploratory code goes in a file under `eda/{meaningful-file-name}.py` and is
 then executed (`python eda/{name}.py`). Give the file a descriptive name for the
@@ -326,6 +350,13 @@ nothing about what comes out and collide across projects.
 A plain-language request to "load the OEWS data" (or "load X", "get X", "pull X")
 IS a request to create such a task - create a NEW, output-named task for it
 (e.g. `DataOEWS`); do not load the data inline or outside the task structure.
+
+Before writing the task, it is fine to write throwaway EDA code (under `eda/`,
+per the no-inline-Python rule) to figure out the source - sheet names, columns,
+how to parse it - IF that helps. It is not required: if the load is
+straightforward, just write the task and iterate on it by running it (adjust the
+`run()`, reset, re-run) until the output is right. The EDA is a scratchpad to
+inform the task; the actual loading still lands in the task, not in `eda/`.
 
 The scaffold's `GetData` / `Process` are PLACEHOLDER names. Building the real
 pipeline means writing new, output-named tasks and deleting the placeholders -

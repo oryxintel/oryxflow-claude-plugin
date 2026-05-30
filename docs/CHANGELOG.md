@@ -7,6 +7,22 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 ## [Unreleased]
 
 ### Added
+- Run-from-working-directory rule: the shell already starts in the project root,
+  so run `python run.py` / `python eda/<name>.py` directly - do NOT prepend
+  `cd <project path>` (redundant, and brittle when the path has spaces).
+  Captured in SKILL.md ("Workflow Operations").
+- On-orientation discoverability: the skill now ENDS every orientation (built
+  pipeline or fresh scaffold) by surfacing a short, grouped set of example
+  invocations (Build / Run / Inspect / Understand), since in-session is the only
+  place a user sees how to invoke it (README is not visible mid-session,
+  `argument-hint` only shows `[explore]`). Also handles "what can I do here?" /
+  "how do I use this" / "help" by listing them, and points to the README's
+  "Things you can ask" as the fuller reference. New "Example invocations to
+  offer" block in SKILL.md, referenced from both orientation paths.
+- EDA-before-task guidance: before creating a data-loading task it is fine (not
+  required) to write throwaway EDA code under `eda/` to figure out the source;
+  otherwise just write the task and iterate by running it. The actual load still
+  lands in the task, never in `eda/`. Captured in SKILL.md ("Naming tasks").
 - Docstring standard (since pipeline docs live in the code): a task docstring IS
   its documentation - state purpose + input/output contract + quirks, do NOT
   restate the `run()` code or settle for a one-line "brief description". Same for

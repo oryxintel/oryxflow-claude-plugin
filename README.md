@@ -78,6 +78,7 @@ Scaffolding a new project is a separate, manually-triggered command -
 Things you can ask, in plain language:
 
 Build the pipeline:
+- "load the `<X>` data" - creates an output-named loader task (e.g. `DataOEWS`)
 - "add a task `<Name>` that takes `<Upstream>`'s output and ..." - the common
   case: a new task wired to an upstream with `@d6tflow.requires(<Upstream>)`
 - "create a task `<Name>` that loads `<source>`" - a root task (no dependency)
