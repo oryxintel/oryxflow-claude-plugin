@@ -4,7 +4,8 @@ description: >-
   Build highly effective data science workflows with d6tflow (parameterized
   tasks, dependencies, caching, reproducible pipelines). Use when working in a
   d6tflow project - the tasks.py / flow.py / run.py / cfg.py / flow_params.py
-  files, pipeline tasks, workflow runs, or output analysis.
+  files, pipeline tasks, workflow runs, output analysis, or publishing/rendering
+  a report notebook to HTML.
 when_to_use: >-
   Trigger on requests like: add a new task that depends on an existing one
   (wired with @d6tflow.requires), create a task that loads a source, add a task
@@ -12,7 +13,9 @@ when_to_use: >-
   another, set the final task, or add / change a parameter; run the flow, preview
   it (flow.preview), check what is cached, or re-run / reset a task (reset before
   re-running an edited task); load or plot a task's output; explore or inspect
-  the data (the opt-in deep dive); or summarize what the pipeline does.
+  the data (the opt-in deep dive); summarize what the pipeline does; or
+  publish / render / export a report notebook to HTML (jupyter nbconvert), or
+  re-execute a notebook to refresh its outputs.
 argument-hint: "[explore]"
 allowed-tools: Read Edit Write Grep Glob Bash
 shell: powershell

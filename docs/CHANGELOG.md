@@ -7,6 +7,12 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 ## [26.5.30.3] - 2026-05-30
 
 ### Added
+- Notebook publish/render now triggers the skill: added publish / render /
+  export-to-HTML (jupyter nbconvert) and re-execute-to-refresh to the skill
+  `description` and `when_to_use` frontmatter. Without these the skill did not
+  auto-activate on "publish the notebook", so its render guidance never entered
+  context and the agent improvised a flagless nbconvert command. This is the fix
+  for the documented "Render / publish a notebook" section not taking effect.
 - Notebook render/publish workflow: documented how to refresh a report
   notebook's outputs in place (`jupyter nbconvert --to notebook --execute
   --inplace reports/<name>.ipynb`) and publish it to standalone HTML
