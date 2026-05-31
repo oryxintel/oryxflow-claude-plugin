@@ -7,6 +7,18 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 ## [26.5.30.3] - 2026-05-30
 
 ### Added
+- Notebook render/publish workflow: documented how to refresh a report
+  notebook's outputs in place (`jupyter nbconvert --to notebook --execute
+  --inplace reports/<name>.ipynb`) and publish it to standalone HTML
+  (`python -m nbconvert reports/<name>.ipynb --to html --output
+  render/<name>.html --no-input --no-prompt --template classic`), run from the
+  project root. New "Render / publish a notebook" section in SKILL.md, plus a
+  "Publish a report" bullet in Workflow Operations.
+- Template now ships `reports/` (version controlled) and `reports/render/`
+  (gitignored, for rendered output) with `.gitkeep` files, matching the layout
+  the skill documents. These are plugin-specific additions on top of the
+  vendored template (like `CLAUDE.md` / the data-doc skeleton); fold them back
+  into the `d6tflow-template-minimal` source repo on the next sync.
 - Iterate-then-run across parameter variants: a code edit invalidates EVERY
   cached instance of a task (one per parameter value), but a reset/run only
   recomputes the variant you actually run - so loading another variant later

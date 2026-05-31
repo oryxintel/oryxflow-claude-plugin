@@ -201,6 +201,8 @@ ALWAYS:
   them. See "Modify an existing task".
 - **Analyze outputs** - Edit `visualize.py` then `python visualize.py`, or use
   `visualize.ipynb` interactively.
+- **Publish a report** - Put report notebooks in `reports/`; rendered output goes
+  to `reports/render/` (gitignored). See "Render / publish a notebook" below.
 
 **Run from the working directory.** The shell starts in the project root, so run
 `python run.py` and `python visualize.py` directly - do NOT prepend
@@ -230,6 +232,26 @@ df = flow.outputLoad(tasks.Task)  # Load task output
 **Trust auto file management**: if `flow.run()` completes without errors, the
 output files exist. Debug by loading with `flow.outputLoad()`, NOT by checking
 the file system.
+
+### Render / publish a notebook
+
+Report notebooks live in `reports/`; rendered HTML goes to `reports/render/`
+(gitignored - it is regenerated output). Run from the project root.
+
+Refresh a notebook's outputs in place first (re-executes every cell against
+current data, saving results back into the `.ipynb`):
+```bash
+jupyter nbconvert --to notebook --execute --inplace reports/<name>.ipynb
+```
+Then publish to a standalone HTML file (`--no-input` / `--no-prompt` drop code
+cells and prompt numbers for a clean report):
+```bash
+python -m nbconvert reports/<name>.ipynb --to html \
+  --output render/<name>.html --no-input --no-prompt --template classic
+```
+`--output` is relative to the input's directory, so `render/<name>.html` lands in
+`reports/render/`. Re-execute whenever upstream data or task code changed, so the
+published report does not show stale cell outputs.
 
 ---
 
