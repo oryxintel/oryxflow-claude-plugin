@@ -342,8 +342,11 @@ For settings you switch between or compare often, keep the alternatives as
 commented-out lines and toggle by commenting/uncommenting rather than rewriting
 the value - the standing list documents the available options:
 ```python
-# params['jobs'] = 'support_broad'    # alternatives, uncomment to switch
-params['jobs'] = 'customer_service'
+# params['model'] = 'baseline'        # alternatives, uncomment to switch
+params['model'] = 'gradient_boost'
+
+# params['window'] = 30
+params['window'] = 90
 ```
 
 ### Debug workflow issues
