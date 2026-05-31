@@ -338,6 +338,14 @@ then asked to "run the flow", do reset-then-run for that task - do NOT just
    - no reset needed, unlike a code edit.
 3. Update the parameter's comment if its meaning changed.
 
+For settings you switch between or compare often, keep the alternatives as
+commented-out lines and toggle by commenting/uncommenting rather than rewriting
+the value - the standing list documents the available options:
+```python
+# params['jobs'] = 'support_broad'    # alternatives, uncomment to switch
+params['jobs'] = 'customer_service'
+```
+
 ### Debug workflow issues
 ```python
 flow.preview()                         # Preview what will run
