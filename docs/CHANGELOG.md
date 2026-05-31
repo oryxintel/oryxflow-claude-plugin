@@ -7,6 +7,11 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 ## [26.5.30.3] - 2026-05-30
 
 ### Added
+- Reset-as-commented-toggle pattern: keep `flow.reset(...)` lines in `run.py` as
+  commented-out toggles (one task per line; uncomment one or several to reset,
+  re-comment after) rather than deleting them - the standing list of reset-ables
+  is the intended pattern. Captured in SKILL.md ("Workflow Operations" and
+  "Modify an existing task").
 - Run-EDA-as-a-module rule: EDA scripts import project modules
   (`from flow import flow`), so they must run as `python -m eda.<name>` from the
   project root, NOT `python eda/<name>.py` (which puts `eda/` on `sys.path`

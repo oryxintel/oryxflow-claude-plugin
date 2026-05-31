@@ -196,7 +196,9 @@ ALWAYS:
   (parameters), or `flow.py` (which final task runs).
 - **Run** - Edit `run.py` if needed, then `python run.py`. If a task's CODE was
   just edited, reset it first (`flow.reset(tasks.X)`) - a plain run skips
-  edited-but-unreset tasks. See "Modify an existing task".
+  edited-but-unreset tasks. Keep `flow.reset(...)` lines in `run.py` as
+  commented-out toggles (uncomment to reset, re-comment after); don't delete
+  them. See "Modify an existing task".
 - **Analyze outputs** - Edit `visualize.py` then `python visualize.py`, or use
   `visualize.ipynb` interactively.
 
@@ -320,7 +322,10 @@ class OEWSWages(d6tflow.tasks.TaskPqPandas):
    SKIPS it, reusing the stale output. `flow.reset(tasks.ModifiedTask)` first -
    reset cascades downstream, recomputing dependents too.
 3. Run: add/uncomment `flow.reset(tasks.ModifiedTask)` in `run.py`, run
-   `python run.py`, then re-comment the reset line.
+   `python run.py`, then re-comment the reset line. Keep reset calls as
+   commented-out toggles in `run.py` (one task per line; uncomment several at
+   once to reset multiple) rather than deleting them - the standing list of
+   reset-ables is the intended pattern.
 4. Keep the docstring accurate.
 
 **Iterate-then-run rule**: if a task's code was edited this session and you are
