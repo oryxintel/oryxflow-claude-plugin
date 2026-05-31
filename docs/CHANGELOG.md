@@ -10,9 +10,12 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 - Notebook render/publish workflow: documented how to refresh a report
   notebook's outputs in place (`jupyter nbconvert --to notebook --execute
   --inplace reports/<name>.ipynb`) and publish it to standalone HTML
-  (`jupyter nbconvert reports/<name>.ipynb --to html --output
-  render/<name>.html --no-input --no-prompt --template classic`), run from the
-  project root. New "Render / publish a notebook" section in SKILL.md, plus a
+  (`jupyter nbconvert reports/<name>.ipynb --to html --output-dir reports/render
+  --no-input --no-prompt --template classic`), run from the project root. The
+  `--no-input` / `--no-prompt` / `--template classic` flags are called out as
+  REQUIRED (they strip code cells / prompt numbers for a clean report) so they do
+  not get dropped, and `--output-dir` is preferred over `--output` (whose path is
+  relative to the input notebook). New "Render / publish a notebook" section in SKILL.md, plus a
   "Publish a report" bullet in Workflow Operations.
 - Template now ships `reports/` (version controlled) and `reports/render/`
   (gitignored, for rendered output) with `.gitkeep` files, matching the layout

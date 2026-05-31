@@ -243,15 +243,20 @@ current data, saving results back into the `.ipynb`):
 ```bash
 jupyter nbconvert --to notebook --execute --inplace reports/<name>.ipynb
 ```
-Then publish to a standalone HTML file (`--no-input` / `--no-prompt` drop code
-cells and prompt numbers for a clean report):
+Then publish to a standalone HTML file:
 ```bash
-jupyter nbconvert reports/<name>.ipynb --to html \
-  --output render/<name>.html --no-input --no-prompt --template classic
+jupyter nbconvert reports/<name>.ipynb --to html --output-dir reports/render \
+  --no-input --no-prompt --template classic
 ```
-`--output` is relative to the input's directory, so `render/<name>.html` lands in
-`reports/render/`. Re-execute whenever upstream data or task code changed, so the
-published report does not show stale cell outputs.
+The three flags are REQUIRED, not optional polish - they are what makes it a
+publishable report: `--no-input` and `--no-prompt` strip the code cells and
+prompt numbers, and `--template classic` gives a clean layout. Without them you
+publish the raw working notebook (code and all), which is not the goal. Do not
+drop them. (`--output-dir` writes there directly; prefer it over `--output`,
+whose path is relative to the input notebook.)
+
+Re-execute whenever upstream data or task code changed, so the published report
+does not show stale cell outputs.
 
 ---
 
