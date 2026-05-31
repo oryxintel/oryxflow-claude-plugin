@@ -332,6 +332,18 @@ class OEWSWages(d6tflow.tasks.TaskPqPandas):
 then asked to "run the flow", do reset-then-run for that task - do NOT just
 `python run.py`, or the edit silently does nothing.
 
+**Across parameter variants**: a code edit invalidates EVERY cached instance of
+that task (one per parameter value), but `flow.reset(...)` / the run only
+recompute the variant(s) you actually run. If you edited `EmploymentExposure`'s
+columns and ran it for `jobs='customer_service'`, the `support_broad` /
+`backoffice` outputs are STILL stale - loading one later yields the old schema
+(e.g. `KeyError: 'jobs_pct_AIadj'`). When iterating over variants, force a
+recompute per setting with `reset=True`:
+```python
+# code changed -> reset=True recomputes this variant instead of loading stale cache
+df = d6tflow.runLoad(tasks.EmploymentExposure, params={'jobs': jobs}, reset=True)
+```
+
 ### Change parameters
 1. Edit `flow_params.py`: `params['param'] = 'new_value'`.
 2. Run `python run.py`. A parameter change IS auto-detected (it changes identity)
@@ -356,6 +368,18 @@ flow.complete()                        # Check completion
 df = flow.outputLoad(tasks.Task)       # Inspect outputs
 flow.reset(tasks.Task); flow.run()     # Force re-run
 ```
+
+**Read the Execution Summary to see what ACTUALLY ran.** After a run, the summary
+distinguishes recomputed tasks from cache hits - use it to confirm your reset
+took effect (not just that the run succeeded):
+```
+* 2 complete ones were encountered:   <- loaded from cache, did NOT re-run
+    - 1 EmploymentbyMSA(jobs=support_broad)
+* 1 ran successfully:                  <- actually recomputed
+    - 1 EmploymentExposure(jobs=support_broad)
+```
+If a task you edited shows under "complete ones were encountered" instead of "ran
+successfully", it was skipped (stale cache) - reset it and re-run.
 
 ---
 

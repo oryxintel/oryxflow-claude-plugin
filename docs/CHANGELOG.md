@@ -7,6 +7,16 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 ## [26.5.30.3] - 2026-05-30
 
 ### Added
+- Iterate-then-run across parameter variants: a code edit invalidates EVERY
+  cached instance of a task (one per parameter value), but a reset/run only
+  recomputes the variant you actually run - so loading another variant later
+  yields the stale schema (e.g. `KeyError` on a newly added column). Documented
+  the `d6tflow.runLoad(Task, params=..., reset=True)` fix to force a recompute
+  per setting (SKILL.md "Modify an existing task").
+- Reading the Execution Summary: after a run, the summary's "complete ones were
+  encountered" (cache hits) vs "ran successfully" (recomputed) lines are how you
+  confirm a reset took effect, not just that the run succeeded. Captured in
+  SKILL.md "Debug workflow issues".
 - Reset-as-commented-toggle pattern: keep `flow.reset(...)` lines in `run.py` as
   commented-out toggles (one task per line; uncomment one or several to reset,
   re-comment after) rather than deleting them - the standing list of reset-ables
