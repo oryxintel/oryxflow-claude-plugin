@@ -246,7 +246,7 @@ jupyter nbconvert --to notebook --execute --inplace reports/<name>.ipynb
 Then publish to a standalone HTML file (`--no-input` / `--no-prompt` drop code
 cells and prompt numbers for a clean report):
 ```bash
-python -m nbconvert reports/<name>.ipynb --to html \
+jupyter nbconvert reports/<name>.ipynb --to html \
   --output render/<name>.html --no-input --no-prompt --template classic
 ```
 `--output` is relative to the input's directory, so `render/<name>.html` lands in

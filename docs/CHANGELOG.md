@@ -10,7 +10,7 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 - Notebook render/publish workflow: documented how to refresh a report
   notebook's outputs in place (`jupyter nbconvert --to notebook --execute
   --inplace reports/<name>.ipynb`) and publish it to standalone HTML
-  (`python -m nbconvert reports/<name>.ipynb --to html --output
+  (`jupyter nbconvert reports/<name>.ipynb --to html --output
   render/<name>.html --no-input --no-prompt --template classic`), run from the
   project root. New "Render / publish a notebook" section in SKILL.md, plus a
   "Publish a report" bullet in Workflow Operations.
