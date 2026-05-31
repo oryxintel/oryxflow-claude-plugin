@@ -102,9 +102,12 @@ verified, delete the `~/.claude/skills/d6tflow` copy so they cannot drift.
 hand-edit files there to fix scaffold bugs - fix the source repo and re-sync the
 mirror (e.g. `robocopy <source-checkout> resources\template-minimal /MIR /XD .git`),
 then bump the plugin version. Plugin-specific scaffold files that do NOT exist in
-the source repo - `CLAUDE.md`, `docs/d6tflow-data.md`, `.creds.yaml.example` -
-are added on top here; keep them out of a blind `/MIR` that would delete them, or
-add them to the source repo too. (Two edited files also diverge from the source:
+the source repo - `CLAUDE.md`, `docs/d6tflow-data.md`, `.creds.yaml.example`, and
+the `reports/` + `reports/render/` dirs (each with a force-added `.gitkeep` - they
+match the `.gitignore` `.*` dotfile rule, so `git add -f` is required, same as
+`data/.gitkeep`) - are added on top here; keep them out of a blind `/MIR` that
+would delete them, or add them to the source repo too. (Two edited files also
+diverge from the source:
 `tasks.py` gains placeholder module + task docstrings and drops a dead `chk()`
 stub, and `.gitignore` gains `!.creds.yaml.example` so the example is committable.
 Fold these back into the source repo.)
