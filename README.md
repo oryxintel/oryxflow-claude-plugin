@@ -114,12 +114,25 @@ After editing any plugin file (`SKILL.md`, `reference.md`, `commands/*`,
 live from disk, so no version bump or reinstall is needed. Validate the
 manifests with `/plugin validate .` (or `claude plugin validate .`).
 
-`/reload-plugins` only works in this `--plugin-dir` mode. If you instead
-*installed* the plugin (from git or a local clone), edits do not show up via
-reload - you have to release them (below) and run
-`/plugin marketplace update d6tflow`. Running both `--plugin-dir` and an install
-on the same machine gives two copies that can drift, so pick one: `--plugin-dir`
-for development, an install for real use.
+**Gotcha: `--plugin-dir` and an install behave differently.** `/reload-plugins`
+only works in `--plugin-dir` mode, where files are read live from disk. If you
+instead *installed* the plugin (see [Install](#install)) - even from a local
+clone - your edits do NOT show up via reload or a restart. An install resolves a
+fixed `version`, so changes only propagate after you release them (bump `version`
++ commit, below) and the owner runs `/plugin marketplace update d6tflow`. That is
+the right behavior for consumers, but it makes an install a poor way to iterate.
+
+**Suggested setup: use both, for their two different jobs.**
+
+- *Developing the plugin* (editing `SKILL.md`, `reference.md`, etc.): launch with
+  `claude --plugin-dir <repo>` and `/reload-plugins` after each edit. Instant
+  feedback, no version bump.
+- *Using the plugin* in your real d6tflow projects: `/plugin install` it once
+  (see [Install](#install)) so it is always on without passing any flag.
+
+Do not do both in the same session - `--plugin-dir` plus an active install loads
+the skill twice and the two copies can drift. Keep `--plugin-dir` for this repo
+and the install for everywhere else.
 
 ### Releasing
 

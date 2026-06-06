@@ -55,6 +55,13 @@ README.md            # install + quickstart for plugin users
   `reference.md` (general) or `ml-patterns.md` (ML), each pointed to from
   `SKILL.md`. Do not let `SKILL.md` bloat - it costs context on every activation.
   See `docs/design/design-notes.md` for the reasoning.
+- **Be token-efficient - you MUST.** Every word in always-loaded text (`SKILL.md`)
+  is re-paid on every activation. Write like an expert prompt engineer: say it
+  once, in the fewest words that still land. The full "why" goes in
+  `design-notes.md` (never loaded at runtime). A rule that gets *longer* under
+  edit is a smell - tighten it or push the depth down a tier. (E.g. a good rule is
+  usually just imperative + the rationalization it blocks + one reason - but treat
+  that as a sample of the style, not a required template.)
 - When you change skill behavior, update `docs/design/design-notes.md` if the *rationale*
   changed, and `docs/CHANGELOG.md` always.
 

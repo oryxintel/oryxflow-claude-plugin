@@ -48,6 +48,79 @@ Why: that exploration is expensive and is the user's call to start. It runs only
 on `/d6tflow explore` or a plain-language request to orient/explore/inspect. The
 trigger surface is documented in `SKILL.md` so it stays discoverable.
 
+## Code organization scales by subject (eda / utils / viz)
+
+The flat starter (`tasks.py` + `visualize.py` + ad-hoc `eda/`) stops scaling once
+a project has many tasks and reusable helpers/plots. The convention groups
+supporting code by the SUBJECT it concerns (a task or a dataset), mirroring how
+the pipeline is keyed on tasks - so a task's probes, helpers, and figures are
+found by name, the same way the cache is keyed by task.
+
+The forks that were decided (each had a defensible alternative):
+
+- **Group by task OR dataset, not a `_reference/` bucket.** Non-task reference
+  data still has a natural subject - the dataset - so `eda/<dataset>/` keeps ONE
+  grouping axis instead of adding a parallel bucket taxonomy.
+- **Build-a-data-input code prefers becoming a real source task** (hybrid): if it
+  produces a `data/` input, the DAG should own and cache it; only true one-offs
+  stay as dataset-folder scripts.
+- **snake_case modules (PEP 8), not task-name CamelCase.** Idiomatic import paths;
+  the cost is a mechanical CamelCase->snake mapping. (CamelCase-matching was the
+  runner-up - a literal `{taskname}` file - but PEP 8 won.)
+- **Filenames name the specific check, never a bare verb.** The folder supplies
+  the subject, so `verify.py` would discard the one bit of information the
+  filename can carry; `verify_wages.py` reads with the folder as "verify wages of
+  <subject>".
+- **Shared helpers default to a concept/dataset module (concept-by-default).** A
+  helper used by 2+ subjects goes in a module named for the shared idea
+  (`utils/geo.py`); a single subject's extracted helper in `utils/<subject>.py`;
+  truly generic in `__init__.py`. This was reached EMPIRICALLY. An earlier draft
+  decided the home from DAG topology (chain -> the upstream task's module, siblings
+  -> a concept module). A trial on a real, complex project found the chain branch
+  had ZERO instances - every shared helper was siblings -> concept - so topology
+  added cognitive cost (and a diamond-misread risk) without ever changing the
+  answer. Concept-by-default gives the identical result with no topology reasoning;
+  a rare no-natural-concept helper may fall back to the upstream producer's module.
+  Also rejected: `__init__.py`-by-default (reuse != general; junk drawer +
+  move-churn when the 2nd user appears) and task-of-first-use (historical,
+  brittle).
+- **Extract on the 2nd use** (or when a single-use helper is large), not
+  preemptively - avoids a swarm of near-empty per-task modules.
+- **`eda/` is read-only; builders are separate.** A probe asserts, it does not
+  write `data/`. External-derived, reproducible inputs become source tasks (DAG +
+  cache); hand-curated-data maintenance is a `utils/<dataset>.py` script (calling
+  a curated csv a "task" is misleading). Surfaced by the real project, where
+  in-place csv cleaners had no honest home as either probe or task.
+- **snake_case is author-declared, not algorithmic.** Case-boundary splitting
+  cannot recover a glued-lowercase word (`EmploymentbyMSA` -> `employment_by_msa`),
+  so a `# task: <ClassName>` header in the subject module is the source of truth;
+  the split rule is only a default. Shipping a name dictionary was considered and
+  rejected as overkill for hand-authored modules.
+- **viz is not a special eda subject.** Probes/tests for `viz/` code group under
+  the subject the figure is about (`eda/<subject>/`), like any other probe - there
+  is no `eda/viz/` carve-out. eda includes viz.
+
+Implication: `eda/` probes are now nested (`eda/<subject>/<name>.py`, run
+`python -m eda.<subject>.<name>`, each folder an `__init__.py`), updating the
+older flat `python -m eda.<name>` form.
+
+## EDA is a learning artifact, not throwaway
+
+The no-inline-Python rule routes probe code into `eda/` files. That is only half
+the point. A probe is run to ANSWER A QUESTION about the data ("does this column
+have nulls?", "which sheet holds the estimates?"), and the answer is a data
+finding - the same class of fact that `docs/d6tflow-data.md` exists to hold. So
+the rule pairs with a documentation duty: each `eda/` script states its question
+(docstring) and makes its result legible (a clear print or a recorded comment),
+and material findings get promoted into the data doc.
+
+Why: the `eda/` file is throwaway as CODE, but the FINDING is not - it is exactly
+what keeps the next session from re-deriving what was already learned (the same
+"do not re-scan" payoff as orienting from code + the data doc). Framing `eda/` as
+purely "throwaway" undersold this and let probe results evaporate; an uncaptured
+result is a question that gets asked again. Keep the code-vs-finding distinction
+if this is reworded: the script may be disposable, the knowledge is not.
+
 ## One uniform PLACEHOLDER marker (code AND docs)
 
 Scaffold `.py` files ship present and runnable (you cannot `from flow import

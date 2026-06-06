@@ -25,8 +25,20 @@ the data doc current as part of finishing any change.
 ## Conventions (non-negotiable)
 
 - ASCII only. No emojis / unicode / smart quotes in code or output (Windows safety).
-- No inline Python. No `python -c`, no inline snippets - all test / EDA /
-  exploratory code goes in a file under `eda/<meaningful-name>.py`, then run it.
+- No inline Python. No `python -c`, no inline snippets (including quick one-off
+  probes) - all test / EDA / exploratory code goes under `eda/<subject>/<name>.py`
+  (subject = a task or dataset, snake_case; each folder needs an `__init__.py`),
+  run as `python -m eda.<subject>.<name>` from the root. Document each probe (its
+  question + result); promote material data findings to `docs/d6tflow-data.md`.
+- Organize supporting code by subject (a task, dataset, or concept, snake_case):
+  `eda/<subject>/` (READ-ONLY probes), `utils/<subject>.py` (helpers),
+  `viz/<subject>.py` (plots). A helper shared by 2+ subjects goes in a concept /
+  dataset module (`utils/geo.py`); one subject's helper in `utils/<subject>.py`;
+  only truly generic helpers in `__init__.py`. Name files for the specific thing
+  they do, dropping the redundant subject token (`verify_coercion.py`), never a
+  bare verb. Code that writes a `data/` artifact is a source task (external) or a
+  maintenance script (curated), not a probe. (The plugin's `reference.md` has the
+  full rules + edge cases.)
 - No try/except wrapping. Let code fail natively so errors surface (except in
   throwaway `eda/` code, or when the user asks for it).
 - Edit the flow files, do not improvise: `tasks.py` (task classes),

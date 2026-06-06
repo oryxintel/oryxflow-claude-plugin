@@ -175,6 +175,9 @@ project/
 |-- visualize.py       # Analysis script
 |-- visualize.ipynb    # Analysis notebook
 |-- .creds.yaml        # Protected credentials (optional, not committed)
+|-- eda/               # Test / exploration probes, grouped by subject
+|-- utils/             # Shared + per-subject helpers (snake_case modules)
+|-- viz/               # Plotting helpers + per-subject figures
 |-- data/              # Data storage (task outputs + raw/exported data)
 |-- docs/              # Project documentation
 |-- reports/           # Output reports and plots (version controlled)
@@ -184,6 +187,16 @@ project/
 **Central pattern**: `from flow import flow`  # import everywhere.
 File flow: `cfg.py` -> `flow_params.py` -> `tasks.py` -> `flow.py` ->
 `run.py` / `visualize.py` / `visualize.ipynb` (all import the same `flow`).
+
+**Code organization** (full rules + edge cases in reference.md): group supporting
+code by SUBJECT - a task, dataset, or concept, snake_case: `eda/<subject>/<name>.py`
+(READ-ONLY probes), `utils/<subject>.py`, `viz/<subject>.py`. A helper shared by
+2+ subjects goes in a concept/dataset module (`utils/geo.py`); a single subject's
+helper in `utils/<subject>.py`; only truly generic helpers in `__init__.py`. Name
+files for the specific thing they do, dropping the redundant subject token
+(`eda/data_oews/verify_coercion.py`) - never a bare verb. Code that writes a
+`data/` artifact is a source task (external) or a maintenance script (curated),
+not a probe.
 
 ---
 
@@ -212,14 +225,21 @@ ALWAYS:
 `cd <project path>` (redundant, and brittle when the path has spaces).
 
 **EDA scripts import project modules** (`from flow import flow`), so run them as a
-MODULE from the root: `python -m eda.<name>` (dotted path, no `.py`). Running
-`python eda/<name>.py` directly FAILS - it puts `eda/` on `sys.path` instead of
-the root, so `import flow` / `import tasks` break. Do NOT patch `sys.path` to work
-around it; use `python -m`.
+MODULE from the root: `python -m eda.<subject>.<name>` (dotted path, no `.py`;
+each `eda/<subject>/` needs an `__init__.py`). Running the file directly FAILS -
+it puts the folder on `sys.path` instead of the root, so `import flow` /
+`import tasks` break. Do NOT patch `sys.path`; use `python -m`.
 
-**No inline Python** (no `python -c`, no snippets). ALL test / EDA / exploratory
-code goes in `eda/{meaningful-name}.py`, run as `python -m eda.{name}` from the
-root (above).
+**No inline Python** - no `python -c` or snippets, including quick one-off probes
+("just checking X" is exactly what this forbids). ALL test / EDA code goes in an
+`eda/<subject>/<name>.py` file (run as a module, above) - near-free to write,
+re-runnable next session, and free of the Windows shell-quoting bugs `python -c`
+hits.
+
+**Document each probe** - the code is throwaway, the finding is not. One-line
+docstring stating the question; print the result legibly. Promote material
+findings (schema, quirks, quality, rules) to `docs/d6tflow-data.md` - an
+uncaptured result is a question you re-ask next session.
 
 ```python
 from flow import flow

@@ -4,6 +4,49 @@ All notable changes to the d6tflow plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions are
 date-based (`YY.M.D`, e.g. `26.5.30`).
 
+## [26.6.6] - 2026-06-06
+
+### Changed
+- Hardened the no-inline-Python rule in `SKILL.md` to close the "quick probe"
+  loophole. The rule was obeyed for real EDA scripts but rationalized away for
+  small one-off `python -c` sanity checks ("it is just a tiny test"). The wording
+  now states explicitly that quick / one-off / throwaway probes are included - a
+  one-line `python -c` still goes in an `eda/` file - and gives the why (an `eda/`
+  file is near-free, is re-runnable next session, and `python -c` breaks on
+  Windows shell quoting), so it reads as a reason rather than a prohibition the
+  model can argue around.
+- `SKILL.md` now requires EDA probes to be documented, not just relocated: each
+  `eda/` script states the question it answers (docstring) and makes its result
+  legible (print / recorded comment), and material findings (schema, quirks,
+  quality issues, business rules) get promoted into `docs/d6tflow-data.md`. An
+  `eda/` script is throwaway as code, but its finding is not - capturing it is
+  what spares the next session from re-deriving it. Rationale recorded in
+  `docs/design/design-notes.md` ("EDA is a learning artifact, not throwaway").
+- New code-organization convention: group supporting code by SUBJECT (a task or a
+  dataset, snake_case) into `eda/<subject>/<name>.py` (probes),
+  `utils/<subject>.py` / `utils/__init__.py` (helpers), and `viz/<subject>.py` /
+  `viz/__init__.py` (plots); a helper shared by 2+ subjects goes in a concept /
+  dataset module (concept by default), one subject's helper in `utils/<subject>.py`,
+  only truly generic helpers in `__init__.py`. The no-inline-Python EDA path is now
+  nested - `eda/<subject>/<name>.py` run as `python -m eda.<subject>.<name>` (each
+  folder an `__init__.py`), updating the old flat `python -m eda.<name>`. Decisions:
+  snake_case modules; code that builds a `data/` input prefers a real source task;
+  non-task reference data groups under its dataset; filenames name the specific
+  check (no bare `verify.py`); extract on the 2nd use. Tight summary in `SKILL.md`,
+  full rules + edge cases in `reference.md`, rationale in `design-notes.md`.
+- Validated the code-organization convention by applying it to a real project
+  (executed, not paper). Outcomes folded in: the shared-helper rule is now
+  concept-by-default (an earlier DAG-topology rule had zero real instances of its
+  "chain -> upstream module" branch); `eda/` is read-only (code that writes a
+  `data/` artifact is an external-derived source task or a hand-curated maintenance
+  script, not a probe); filenames drop the redundant subject token
+  (`verify_coercion.py`, not `verify_dataoews.py`); snake_case is anchored by a
+  `# task: <Class>` header (case-splitting alone mis-converts `EmploymentbyMSA`);
+  a probe spanning two subjects with no clear primary goes under a shared concept
+  folder (`eda/geo/`); graduating a root module into `viz/` is a move, not a copy;
+  and the import contract is documented (resolves only via `python -m` from root;
+  a package `__init__.py` must not import a task at load).
+
 ## [26.5.30.3] - 2026-05-30
 
 ### Added

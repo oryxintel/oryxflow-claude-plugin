@@ -790,6 +790,116 @@ flow.run()
 
 ---
 
+## Code organization: group by subject (eda / utils / viz)
+
+The flat starter (`tasks.py` + `visualize.py` + ad-hoc `eda/`) stops scaling once
+a project has many tasks plus reusable helpers and plots. Group supporting code by
+the SUBJECT it concerns - a task, a dataset, or a cross-cutting concept -
+mirroring how the pipeline is keyed on tasks, so a reader finds a subject's
+probes, helpers, and figures by name.
+
+Three buckets:
+
+- `eda/<subject>/<name>.py` - READ-ONLY test / exploration / verification probes
+  (the no-inline-Python destination). Each `eda/<subject>/` is a package: add an
+  `__init__.py` and run probes as `python -m eda.<subject>.<name>` from the root.
+- `utils/` - helpers. `utils/<subject>.py` for one subject's helpers;
+  `utils/__init__.py` only for truly generic, subject-less helpers.
+- `viz/` - plotting. `viz/<subject>.py` exposes that subject's figures (e.g.
+  `build_map(metro)`); `viz/__init__.py` only for generic plotting helpers
+  (palettes, save/format). The starter `visualize.py` graduates into `viz/` once
+  you have per-subject or shared plotting.
+
+```
+eda/
+  data_oews/
+    verify_coercion.py
+    inspect_fields.py
+  msa50_map/                 # a DATASET subject (reference data, not a task)
+    validate_coverage.py
+utils/
+  __init__.py                # truly generic, subject-less helpers (often empty)
+  geo.py                     # concept module: shared by ACS + AreaGeometry
+  acs_residence_occupation.py  # one task's helpers (# task: ACSResidenceOccupation)
+viz/
+  __init__.py                # SEQUENTIAL_PALETTE, save_html() - imports no task
+  residence_exposure.py      # build_map(metro)   (# task: ResidenceExposure)
+```
+
+### Rules
+
+- **Subject = task, dataset, or concept.** Most code is about a task (snake_case
+  of the task class). Code about a reference / source dataset, or a cross-cutting
+  concept (geo, dates, io), groups under that name (`eda/msa50_map/`,
+  `utils/msa50_map.py`, `utils/geo.py`). Keep the set of concept names small and
+  listed somewhere (e.g. in `docs/d6tflow-data.md`) so they are not reinvented
+  (`geo`, not also `geography`).
+- **Shared helper -> a concept/dataset module (concept by default).** A helper
+  used by 2+ subjects (tasks AND/OR eda probes) goes in a CONCEPT or dataset module
+  named for the shared idea: `utils/geo.py` for `resolve_metro_geo` / `GEO_LEVELS`
+  (shared by ACSResidenceOccupation + AreaGeometry). A helper used by ONE subject,
+  extracted only because it is big, goes in that subject's module
+  (`utils/<subject>.py`). Only truly generic, subject-less helpers go in
+  `__init__.py`. Do not reason about DAG topology; only if a shared helper has no
+  natural concept name (rare) fall back to the upstream producer's module.
+- **Module casing: snake_case.** Lowercase the task class, underscore at each case
+  boundary, each acronym run as one token (`DataOEWS` -> `data_oews`,
+  `ACSResidenceOccupation` -> `acs_residence_occupation`). This is NOT fully
+  algorithmic for glued-lowercase class names - `EmploymentbyMSA` ->
+  `employment_by_msa` (the `by` has no case boundary to split on) - so the SOURCE
+  OF TRUTH is a header comment in the subject module / package: `# task:
+  EmploymentbyMSA`. Prefer clean class names (`EmploymentByMSA`) going forward so
+  the conversion is trivial; record any non-obvious mapping next to the code.
+- **Name files for the specific thing they do**, never a bare verb. The folder
+  already names the subject, so DROP the redundant subject token and name the
+  aspect: `eda/data_oews/verify_coercion.py` (not `verify_dataoews.py`, not bare
+  `verify.py`). This holds even when a folder has a single probe - a specific name
+  future-proofs the second one.
+- **`eda/` is read-only.** A probe inspects and asserts; it must not write to
+  `data/`. Code that PRODUCES a `data/` artifact is a builder, not a probe (see
+  edge cases).
+- **Extract on the SECOND use** (or when a single-use helper is large enough to
+  clutter the task). A one-off constant used by one task stays inline in
+  `tasks.py`; do not spin up a near-empty module per task.
+- **Keep `__init__.py` for truly generic, subject-less helpers only** so
+  `utils/__init__.py` / `viz/__init__.py` do not become junk drawers.
+
+### Import contract
+
+Subject modules import project modules (`import tasks`, `from flow import flow`),
+so they resolve ONLY as `python -m <pkg>.<...>` from the project root - bare
+`python viz/x.py` fails with `ModuleNotFoundError: tasks`. Two requirements:
+
+- every `eda/`, `eda/<subject>/`, `utils/`, `viz/` needs an `__init__.py`;
+- a package `__init__.py` (`utils/__init__.py`, `viz/__init__.py`) must NOT import
+  any task at module load - importing the package for one generic helper would
+  otherwise drag in the whole DAG. Task imports belong in the per-subject module,
+  not the package root.
+
+### Edge cases
+
+- **Code that builds a `data/` input.** If it derives the input from an EXTERNAL
+  source and is reproducible (geo maps, crosswalks from Census/OMB files), promote
+  it to a real d6tflow SOURCE TASK - in the DAG, cached, reset-able. If it instead
+  maintains HAND-CURATED data (dedupe/clean an author-built csv), it is a
+  maintenance script - not a task (promoting curated data to a "task" is
+  misleading) and not an `eda/` probe (it writes): keep it under the dataset as
+  `utils/<dataset>.py`, run via `python -m`, named for what it rebuilds.
+- **Non-task reference data** (e.g. `msa50_map`): group probes under the dataset -
+  `eda/msa50_map/validate_coverage.py`, helpers in `utils/msa50_map.py`.
+- **A probe spanning two subjects.** Primary subject = what it INVESTIGATES (not
+  where it reads input); file it there and note the secondary in a comment. If it
+  genuinely splits 50/50 (e.g. validates an ACS path AND a geometry path), file it
+  under their shared CONCEPT folder (`eda/geo/`, `eda/coverage/`) rather than
+  picking a task arbitrarily.
+- **Probes/tests for `viz/` code are not special**: group under the subject the
+  figure is about (`eda/<subject>/`); there is no `eda/viz/` bucket.
+- **Graduating a root module** (`visualize.py` -> `viz/<subject>.py`): MOVE it
+  (delete the original) in the same change, or the two copies drift.
+- **Stale caches on rename.** Renaming/deleting a task orphans its
+  `data/<OldName>/` cache (and `__pycache__`); subject-grouping won't reap it -
+  delete the stale cache when you rename a task.
+
 ## Additional Resources
 
 - Official docs: https://d6tflow.readthedocs.io/
