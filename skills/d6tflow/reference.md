@@ -878,13 +878,20 @@ so they resolve ONLY as `python -m <pkg>.<...>` from the project root - bare
 
 ### Edge cases
 
-- **Code that builds a `data/` input.** If it derives the input from an EXTERNAL
-  source and is reproducible (geo maps, crosswalks from Census/OMB files), promote
-  it to a real d6tflow SOURCE TASK - in the DAG, cached, reset-able. If it instead
-  maintains HAND-CURATED data (dedupe/clean an author-built csv), it is a
-  maintenance script - not a task (promoting curated data to a "task" is
-  misleading) and not an `eda/` probe (it writes): keep it under the dataset as
-  `utils/<dataset>.py`, run via `python -m`, named for what it rebuilds.
+- **Code that LOADS or builds a `data/` input.** Loading external data is the
+  idiomatic loader-task pattern (`Data<Name>`, see "Naming tasks"), so an external,
+  reproducible builder (geo maps / crosswalks from Census/OMB files) should be a
+  real d6tflow SOURCE TASK BY DEFAULT - in the DAG, cached, reset-able, and read
+  downstream via `inputLoad()` instead of re-reading a csv. A plain `build_*.py`
+  that fetches an external source and writes a `data/` csv is just a loader task
+  that has not been written as one yet. Two exceptions keep it a loader/maintenance
+  SCRIPT instead of a task: (1) HAND-CURATED data (dedupe/clean an author-built
+  csv) - not reproducible from a source, so calling it a "task" is misleading; (2)
+  the output is not something a d6tflow task type stores well - not a DataFrame
+  (TaskPqPandas) or a serializable object (TaskPickle/TaskJson), e.g. a raw file
+  asset or a directory of files - where a task buys little. Such a script lives
+  under the dataset (`utils/<dataset>.py`, run via `python -m`, named for what it
+  rebuilds), not in `eda/` (it writes).
 - **Non-task reference data** (e.g. `msa50_map`): group probes under the dataset -
   `eda/msa50_map/validate_coverage.py`, helpers in `utils/msa50_map.py`.
 - **A probe spanning two subjects.** Primary subject = what it INVESTIGATES (not

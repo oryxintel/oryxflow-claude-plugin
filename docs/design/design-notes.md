@@ -87,10 +87,13 @@ The forks that were decided (each had a defensible alternative):
 - **Extract on the 2nd use** (or when a single-use helper is large), not
   preemptively - avoids a swarm of near-empty per-task modules.
 - **`eda/` is read-only; builders are separate.** A probe asserts, it does not
-  write `data/`. External-derived, reproducible inputs become source tasks (DAG +
-  cache); hand-curated-data maintenance is a `utils/<dataset>.py` script (calling
-  a curated csv a "task" is misleading). Surfaced by the real project, where
-  in-place csv cleaners had no honest home as either probe or task.
+  write `data/`. Loading external data is just the loader-task pattern, so it is a
+  source task BY DEFAULT (DAG + cache). Two cases stay a `utils/<dataset>.py`
+  script instead: hand-curated data (not reproducible, so calling it a "task" is
+  misleading) and output a d6tflow task type cannot store (not a DataFrame or a
+  serializable object - a raw file asset / directory, where a task buys little).
+  Surfaced by the real project, where in-place csv cleaners had no honest home as
+  either probe or task.
 - **snake_case is author-declared, not algorithmic.** Case-boundary splitting
   cannot recover a glued-lowercase word (`EmploymentbyMSA` -> `employment_by_msa`),
   so a `# task: <ClassName>` header in the subject module is the source of truth;
@@ -103,6 +106,19 @@ The forks that were decided (each had a defensible alternative):
 Implication: `eda/` probes are now nested (`eda/<subject>/<name>.py`, run
 `python -m eda.<subject>.<name>`, each folder an `__init__.py`), updating the
 older flat `python -m eda.<name>` form.
+
+## Importing notebooks stay at the project root
+
+A notebook that imports the pipeline (`from flow import flow`) must run with cwd =
+the project root - the same root-cwd invariant the whole project relies on (`data/`
+and `.creds.yaml` are relative). `nbconvert --execute` runs the kernel with cwd =
+the notebook's OWN folder, so a notebook filed under `reports/` would break both
+imports and the relative `data/` paths. Rather than patch cwd/sys.path per
+notebook, importing notebooks live at the root (like `visualize.ipynb`); `reports/`
+holds only the rendered HTML output (`reports/render/`). Considered and rejected: a
+first-cell `os.chdir(..)` guard for `reports/*.ipynb` - it works (and fixes cwd, not
+just sys.path) but adds a per-notebook idiom, where keeping the file at root needs
+none.
 
 ## EDA is a learning artifact, not throwaway
 

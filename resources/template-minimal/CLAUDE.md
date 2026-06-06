@@ -36,9 +36,15 @@ the data doc current as part of finishing any change.
   dataset module (`utils/geo.py`); one subject's helper in `utils/<subject>.py`;
   only truly generic helpers in `__init__.py`. Name files for the specific thing
   they do, dropping the redundant subject token (`verify_coercion.py`), never a
-  bare verb. Code that writes a `data/` artifact is a source task (external) or a
-  maintenance script (curated), not a probe. (The plugin's `reference.md` has the
+  bare verb. Loading external data is a source task by
+  default (the loader-task pattern); only hand-curated data, or output a task type
+  cannot store (not a table/serializable object), stays a maintenance script.
+  Neither is an `eda/` probe (they write). (The plugin's `reference.md` has the
   full rules + edge cases.)
+- Notebooks that import the pipeline live at the project ROOT (so `from flow import
+  flow` and relative `data/` paths resolve); render them to `reports/render/`
+  (gitignored). `nbconvert` runs a notebook with its own folder as cwd, so a
+  notebook in a subdir would break imports and data paths.
 - No try/except wrapping. Let code fail natively so errors surface (except in
   throwaway `eda/` code, or when the user asks for it).
 - Edit the flow files, do not improvise: `tasks.py` (task classes),

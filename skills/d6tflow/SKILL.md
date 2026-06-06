@@ -173,7 +173,7 @@ project/
 |-- flow.py            # Workflow instance definition
 |-- run.py             # Execute workflow tasks
 |-- visualize.py       # Analysis script
-|-- visualize.ipynb    # Analysis notebook
+|-- visualize.ipynb    # Analysis notebook (importing notebooks stay at root)
 |-- .creds.yaml        # Protected credentials (optional, not committed)
 |-- eda/               # Test / exploration probes, grouped by subject
 |-- utils/             # Shared + per-subject helpers (snake_case modules)
@@ -194,9 +194,10 @@ code by SUBJECT - a task, dataset, or concept, snake_case: `eda/<subject>/<name>
 2+ subjects goes in a concept/dataset module (`utils/geo.py`); a single subject's
 helper in `utils/<subject>.py`; only truly generic helpers in `__init__.py`. Name
 files for the specific thing they do, dropping the redundant subject token
-(`eda/data_oews/verify_coercion.py`) - never a bare verb. Code that writes a
-`data/` artifact is a source task (external) or a maintenance script (curated),
-not a probe.
+(`eda/data_oews/verify_coercion.py`) - never a bare verb. Loading external data is a
+SOURCE TASK by default (the loader-task pattern), not an `eda/` probe - unless it
+is hand-curated, or its output is not a table/serializable object a task stores,
+which stays a maintenance script.
 
 ---
 
@@ -217,8 +218,9 @@ ALWAYS:
   them. See "Modify an existing task".
 - **Analyze outputs** - Edit `visualize.py` then `python visualize.py`, or use
   `visualize.ipynb` interactively.
-- **Publish a report** - Put report notebooks in `reports/`; rendered output goes
-  to `reports/render/` (gitignored). See "Render / publish a notebook" below.
+- **Publish a report** - Keep notebooks that import the flow at the project root
+  (so imports + `data/` paths resolve); render them to `reports/render/`
+  (gitignored). See "Render / publish a notebook" below.
 
 **Run from the working directory.** The shell starts in the project root, so run
 `python run.py` and `python visualize.py` directly - do NOT prepend
@@ -258,17 +260,21 @@ the file system.
 
 ### Render / publish a notebook
 
-Report notebooks live in `reports/`; rendered HTML goes to `reports/render/`
-(gitignored - it is regenerated output). Run from the project root.
+Notebooks that import the pipeline live at the PROJECT ROOT (like
+`visualize.ipynb`), NOT in `reports/`. `nbconvert --execute` runs the kernel with
+cwd = the notebook's own folder, so a notebook in a subdirectory breaks both
+`from flow import flow` and the relative `data/` paths d6tflow reads/writes; at the
+root, cwd = the project root and everything resolves. `reports/render/` holds the
+rendered HTML (gitignored - regenerated output). Run nbconvert from the root.
 
 Refresh a notebook's outputs in place first (re-executes every cell against
 current data, saving results back into the `.ipynb`):
 ```bash
-jupyter nbconvert --to notebook --execute --inplace reports/<name>.ipynb
+jupyter nbconvert --to notebook --execute --inplace <name>.ipynb
 ```
 Then publish to a standalone HTML file:
 ```bash
-jupyter nbconvert reports/<name>.ipynb --to html --output-dir reports/render \
+jupyter nbconvert <name>.ipynb --to html --output-dir reports/render \
   --no-input --no-prompt --template classic
 ```
 The three flags are REQUIRED, not optional polish - they are what makes it a

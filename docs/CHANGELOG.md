@@ -34,6 +34,14 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   non-task reference data groups under its dataset; filenames name the specific
   check (no bare `verify.py`); extract on the 2nd use. Tight summary in `SKILL.md`,
   full rules + edge cases in `reference.md`, rationale in `design-notes.md`.
+- Notebook policy: notebooks that import the pipeline live at the PROJECT ROOT
+  (like `visualize.ipynb`), not in `reports/`. `nbconvert --execute` runs the
+  kernel with cwd = the notebook's folder, which breaks `from flow import flow` and
+  the relative `data/` paths for a notebook in a subdir; at the root, cwd = the
+  project root and both resolve. `reports/render/` holds the rendered HTML. Updated
+  the "Render / publish a notebook" section (nbconvert paths now root-relative),
+  the "Publish a report" bullet, and the floor `CLAUDE.md`; rationale in
+  `design-notes.md`.
 - Validated the code-organization convention by applying it to a real project
   (executed, not paper). Outcomes folded in: the shared-helper rule is now
   concept-by-default (an earlier DAG-topology rule had zero real instances of its
