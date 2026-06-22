@@ -573,7 +573,7 @@ project/
 |-- flow.py            # Workflow instance definition
 |-- run.py             # Execute workflow tasks
 |-- visualize.py       # Use outputs for analysis (script)
-|-- visualize.ipynb    # Use outputs for analysis (notebook)
+|-- viz-template.ipynb # Report-notebook template; copy to viz-<topic>.ipynb
 `-- .creds.yaml        # Protected credentials (NOT committed to git)
 ```
 
@@ -586,7 +586,8 @@ project/
    - `tasks.py`: Define what each task does
    - `flow.py`: Define which tasks to run with which parameters
 3. **Execution Layer** (`run.py`): Execute the workflow
-4. **Analysis Layer** (`visualize.py` + `visualize.ipynb`): Load and analyze outputs
+4. **Analysis Layer** (`visualize.py` + `viz-<topic>.ipynb` report notebooks): Load
+   and analyze outputs
 
 **Key advantage**: Define your workflow once in `flow.py`, then import it
 everywhere (`from flow import flow`). Consistency across execution, analysis,
@@ -692,12 +693,15 @@ functions for reusability. Import `flow` from `flow.py`; use
 `flow.outputLoad(TaskName)` to load specific outputs; do not re-run the workflow
 here, just load and analyze; export results (plots, tables, reports).
 
-#### `visualize.ipynb` - Jupyter Notebook
+#### `viz-template.ipynb` - report-notebook template
 
-Interactive exploratory analysis using workflow outputs; structure similar to
-`visualize.py`. Import `flow` from `flow.py`; comment out `flow.run()` (run via
-`run.py` first); keep cells independent for easy re-running; convert
-production-ready analysis to `visualize.py` for reproducibility.
+The scaffold's report-notebook starting point. Don't edit it in place: copy it to
+`viz-<topic>.ipynb` at the project root (one report = one notebook, named for its
+subject) and author the copy; the template stays pristine. Import `flow` from
+`flow.py`; comment out `flow.run()` (run via `run.py` first); keep cells
+independent for easy re-running. Edit cells with the `NotebookEdit` tool, not by
+hand-writing JSON. Render to `reports/render/` (see SKILL.md "Render / publish a
+notebook"); convert production-ready analysis to `visualize.py` for reproducibility.
 
 #### `.creds.yaml` - Protected Credentials (Optional)
 
@@ -737,7 +741,7 @@ class DownloadData(d6tflow.tasks.TaskPqPandas):
    -> 2. flow_params.py (imports cfg)
    -> 3. tasks.py (imports cfg)
    -> 4. flow.py (imports cfg, tasks, flow_params)
-   -> 5. run.py, visualize.py, visualize.ipynb (all import flow)
+   -> 5. run.py, visualize.py, viz-<topic>.ipynb (all import flow)
 ```
 
 Benefits: consistency (same workflow instance everywhere), DRY (define once),

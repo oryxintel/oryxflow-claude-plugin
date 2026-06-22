@@ -47,6 +47,9 @@ do not ask.
   flow` and relative `data/` paths resolve); render them to `reports/render/`
   (gitignored). `nbconvert` runs a notebook with its own folder as cwd, so a
   notebook in a subdir would break imports and data paths.
+- One report = one notebook: COPY `viz-template.ipynb` to `viz-<topic>.ipynb` at
+  the root and edit the copy (with the `NotebookEdit` tool, not hand-written JSON);
+  never edit the template in place.
 - No try/except wrapping. Let code fail natively so errors surface (except in
   throwaway `eda/` code, or when the user asks for it).
 - Edit the flow files, do not improvise: `tasks.py` (task classes),
@@ -67,7 +70,7 @@ do not ask.
 tasks.py          # task definitions (the pipeline)
 cfg.py            # global config           flow_params.py  # workflow parameters
 flow.py           # workflow instance       run.py          # execute the workflow
-visualize.py      # analysis script         visualize.ipynb # analysis notebook
+visualize.py      # analysis script         viz-template.ipynb # report template
 data/             # raw inputs + per-task parquet outputs (gitignored)
 docs/             # d6tflow-data.md (data findings; pipeline docs live in code)
 .creds.yaml       # secrets (gitignored; see .creds.yaml.example)

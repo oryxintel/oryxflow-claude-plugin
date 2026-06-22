@@ -110,7 +110,7 @@ verified, delete the `~/.claude/skills/d6tflow` copy so they cannot drift.
 `resources/template-minimal/` is the project scaffold that `init-project` copies
 into a new project. Edit it directly here - this repo is canonical for it. It
 ships the project wiring (`tasks.py`, `flow.py`, `run.py`, `cfg.py`,
-`flow_params.py`, `visualize.py`/`.ipynb`), the project `CLAUDE.md`,
+`flow_params.py`, `visualize.py`, `viz-template.ipynb`), the project `CLAUDE.md`,
 `docs/d6tflow-data.md`, `.creds.yaml.example`, an `eda/` package root, and the
 `data/`, `reports/`, and `reports/render/` dirs. Those three dirs are kept by a
 `.gitkeep` that must be FORCE-added (`git add -f`): they match the `.gitignore`

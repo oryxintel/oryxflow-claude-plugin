@@ -114,11 +114,21 @@ the project root - the same root-cwd invariant the whole project relies on (`dat
 and `.creds.yaml` are relative). `nbconvert --execute` runs the kernel with cwd =
 the notebook's OWN folder, so a notebook filed under `reports/` would break both
 imports and the relative `data/` paths. Rather than patch cwd/sys.path per
-notebook, importing notebooks live at the root (like `visualize.ipynb`); `reports/`
+notebook, importing notebooks live at the root (`viz-<topic>.ipynb`); `reports/`
 holds only the rendered HTML output (`reports/render/`). Considered and rejected: a
 first-cell `os.chdir(..)` guard for `reports/*.ipynb` - it works (and fixes cwd, not
 just sys.path) but adds a per-notebook idiom, where keeping the file at root needs
 none.
+
+The scaffold ships the report notebook as a TEMPLATE, `viz-template.ipynb`, and the
+convention is one-report-per-notebook: copy the template to `viz-<topic>.ipynb`
+(subject-named, like `viz/<subject>.py`) and edit the copy, never the template. The
+motivating failure: a session edited the scaffold notebook in place, consuming the
+template and tying one report to the generic `visualize` name. A `-template` suffix
+makes "do not edit me" obvious, the copy keeps it pristine, and `--output-dir`
+renders to `reports/render/viz-<topic>.html` (subject-named) for free. The copy is a
+shell op, not an LLM read+write (same reason init uses a shell copy - the JSON is
+binary-ish and slow/risky to rewrite); `NotebookEdit` then edits the copy's cells.
 
 ## EDA is a learning artifact, not throwaway
 
@@ -238,7 +248,7 @@ A new project is created by the `/d6tflow:init-project` slash command (commands
 get a reliable `${CLAUDE_PLUGIN_ROOT}`; skills do not, so init is a command, not
 the skill). It copies the bundled template into the user's cwd with a SHELL copy
 (robocopy / cp -n), skip-existing / never-overwrite, and never reads+rewrites
-files via the LLM (which would be slow and could corrupt `visualize.ipynb`).
+files via the LLM (which would be slow and could corrupt `viz-template.ipynb`).
 
 Git LFS setup is a SEPARATE command, `/d6tflow:init-gitlfs`, not folded into
 init-project: LFS is opt-in (most scaffolds never commit `data/`), it mutates git

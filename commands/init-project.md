@@ -31,7 +31,7 @@ that already exists in the target - skip it and remember it for the report.
 
 Do the copy with a single SHELL COPY COMMAND. Do NOT read the template files into
 context and re-write them with the Write tool - that is slow and can corrupt
-binary-ish files like `visualize.ipynb`. Use the platform-appropriate, no-clobber
+binary-ish files like `viz-template.ipynb`. Use the platform-appropriate, no-clobber
 copy and let the tool handle the recursion and skipping:
 
 - Windows (PowerShell): `robocopy "<src>" "<dst>" /E /XC /XN /XO` (the `/XC /XN
@@ -43,7 +43,7 @@ created vs skipped (for the report) - again via shell (e.g. compare directory
 listings), not by reading file contents.
 
 The template contains the project wiring (`cfg.py`, `flow_params.py`, `flow.py`,
-`run.py`, `tasks.py`, `visualize.py`, `visualize.ipynb`), `CLAUDE.md`,
+`run.py`, `tasks.py`, `visualize.py`, `viz-template.ipynb`), `CLAUDE.md`,
 `.gitignore`, `.creds.yaml.example`, and `docs/d6tflow-data.md`. `tasks.py` and
 `flow_params.py` ship with a `PLACEHOLDER SCAFFOLD` marker (and `tasks.py`'s
 module + task docstrings are placeholders); `docs/d6tflow-data.md` ships with a

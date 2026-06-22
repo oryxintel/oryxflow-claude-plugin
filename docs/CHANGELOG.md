@@ -22,6 +22,15 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   creating the package by hand.
 
 ### Changed
+- Report notebooks are now template-based. The scaffold ships the notebook as
+  `viz-template.ipynb` (was `visualize.ipynb`); the convention is one-report-per-
+  notebook - copy the template to a subject-named `viz-<topic>.ipynb` at the root
+  and edit the copy, never the template in place (which a session had done,
+  consuming it and tying one report to the generic name). `--output-dir` then
+  renders `reports/render/viz-<topic>.html` for free. Renamed the template file and
+  updated all references (`SKILL.md`, `reference.md`, template `CLAUDE.md`,
+  `init-project.md`, root `CLAUDE.md`, architecture, design-notes). `visualize.py`
+  is unchanged - it has a different lifecycle (graduates into `viz/<subject>.py`).
 - Notebook authoring now points at the `NotebookEdit` tool instead of hand-writing
   nbformat JSON via `Write` (slow, easy to corrupt). `SKILL.md`'s "Render / publish
   a notebook" section says to edit cells with `NotebookEdit` (and `Read` to inspect

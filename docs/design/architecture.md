@@ -68,7 +68,7 @@ command body -> reads ${CLAUDE_PLUGIN_ROOT}/resources/template-minimal/
              -> ${CLAUDE_PROJECT_DIR}; then creates data/
 ```
 Pre-flight refuses to clobber an existing project. The copy is a shell command,
-never an LLM read+write (slow; would corrupt `visualize.ipynb`). Commands get a
+never an LLM read+write (slow; would corrupt `viz-template.ipynb`). Commands get a
 reliable `${CLAUDE_PLUGIN_ROOT}`; skills do not - that is why init is a command.
 
 ### Put data under Git LFS - `/d6tflow:init-gitlfs`

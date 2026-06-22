@@ -178,7 +178,7 @@ project/
 |-- flow.py            # Workflow instance definition
 |-- run.py             # Execute workflow tasks
 |-- visualize.py       # Analysis script
-|-- visualize.ipynb    # Analysis notebook (importing notebooks stay at root)
+|-- viz-template.ipynb # Report-notebook template; copy to viz-<topic>.ipynb (at root)
 |-- .creds.yaml        # Protected credentials (optional, not committed)
 |-- eda/               # Test / exploration probes, grouped by subject
 |-- utils/             # Shared + per-subject helpers (snake_case modules)
@@ -191,7 +191,7 @@ project/
 
 **Central pattern**: `from flow import flow`  # import everywhere.
 File flow: `cfg.py` -> `flow_params.py` -> `tasks.py` -> `flow.py` ->
-`run.py` / `visualize.py` / `visualize.ipynb` (all import the same `flow`).
+`run.py` / `visualize.py` / `viz-<topic>.ipynb` (all import the same `flow`).
 
 **Code organization** (full rules + edge cases in reference.md): group supporting
 code by SUBJECT - a task, dataset, or concept, snake_case: `eda/<subject>/<name>.py`
@@ -223,8 +223,8 @@ ALWAYS:
   edited-but-unreset tasks. Keep `flow.reset(...)` lines in `run.py` as
   commented-out toggles (uncomment to reset, re-comment after); don't delete
   them. See "Modify an existing task".
-- **Analyze outputs** - Edit `visualize.py` then `python visualize.py`, or use
-  `visualize.ipynb` interactively.
+- **Analyze outputs** - Edit `visualize.py` then `python visualize.py`, or work in
+  a `viz-<topic>.ipynb` report notebook (copied from `viz-template.ipynb`).
 - **Publish a report** - Keep notebooks that import the flow at the project root
   (so imports + `data/` paths resolve); render them to `reports/render/`
   (gitignored). See "Render / publish a notebook" below.
@@ -278,12 +278,19 @@ the file system. For a task's data, `flow.outputLoad(tasks.Task)` (or
 
 ### Render / publish a notebook
 
-Notebooks that import the pipeline live at the PROJECT ROOT (like
-`visualize.ipynb`), NOT in `reports/`. `nbconvert --execute` runs the kernel with
-cwd = the notebook's own folder, so a notebook in a subdirectory breaks both
-`from flow import flow` and the relative `data/` paths d6tflow reads/writes; at the
-root, cwd = the project root and everything resolves. `reports/render/` holds the
-rendered HTML (gitignored - regenerated output). Run nbconvert from the root.
+Notebooks that import the pipeline live at the PROJECT ROOT, NOT in `reports/`.
+`nbconvert --execute` runs the kernel with cwd = the notebook's own folder, so a
+notebook in a subdirectory breaks both `from flow import flow` and the relative
+`data/` paths d6tflow reads/writes; at the root, cwd = the project root and
+everything resolves. `reports/render/` holds the rendered HTML (gitignored -
+regenerated output). Run nbconvert from the root.
+
+**One report = one notebook, made by COPYING the template - never edit the template
+in place.** The scaffold ships `viz-template.ipynb`. For a report, shell-copy it to
+`viz-<topic>.ipynb` at the root (`cp viz-template.ipynb viz-leadlag.ipynb`), then
+author the copy. Name it for its subject (like `viz/<subject>.py`); `--output-dir`
+then yields `reports/render/viz-<topic>.html` for free. `viz-template.ipynb` stays
+pristine for the next report. (Copy via shell, not an LLM read+write of the JSON.)
 
 **Author/edit cells with the `NotebookEdit` tool** (`Read` shows cells + outputs);
 do NOT hand-write nbformat JSON via `Write` - slow and easy to corrupt.
