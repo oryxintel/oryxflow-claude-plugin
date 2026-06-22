@@ -16,8 +16,15 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   commits `.gitattributes` + `.gitignore`. Un-ignoring happens BEFORE tracking
   so data does not bypass LFS; committing the actual data is left to the user.
   Manual (`disable-model-invocation: true`), like init-project.
+- The project scaffold now ships an `eda/` package root (`eda/__init__.py`) so a
+  new project can run probes as `python -m eda.<subject>.<name>` without first
+  creating the package by hand.
 
 ### Changed
+- Dropped the "vendored mirror" policy for `resources/template-minimal/`. The
+  scaffold is now edited directly in this repo (canonical here) instead of being
+  re-synced from a separate `d6tflow-template-minimal` source repo. Updated
+  `CLAUDE.md`, `architecture.md`, and `design-notes.md` accordingly.
 - Broadened skill activation triggers in `SKILL.md` frontmatter: `description`
   and `when_to_use` now name loading / cleaning / transforming / analyzing data
   (each phrased as "becomes a task"), so plain-language data-prep requests like

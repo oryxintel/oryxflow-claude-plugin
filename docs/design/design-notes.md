@@ -208,7 +208,7 @@ content is the plugin's job (harvested into `reference.md` / `ml-patterns.md` an
 deleted from the project); pipeline meaning is in-code; and only the data doc
 ships as a marked PLACEHOLDER skeleton (see the marker note above).
 
-## Scaffolding: the init command and the vendored template
+## Scaffolding: the init command and the template
 
 A new project is created by the `/d6tflow:init-project` slash command (commands
 get a reliable `${CLAUDE_PLUGIN_ROOT}`; skills do not, so init is a command, not
@@ -225,9 +225,6 @@ because data that is ignored or staged before tracking bypasses LFS and then nee
 `git lfs migrate` to fix. Only `data/**` is LFS-tracked; the commit is just the
 config (`.gitattributes` + `.gitignore`), leaving which data to commit to the user.
 
-The template lives at `resources/template-minimal/`. It is a **vendored mirror**
-of the separate `d6tflow-template-minimal` repo (the source of truth) - kept
-unpacked (not zipped) so template changes are diffable in PRs and copying needs
-no archive tooling. Do not hand-edit the mirror; re-sync it from the source repo.
-The provenance/sync note lives in the plugin's top-level `CLAUDE.md`, not as a
-file inside the template (which would just have to be excluded from every copy).
+The template lives at `resources/template-minimal/`, edited directly here (this
+repo is canonical for it). It is kept unpacked (not zipped) so template changes
+are diffable in PRs and copying needs no archive tooling.

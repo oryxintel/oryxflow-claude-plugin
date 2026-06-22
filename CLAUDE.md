@@ -39,8 +39,7 @@ skills/
     reference.md     # full reference - loaded ON DEMAND, not by default
     ml-patterns.md   # ML pipeline task templates - loaded ON DEMAND
 resources/
-  template-minimal/  # vendored mirror of the d6tflow-template-minimal repo;
-                     #   what init-project copies into a new project
+  template-minimal/  # the project scaffold init-project copies into a new project
 docs/
   CHANGELOG.md       # user-facing change history
   design/
@@ -108,20 +107,16 @@ The skill also still exists at `~/.claude/skills/d6tflow` (the pre-plugin copy).
 This repo is becoming canonical. Avoid editing both - once the plugin is
 verified, delete the `~/.claude/skills/d6tflow` copy so they cannot drift.
 
-`resources/template-minimal/` is a **vendored mirror** of the separate
-`d6tflow-template-minimal` repo (the source of truth for the scaffold). Do NOT
-hand-edit files there to fix scaffold bugs - fix the source repo and re-sync the
-mirror (e.g. `robocopy <source-checkout> resources\template-minimal /MIR /XD .git`),
-then bump the plugin version. Plugin-specific scaffold files that do NOT exist in
-the source repo - `CLAUDE.md`, `docs/d6tflow-data.md`, `.creds.yaml.example`, and
-the `reports/` + `reports/render/` dirs (each with a force-added `.gitkeep` - they
-match the `.gitignore` `.*` dotfile rule, so `git add -f` is required, same as
-`data/.gitkeep`) - are added on top here; keep them out of a blind `/MIR` that
-would delete them, or add them to the source repo too. (Two edited files also
-diverge from the source:
-`tasks.py` gains placeholder module + task docstrings and drops a dead `chk()`
-stub, and `.gitignore` gains `!.creds.yaml.example` so the example is committable.
-Fold these back into the source repo.)
+`resources/template-minimal/` is the project scaffold that `init-project` copies
+into a new project. Edit it directly here - this repo is canonical for it. It
+ships the project wiring (`tasks.py`, `flow.py`, `run.py`, `cfg.py`,
+`flow_params.py`, `visualize.py`/`.ipynb`), the project `CLAUDE.md`,
+`docs/d6tflow-data.md`, `.creds.yaml.example`, an `eda/` package root, and the
+`data/`, `reports/`, and `reports/render/` dirs. Those three dirs are kept by a
+`.gitkeep` that must be FORCE-added (`git add -f`): they match the `.gitignore`
+`.*` dotfile rule, so a plain `git add` skips them. `tasks.py` / `flow_params.py`
+ship the intentional `PLACEHOLDER SCAFFOLD` markers (leave them). Bump the plugin
+version after any scaffold change so installs pick it up.
 
 ## Git
 

@@ -18,16 +18,14 @@ activated guidance) and two manual commands - `/d6tflow:init-project` (scaffold 
 new project) and `/d6tflow:init-gitlfs` (put `data/` under Git LFS). The repo is
 also its own marketplace, so it installs directly from git or a local path.
 
-## Three interacting artifacts
+## Two interacting artifacts
 
 Keep these straight - changes go to different places:
 
-1. **This repo (the plugin)** - ships the skill, the command, and a vendored copy
-   of the project template.
-2. **`d6tflow-template-minimal` repo** - the SOURCE OF TRUTH for the scaffold. It
-   is mirrored here at `resources/template-minimal/`. To change the scaffold, edit
-   the source repo and re-sync the mirror - do NOT hand-edit the mirror.
-3. **The installed `d6tflow` library** (pip) - the framework user projects run on.
+1. **This repo (the plugin)** - ships the skill, the commands, and the project
+   scaffold at `resources/template-minimal/`. The scaffold is edited directly
+   here; this repo is canonical for it.
+2. **The installed `d6tflow` library** (pip) - the framework user projects run on.
    Not shipped here; the skill documents how to use it. This repo is NOT a place
    to run d6tflow (there is no pipeline here).
 
@@ -42,7 +40,7 @@ Keep these straight - changes go to different places:
 | `skills/d6tflow/ml-patterns.md` | ML task templates (features, training, SHAP, backtest) | on demand |
 | `commands/init-project.md` | `/d6tflow:init-project`; manual (`disable-model-invocation: true`) | on invoke |
 | `commands/init-gitlfs.md` | `/d6tflow:init-gitlfs`; manual (`disable-model-invocation: true`) | on invoke |
-| `resources/template-minimal/` | vendored scaffold (mirror of the source repo) | copied by init |
+| `resources/template-minimal/` | project scaffold (edited directly here) | copied by init |
 | `docs/design/architecture.md` | this map | dev-time |
 | `docs/design/design-notes.md` | rationale (WHY) | dev-time |
 | `docs/CHANGELOG.md` | change history | dev-time |
@@ -105,7 +103,6 @@ data doc) is opt-in (`/d6tflow:d6tflow explore` or a plain-language request).
 | Keep `SKILL.md` lean; depth -> `reference.md` / `ml-patterns.md` | load-tier cost; design-notes "two-tier" |
 | In-code-first docs: pipeline meaning in docstrings, only data findings in a file | avoid duplication/drift; design-notes "in-code-first" |
 | One `PLACEHOLDER` marker = "not real yet" across code AND the data doc | uniform signal; design-notes "PLACEHOLDER marker" |
-| Never hand-edit `resources/template-minimal/` to fix scaffold bugs | it is a mirror; fix the source repo + re-sync |
 | `init-project` copies via shell, never LLM read+write | speed + notebook integrity |
 | No inline python / no `python -c` in user projects | skill rule (use `eda/<name>.py`) |
 | `version` is `YY.M.D`; bump on any change installed copies should get | `CLAUDE.md` release section |
@@ -118,7 +115,7 @@ data doc) is opt-in (`/d6tflow:d6tflow explore` or a plain-language request).
 | What auto-activates the skill | `SKILL.md` frontmatter `description` | - |
 | Task-type table / deep patterns / debugging | `skills/d6tflow/reference.md` | - |
 | ML pipeline templates | `skills/d6tflow/ml-patterns.md` | - |
-| Any scaffold/template file (wiring, `CLAUDE.md`, data doc, `.gitignore`) | the `d6tflow-template-minimal` SOURCE repo, then re-sync `resources/template-minimal/` | bump version |
+| Any scaffold/template file (wiring, `CLAUDE.md`, data doc, `.gitignore`) | `resources/template-minimal/` directly | bump version |
 | Scaffold copy behavior / pre-flight | `commands/init-project.md` | - |
 | Git LFS init steps (install check, track, commit) | `commands/init-gitlfs.md` | - |
 | The conventions floor a new project ships with | `resources/template-minimal/CLAUDE.md` (+ source repo) | - |
