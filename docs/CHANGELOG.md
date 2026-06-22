@@ -21,6 +21,13 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   creating the package by hand.
 
 ### Changed
+- Carved out a scratch exception to the "`eda/` is read-only" rule. A probe still
+  produces no pipeline artifact in `data/`, but genuinely disposable scratch (an
+  iterated cache, an intermediate to eyeball) may go to `data/.eda/<subject>/` -
+  gitignored via the `.*` rule (which sits outside the data-files block that
+  `init-gitlfs` un-comments, so scratch stays untracked even in an LFS project)
+  and regenerable. New "Scratch for probes" subsection in `reference.md`, one-line
+  pointer in `SKILL.md`.
 - Recording a material finding is no longer gated behind a confirmation. `SKILL.md`
   and the template `CLAUDE.md` now separate two moments: deciding to GO exploring
   stays opt-in (the user's call), but writing up a finding a probe has ALREADY

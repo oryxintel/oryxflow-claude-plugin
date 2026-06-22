@@ -855,9 +855,12 @@ viz/
   aspect: `eda/data_oews/verify_coercion.py` (not `verify_dataoews.py`, not bare
   `verify.py`). This holds even when a folder has a single probe - a specific name
   future-proofs the second one.
-- **`eda/` is read-only.** A probe inspects and asserts; it must not write to
-  `data/`. Code that PRODUCES a `data/` artifact is a builder, not a probe (see
-  edge cases).
+- **`eda/` produces no PIPELINE artifacts.** A probe inspects and asserts; it must
+  not write a task-output-shaped file into `data/`. Code that PRODUCES a `data/`
+  artifact downstream consumes is a builder, not a probe (see edge cases). The one
+  thing a probe MAY write is disposable scratch (cache an expensive pull while
+  iterating, dump an intermediate to eyeball) - and that goes to
+  `data/.eda/<subject>/`, never beside task outputs. See "Scratch for probes".
 - **Extract on the SECOND use** (or when a single-use helper is large enough to
   clutter the task). A one-off constant used by one task stays inline in
   `tasks.py`; do not spin up a near-empty module per task.
@@ -906,6 +909,23 @@ so they resolve ONLY as `python -m <pkg>.<...>` from the project root - bare
 - **Stale caches on rename.** Renaming/deleting a task orphans its
   `data/<OldName>/` cache (and `__pycache__`); subject-grouping won't reap it -
   delete the stale cache when you rename a task.
+
+### Scratch for probes
+
+Sometimes a probe genuinely needs to persist intermediate data to do its job -
+cache an expensive download while you iterate on a verification, or dump a
+reshaped frame to eyeball it. That is fine, but it is NOT a `data/<Task>/` output.
+Write it to `data/.eda/<subject>/` (mirroring the `eda/<subject>/` code layout)
+and treat it as regenerable.
+
+Why there: the leading-dot dir is gitignored by the `.*` rule, which sits OUTSIDE
+the data-files block that `init-gitlfs` un-comments - so the scratch stays
+untracked even in a project that LFS-tracks `data/`. It can never be committed by
+accident, and the dot keeps it visually distinct from task-output dirs.
+
+The decision before "where": a finding -> print it + record in
+`docs/d6tflow-data.md` (no file). A derived dataset worth reusing downstream -> a
+TASK (`self.save`), not scratch. Genuinely throwaway intermediate -> `data/.eda/`.
 
 ## Additional Resources
 

@@ -200,7 +200,9 @@ files for the specific thing they do, dropping the redundant subject token
 (`eda/data_oews/verify_coercion.py`) - never a bare verb. Loading external data is a
 SOURCE TASK by default (the loader-task pattern), not an `eda/` probe - unless it
 is hand-curated, or its output is not a table/serializable object a task stores,
-which stays a maintenance script.
+which stays a maintenance script. A probe writes no pipeline artifact to `data/`;
+disposable scratch (an iterated cache, an intermediate to eyeball) goes to
+`data/.eda/<subject>/` (gitignored, regenerable), never beside task outputs.
 
 ---
 
