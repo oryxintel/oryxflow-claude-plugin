@@ -206,6 +206,12 @@ which stays a maintenance script. A probe writes no pipeline artifact to `data/`
 disposable scratch (an iterated cache, an intermediate to eyeball) goes to
 `data/.eda/<subject>/` (gitignored, regenerable), never beside task outputs.
 
+**Column naming**: carry ONE canonical `snake_case` name per column - rename raw
+codes once at ingestion, never re-alias downstream (no code->display->code
+round-trips). Derive by suffix (`_yoy`, `_yoy_pp`, `_ma4`, `_lag1`); apply pretty
+Title-Case labels ONLY at the `viz/` layer. Record the raw->canonical map in
+`docs/d6tflow-data.md`. Full rules in reference.md ("Column naming").
+
 ---
 
 ## Workflow Operations: Use Existing Files

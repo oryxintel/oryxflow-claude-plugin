@@ -939,6 +939,36 @@ The decision before "where": a finding -> print it + record in
 `docs/d6tflow-data.md` (no file). A derived dataset worth reusing downstream -> a
 TASK (`self.save`), not scratch. Genuinely throwaway intermediate -> `data/.eda/`.
 
+## Column naming: carry one canonical name
+
+Every rename is a mapping a reader must hold and can mis-apply; a round-trip (raw
+code -> display -> code) is pure cost and a classic wrong-column bug. Minimize the
+layers:
+
+- **One canonical name per column, carried end to end.** Rename raw source codes to
+  canonical ONCE, in the loader / source task; never re-alias downstream. Canonical
+  is `descriptive_snake_case` (`under_construction_rate`, not `uc_rate` or
+  `Under Construction Rate`) - self-describing (no data-doc lookup to know what it
+  is) AND code-safe (attribute access, no fragile spaces / mixed case).
+- **Pretty labels live ONLY at the plotting layer.** `viz/<subject>.py` maps
+  canonical -> Human-readable Title Case for axes/legends
+  (`under_construction_rate` -> "Construction"). Never a second DATA-level rename.
+- **Derive by suffixing the source name** with a small, fixed vocabulary, so the
+  name carries provenance AND transform: `_yoy` (YoY growth ratio), `_yoy_pp` /
+  `_diff` (pp difference), `_pct`, `_ma{n}`, `_lag{n}`, `_roll{n}`, `_z`, `_log`.
+  `under_construction_rate_yoy` then reads as exactly what it is and where it came
+  from. Disambiguate the FORM when a column could be read two ways (growth vs
+  pp-difference) - name the unit (`_pp` vs `_pct`); do not hide two operations
+  behind a vague `_chg`.
+- **Do not shadow a supplied series.** If the source already ships a derived series
+  (e.g. an as-supplied YoY), use it; a cross-check derivation is named as a check
+  and dropped once verified, not left to compete with the canonical column.
+- **Record the canonical set + the raw->canonical map in `docs/d6tflow-data.md`,**
+  and use canonical names in the task docstring's `Out:` contract - the one place
+  that answers "what is this column." Keep the suffix vocabulary small and listed
+  there (like concept-module names), so `_chg` and `_diff` do not both appear for
+  the same operation.
+
 ## Additional Resources
 
 - Official docs: https://d6tflow.readthedocs.io/
