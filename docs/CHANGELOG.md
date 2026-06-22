@@ -22,6 +22,15 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   creating the package by hand.
 
 ### Changed
+- Documented adding/removing/renaming an output column as a first-class operation.
+  The reset/iterate mechanics already covered it generically, but it was unnamed,
+  not in the activation triggers, and missing from the in-session example list
+  (the most common iterate op wasn't offered). Now: `when_to_use` names it;
+  `SKILL.md` adds it to the offered Build examples and gives the "Modify an
+  existing task" loop a column-specific note (update the docstring `Out:` list;
+  removing/renaming breaks downstream readers - fix them in the same edit);
+  `reference.md` adds the depth case (a silent semantic change to an existing
+  column does not error downstream); README's "Things you can ask" stays in sync.
 - Sharpened the "trust auto file management" rule into an explicit do/don't: never
   hand-read a task's data off disk (`pd.read_excel(path)` / `pd.read_csv(path)`) -
   use `flow.outputLoad(Task)` or `self.inputLoad()`. The rule existed only as

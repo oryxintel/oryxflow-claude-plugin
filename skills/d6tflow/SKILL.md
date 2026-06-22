@@ -10,7 +10,8 @@ description: >-
 when_to_use: >-
   Trigger on requests like: add a new task that depends on an existing one
   (wired with @d6tflow.requires), create a task that loads a source, add a task
-  with multiple inputs, update / modify an existing task, make one task depend on
+  with multiple inputs, update / modify an existing task (incl. add / remove /
+  rename an output column or save a new field on it), make one task depend on
   another, set the final task, or add / change a parameter; build a data-prep
   task or load / clean / transform / analyze the data (each becomes a task); run
   the flow, preview
@@ -103,8 +104,9 @@ visible mid-session; `argument-hint` only shows `[explore]`). After orienting,
 show a short, GROUPED set - pick a handful that fit the state, don't dump all:
 
 - Build: "load the `<X>` data" (creates an output-named loader task), "add a task
-  `<Name>` that takes `<Upstream>`'s output and ...", "make `<A>` depend on
-  `<B>`", "set `<Task>` as the final task", "add a parameter `<name>`".
+  `<Name>` that takes `<Upstream>`'s output and ...", "update `<Task>` to add/drop
+  a column or save `<field>`", "make `<A>` depend on `<B>`", "set `<Task>` as the
+  final task", "add a parameter `<name>`".
 - Run: "run the flow", "preview the flow", "re-run / reset `<Task>`".
 - Inspect: "load the output of `<Task>`", "plot the results".
 - Understand: "what does this pipeline do?", "explore the data".
@@ -394,6 +396,11 @@ class OEWSWages(d6tflow.tasks.TaskPqPandas):
    once to reset multiple) rather than deleting them - the standing list of
    reset-ables is the intended pattern.
 4. Keep the docstring accurate.
+
+**Add / remove / rename an output column** is this same loop: edit `run()`, update
+the docstring's `Out:` column list to match, then reset + re-run. Adding is safe;
+REMOVING or renaming a column breaks any downstream task that read it - the reset
+cascade re-runs them and surfaces the break, so fix those readers in the same edit.
 
 **Iterate-then-run rule**: if a task's code was edited this session and you are
 then asked to "run the flow", do reset-then-run for that task - do NOT just

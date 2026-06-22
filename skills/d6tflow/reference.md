@@ -256,6 +256,14 @@ the task as complete and SKIPS it, reusing the stale output. So after editing a
 task's code you MUST `flow.reset(thatTask)` before running, or the edit silently
 has no effect. This is the most common d6tflow surprise when iterating.
 
+**Changing a task's output columns** is just such a code edit: adding, removing,
+or renaming a column needs a reset (cascades downstream) and a matching update to
+the docstring's output contract. Removing or renaming a column breaks downstream
+tasks that read it - the cascade re-runs them, so the break surfaces as an error
+you fix in the same change. Subtler: changing what an EXISTING column MEANS
+(recomputed values, new units) WITHOUT renaming it does not error downstream -
+dependents silently consume the new semantics, so reset and re-verify them.
+
 ### Important: Trust Auto File Management
 
 d6tflow auto-handles file creation. DO NOT manually verify files after running

@@ -100,6 +100,8 @@ Build the pipeline:
   case: a new task wired to an upstream with `@d6tflow.requires(<Upstream>)`
 - "create a task `<Name>` that loads `<source>`" - a root task (no dependency)
 - "add a task `<Name>` that depends on `<A>` and `<B>`" - multiple inputs
+- "save `<field>` in `<Task>`" / "add (or drop) a column in `<Task>`" - edits the
+  task; reset cascades downstream on re-run (removing a column, fix its readers)
 - "make `<Task>` depend on `<Other>`" / "set `<Task>` as the final task"
 - "add a parameter `<name>` to `<Task>`" / "change `<param>` to `<value>`"
 
