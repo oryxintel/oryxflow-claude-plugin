@@ -77,7 +77,8 @@ reliable `${CLAUDE_PLUGIN_ROOT}`; skills do not - that is why init is a command.
 command body -> checks git-lfs binary + filters (git lfs install)
              -> ensures a git repo on main (git init -b main)
              -> comments the data-files block in .gitignore (un-ignore)
-             -> git lfs track "data/**" + "reports/render/**"
+             -> git lfs track "data/**"           (one call)
+             -> git lfs track "reports/render/**"  (a second call)
              -> commits .gitattributes + .gitignore
 ```
 A separate manual command (not part of init-project) because LFS is opt-in: most
