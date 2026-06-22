@@ -216,6 +216,22 @@ content is the plugin's job (harvested into `reference.md` / `ml-patterns.md` an
 deleted from the project); pipeline meaning is in-code; and only the data doc
 ships as a marked PLACEHOLDER skeleton (see the marker note above).
 
+**Corollary - first-action rules belong in `CLAUDE.md`, not only `SKILL.md`.** The
+skill is ACTIVATION-GATED; the project `CLAUDE.md` is ALWAYS in context. So a rule
+that must govern the very first move - especially right after `/clear`, before any
+skill activation - has to live in the always-loaded floor, or the model falls back
+to generic instincts. The motivating failure: after `/clear`, asked to analyze a
+pipeline, the model ran a shell `head` on the raw input CSV instead of
+`flow.outputLoad(TheTask)` - the data ALREADY existed as that task's output, with
+renamed/derived columns, so the raw input was both the wrong file and the wrong
+path. The rule lands as: once a task produces the data, `outputLoad` it; do not go
+back to the source to learn the output's schema. It is deliberately NOT an absolute
+ban on reading raw files - that is exactly how you bootstrap a loader task for
+source not yet in the pipeline (nothing to `outputLoad` yet). The distinction is
+"does a task already produce this?", not the tool used. The plugin's `SKILL.md`
+carries the same wording for when the skill IS active; `CLAUDE.md` catches the
+cold-start case.
+
 ## Scaffolding: the init command and the template
 
 A new project is created by the `/d6tflow:init-project` slash command (commands

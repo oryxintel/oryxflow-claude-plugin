@@ -22,6 +22,16 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   creating the package by hand.
 
 ### Changed
+- Sharpened the "load a task's data, don't re-read the source" rule against the
+  cold-start (`/clear`) failure where the model shell-`head`s the raw input CSV
+  even though the data already exists as a task's output. The rule is now: once a
+  task produces the data, `flow.outputLoad(Task)` it - don't go back to the raw
+  source to learn the (renamed/derived) output's schema. It is deliberately NOT an
+  absolute ban on reading raw files: doing so is the normal way to bootstrap a
+  loader task for source not yet in the pipeline. Wording put in BOTH `SKILL.md`
+  and the always-loaded template `CLAUDE.md` - the latter governs before the
+  activation-gated skill applies. Rationale in `design-notes.md` ("Three-layer
+  model" corollary).
 - Documented adding/removing/renaming an output column as a first-class operation.
   The reset/iterate mechanics already covered it generically, but it was unnamed,
   not in the activation triggers, and missing from the in-session example list

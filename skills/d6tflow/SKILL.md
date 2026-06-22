@@ -266,9 +266,15 @@ df = flow.outputLoad(tasks.Task)  # Load task output
 
 **Trust auto file management**: if `flow.run()` completes without errors, the
 output files exist. Debug by loading with `flow.outputLoad()`, NOT by checking
-the file system. Likewise, never hand-read a task's data off disk:
-- Don't: `pd.read_excel(path)` / `pd.read_csv(path)` to get a task's data.
-- Do: `flow.outputLoad(tasks.Task)` (or `self.inputLoad()` inside a task).
+the file system. For a task's data, `flow.outputLoad(tasks.Task)` (or
+`self.inputLoad()` in a task) is the PRIMARY path:
+- If a task already produces the data, load it - don't re-read the raw source or
+  peek the file to learn its schema. Source vs output: columns are often
+  renamed/derived, so the raw input has DIFFERENT columns than the task output.
+  Reading the input CSV to learn an existing output's schema is the classic slip.
+- Reading a raw file directly IS fine when you are first writing the loader task
+  for source not yet in the pipeline (nothing to `outputLoad` yet) - ideally from
+  an `eda/` probe.
 
 ### Render / publish a notebook
 

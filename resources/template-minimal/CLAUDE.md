@@ -53,9 +53,12 @@ do not ask.
   `flow_params.py` (parameters), `flow.py` (which final task runs), `run.py`
   (execute). Run the workflow with `python run.py`.
 - Trust auto file management. If `flow.run()` finishes without error, the outputs
-  exist - load them with `flow.outputLoad(...)`; do not stat the filesystem. And
-  never hand-read a task's data off disk: not `pd.read_excel(path)` /
-  `pd.read_csv(path)`, but `flow.outputLoad(Task)` (or `self.inputLoad()` in a task).
+  exist - load them with `flow.outputLoad(...)`; do not stat the filesystem. For a
+  task's data, `flow.outputLoad(Task)` (or `self.inputLoad()` in a task) is the
+  primary path: if a task already produces it, load it rather than re-reading the
+  raw source (whose columns differ from the renamed/derived output). Reading a raw
+  file directly is fine when first writing the loader task for source not yet in
+  the pipeline - there is nothing to `outputLoad` yet.
 - `from flow import flow` everywhere - one workflow instance, imported.
 
 ## Files
