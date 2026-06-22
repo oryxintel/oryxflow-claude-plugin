@@ -348,10 +348,11 @@ a throwaway "brief description". State:
 - what the task PRODUCES (one line: purpose / output);
 - its input -> output contract (what it consumes and from where; what columns /
   keys it saves - what downstream tasks depend on);
-- any non-obvious decision/assumption/quirk (point to `docs/d6tflow-data.md` for
-  data-specific ones).
+- any non-obvious decision/assumption/quirk, stated inline.
 
 Do NOT restate the code - explain intent and contract; the body shows how.
+Do NOT tack on cross-references like "see `docs/d6tflow-data.md`" - that doc is
+the known data home by convention, so a pointer in every docstring is just noise.
 Include a short snippet only when it is the clearest way to state a contract
 (e.g. an output column list). Same rule for the `tasks.py` module docstring and
 the data doc.
@@ -365,7 +366,7 @@ class OEWSWages(d6tflow.tasks.TaskPqPandas):
 
     In:  OEWS MSA estimates (from DataOEWS).
     Out: one row per (occ_code, area); the wage-percentile columns. Null where
-         BLS suppressed small cells - see docs/d6tflow-data.md.
+         BLS suppressed small cells.
     """
     param1 = d6tflow.Parameter()
 

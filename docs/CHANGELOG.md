@@ -22,6 +22,11 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   creating the package by hand.
 
 ### Changed
+- Task docstrings no longer carry "see `docs/d6tflow-data.md`" cross-references.
+  The conventions already establish that doc as the data home, so a pointer in
+  every docstring is noise (and ages badly as the data layer grows). `SKILL.md`
+  now says to state quirks inline and explicitly NOT to tack on the cross-ref;
+  the worked example drops its trailing pointer.
 - Carved out a scratch exception to the "`eda/` is read-only" rule. A probe still
   produces no pipeline artifact in `data/`, but genuinely disposable scratch (an
   iterated cache, an intermediate to eyeball) may go to `data/.eda/<subject>/` -
