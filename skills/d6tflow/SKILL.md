@@ -37,10 +37,12 @@ ad-hoc scripts or inline commands for workflow operations - use the existing
 project files.
 
 Depth lives on demand, not here: [reference.md](reference.md) for the full
-library reference (task types, advanced patterns, recipes, debugging, deep
-project-structure walkthrough); [ml-patterns.md](ml-patterns.md) for ML pipeline
-templates (features, training, SHAP, expanding-window backtests). Load either
-when you need more than the essentials below.
+library reference (task types, advanced patterns, avoiding silent data errors,
+recipes, debugging); [conventions.md](conventions.md) for house conventions
+(project layout, code organization, naming columns / tasks / variables);
+[ml-patterns.md](ml-patterns.md) for ML pipeline templates (features, training,
+SHAP, expanding-window backtests). Load whichever you need beyond the essentials
+below.
 
 ---
 
@@ -193,7 +195,7 @@ project/
 File flow: `cfg.py` -> `flow_params.py` -> `tasks.py` -> `flow.py` ->
 `run.py` / `visualize.py` / `viz-<topic>.ipynb` (all import the same `flow`).
 
-**Code organization** (full rules + edge cases in reference.md): group supporting
+**Code organization** (full rules + edge cases in conventions.md): group supporting
 code by SUBJECT - a task, dataset, or concept, snake_case: `eda/<subject>/<name>.py`
 (READ-ONLY probes), `utils/<subject>.py`, `viz/<subject>.py`. A helper shared by
 2+ subjects goes in a concept/dataset module (`utils/geo.py`); a single subject's
@@ -214,7 +216,7 @@ operation last (`_yoy`, `_yoy_pp`, `_ma4`, `_lag1`); apply pretty Title-Case lab
 ONLY at the `viz/` layer. Record the raw->canonical map in `docs/d6tflow-data.md`.
 Same broad->narrow rule for TASK names (families share a leading token:
 `FundamentalsLeadLag`, not `LeadLagAnalysis`) and `df`/variable names
-(`df_profile_division`). Full rules in reference.md ("Column naming").
+(`df_profile_division`). Full rules in conventions.md ("Naming").
 
 ---
 
@@ -285,6 +287,13 @@ the file system. For a task's data, `flow.outputLoad(tasks.Task)` (or
 - Reading a raw file directly IS fine when you are first writing the loader task
   for source not yet in the pipeline (nothing to `outputLoad` yet) - ideally from
   an `eda/` probe.
+
+**Don't produce a confident wrong number.** The errors that DON'T raise are the
+dangerous ones: validate every merge (`df.merge(..., validate='m:1')` + row-count
+check), look at the frame (shape / dtypes / NA / `describe`) before stating a
+finding, quote numbers pulled from the frame (never eyeballed off a chart), and
+watch pandas index alignment in arithmetic. Full guidance: reference.md
+("Avoiding silent data errors").
 
 ### Render / publish a notebook
 
@@ -377,7 +386,8 @@ loads/produces a named dataset, `Data<Name>` (`DataOEWS`) or a plain `<Name>`
 Order the name broad -> narrow (same rule as columns) so tasks in a family share a
 leading token and cluster in `tasks.py` / `flow.preview()` / `data/`:
 `FundamentalsAll`, `FundamentalsSignals`, `FundamentalsLeadLag` (NOT
-`LeadLagAnalysis`); loaders share the `Data<Name>` prefix.
+`LeadLagAnalysis`); loaders share the `Data<Name>` prefix. (Full naming rules -
+columns, tasks, variables - in conventions.md "Naming".)
 
 A plain-language "load the OEWS data" (or "load/get/pull X") IS a request to
 create such a task - make a NEW, output-named task (`DataOEWS`); don't load data

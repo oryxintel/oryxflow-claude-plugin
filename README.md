@@ -187,7 +187,8 @@ d6tflow-claude-plugin/
 `-- skills/
     `-- d6tflow/
         |-- SKILL.md       # skill entry point (loaded into context)
-        |-- reference.md   # full reference, loaded on demand
+        |-- reference.md   # full library reference, loaded on demand
+        |-- conventions.md # house conventions (layout, code-org, naming), on demand
         `-- ml-patterns.md # ML pipeline task templates, loaded on demand
 ```
 

@@ -3,15 +3,42 @@
 Rationale behind non-obvious decisions, so future edits do not undo them by
 accident. Update this when the *reasoning* changes, not just the text.
 
-## Two-tier content: SKILL.md vs reference.md
+## Two-tier content: SKILL.md vs the on-demand files
 
-`SKILL.md` loads into context every time the skill activates; `reference.md` does
-not. So `SKILL.md` carries only the essentials an agent needs on every task, and
-everything deep (task-type tables, advanced patterns, recipes, the full
-project-structure walkthrough) lives in `reference.md`, pulled in on demand.
+`SKILL.md` loads into context every time the skill activates; the on-demand files
+do not. So `SKILL.md` carries only the essentials an agent needs on every task,
+and everything deep lives in files pulled in only when needed.
 
 Keeping `SKILL.md` lean is a recurring cost decision: every line is paid for on
 each activation. Resist moving reference material up into it.
+
+### Why the on-demand depth is split three ways
+
+The depth is NOT one file. It is `reference.md` (the d6tflow LIBRARY: task types,
+params, running/reset, advanced patterns, recipes, debugging, and the silent-
+data-error guards), `conventions.md` (the HOUSE STYLE: project-layout deep dive,
+code-organization-by-subject, and naming columns/tasks/variables), and
+`ml-patterns.md` (ML templates). The split is along a real seam - "how d6tflow
+works" vs "how we organize a project" are different questions asked at different
+moments. `reference.md` crossed ~1000 lines and a focused question ("where does
+this code go", "how do I name this column") had to page the whole file, diluting
+attention and spending context on irrelevant API material. Two on-demand files
+let the agent load only the half it needs. The stopping rule is one split, not
+many: each extra file adds discovery overhead and a drift surface, so depth is
+cut at the load-bearing seam (library vs conventions) and no finer. Routing is in
+`SKILL.md`'s header pointer and the inline pointers ("full rules in
+conventions.md"); keep those accurate or the second file goes unfound.
+
+### Why a "silent data errors" section exists
+
+The library best-practices already cover validation/assertions, but the errors
+that produce a WRONG NUMBER WITHOUT RAISING are a distinct class and the most
+dangerous for an AI agent: an unvalidated join that multiplies rows, an assumed
+column meaning, a number eyeballed off a chart, a pandas index misalignment. None
+throw; all yield confident wrong analysis. They get their own section in
+`reference.md` (with a SKILL.md pointer) because "make the failure loud" -
+`validate=` on merges, look-before-you-conclude, quote-the-computed-number - is a
+different discipline from "assert your inputs," and worth naming so it is applied.
 
 ## The skill orients from code + a data doc, not by re-scanning
 
@@ -204,8 +231,9 @@ subfolders. The source path can be redirected via `cfg.py`.
 Where each kind of information lives, and why:
 
 - **Generic d6tflow knowledge** (task types, patterns, ML recipes, conventions)
-  lives ONLY in the plugin: `SKILL.md` (essentials), `reference.md` (depth),
-  `ml-patterns.md` (ML, on demand). It is identical across projects, so it must
+  lives ONLY in the plugin: `SKILL.md` (essentials), `reference.md` (library
+  depth), `conventions.md` (house style), `ml-patterns.md` (ML), the last three on
+  demand. It is identical across projects, so it must
   not be copied into each one. Plugin-izing this is the whole point - it ends the
   old habit of dumping a `claude-d6tflow.md` guide into every repo.
 - **Project-specific truth** lives with the thing it describes: pipeline meaning
@@ -222,9 +250,10 @@ Where each kind of information lives, and why:
 This earlier was an open question (the template once shipped a rich generic guide
 and a detailed data-doc skeleton at those doc paths, which collided with the
 "absence = explore" signal and duplicated plugin knowledge). Resolution: generic
-content is the plugin's job (harvested into `reference.md` / `ml-patterns.md` and
-deleted from the project); pipeline meaning is in-code; and only the data doc
-ships as a marked PLACEHOLDER skeleton (see the marker note above).
+content is the plugin's job (harvested into `reference.md` / `conventions.md` /
+`ml-patterns.md` and deleted from the project); pipeline meaning is in-code; and
+only the data doc ships as a marked PLACEHOLDER skeleton (see the marker note
+above).
 
 **Corollary - first-action rules belong in `CLAUDE.md`, not only `SKILL.md`.** The
 skill is ACTIVATION-GATED; the project `CLAUDE.md` is ALWAYS in context. So a rule

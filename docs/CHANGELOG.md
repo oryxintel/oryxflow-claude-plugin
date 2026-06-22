@@ -7,6 +7,19 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 ## [26.6.22] - 2026-06-22
 
 ### Added
+- "Avoiding silent data errors" section in `reference.md` (pointer in `SKILL.md`):
+  the trap class that yields a WRONG NUMBER WITHOUT RAISING, which is the most
+  dangerous for an AI agent. Four guards - validate every merge (`validate='m:1'`
+  + row-count check, the usual cause of silent row blow-up), look at the frame
+  (shape/dtypes/NA/`describe` + reconcile aggregates) before stating a finding,
+  quote numbers pulled from the frame (never eyeballed off a chart), and watch
+  pandas index alignment in arithmetic. Distinct discipline from "assert your
+  inputs" (make the failure LOUD), so it is named separately.
+- One-line lead-in over the naming rules stating the throughline behind all of
+  them: a name is something the reader holds and can mis-apply, so every
+  convention pushes one way - fewer translation layers, self-describing tokens,
+  shared family prefixes - and unspecified naming cases are decided by that
+  principle.
 - Column-naming convention (optimizes for assistant accuracy by minimizing name
   layers): carry ONE canonical `descriptive_snake_case` name per column, renamed
   from raw codes ONCE at ingestion and never re-aliased downstream (no
@@ -16,8 +29,8 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   small fixed suffix vocabulary with the operation LAST (`_yoy`, `_yoy_pp`/`_diff`,
   `_pct`, `_ma{n}`, `_lag{n}`, ...) so the name carries provenance + transform;
   apply Human-readable Title Case labels ONLY at the `viz/` plotting layer; record
-  the raw->canonical map in `docs/d6tflow-data.md`. Full section in `reference.md`
-  ("Column naming"), pointer in `SKILL.md`. Motivated by a real three-layer
+  the raw->canonical map in `docs/d6tflow-data.md`. Full section in `conventions.md`
+  ("Naming"), pointer in `SKILL.md`. Motivated by a real three-layer
   round-trip (raw `uc_rate` -> display `Under Construction Rate` -> analysis
   `uc_rate` again) that caused wrong-column confusion. The broad->narrow ordering
   also extends to TASK names (a family shares a leading token - `FundamentalsAll`,
@@ -39,6 +52,17 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   creating the package by hand.
 
 ### Changed
+- Split the on-demand depth in two along the library-vs-conventions seam.
+  `reference.md` had crossed ~1000 lines, so a focused question ("where does this
+  code go", "how do I name this") had to page the whole file. New
+  `conventions.md` (house style: project-layout deep dive, code-organization-by-
+  subject, and naming columns/tasks/variables) is now a sibling on-demand file;
+  `reference.md` keeps the d6tflow LIBRARY (task types, params, running/reset,
+  patterns, recipes, debugging, silent-data-error guards). Moved the three
+  sections out of `reference.md`, left a pointer, and updated routing in
+  `SKILL.md` (header + inline pointers), `architecture.md` (component table, load
+  tiers, playbook), and `design-notes.md` (rationale for the split + the stopping
+  rule: one seam, not many files).
 - Documented how to VISUALLY check a chart (the agent confirming a figure it
   produced is readable), since `Read` truncates a notebook's embedded base64 image
   outputs. Keyed on where the plot is made: from `viz/<subject>.py` code, the

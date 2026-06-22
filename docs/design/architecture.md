@@ -36,7 +36,8 @@ Keep these straight - changes go to different places:
 | `.claude-plugin/plugin.json` | manifest; `version` is date-based `YY.M.D` | - |
 | `.claude-plugin/marketplace.json` | self-marketplace entry | - |
 | `skills/d6tflow/SKILL.md` | runtime behavior + essentials; frontmatter `description` drives activation | on activation |
-| `skills/d6tflow/reference.md` | full library reference (task types, patterns) | on demand |
+| `skills/d6tflow/reference.md` | full library reference (task types, patterns, silent-data-error guards) | on demand |
+| `skills/d6tflow/conventions.md` | house conventions (project layout, code-org-by-subject, naming columns/tasks/vars) | on demand |
 | `skills/d6tflow/ml-patterns.md` | ML task templates (features, training, SHAP, backtest) | on demand |
 | `commands/init-project.md` | `/d6tflow:init-project`; manual (`disable-model-invocation: true`) | on invoke |
 | `commands/init-gitlfs.md` | `/d6tflow:init-gitlfs`; manual (`disable-model-invocation: true`) | on invoke |
@@ -52,11 +53,13 @@ Keep these straight - changes go to different places:
 - **Always loaded**: the project's own `CLAUDE.md` (in a USER project); the root
   `CLAUDE.md` (in THIS repo). Keep lean.
 - **On skill activation**: `SKILL.md`.
-- **On demand**: `reference.md`, `ml-patterns.md`.
+- **On demand**: `reference.md`, `conventions.md`, `ml-patterns.md`.
 
 Every line in an always/activation file is paid for on each load. This is why
-`SKILL.md` stays essentials-only and depth lives in the on-demand files (two-tier
-split), and why the architecture/playbook lives here, not in `CLAUDE.md`.
+`SKILL.md` stays essentials-only and depth lives in the on-demand files (now
+three: `reference.md` = library API, `conventions.md` = house style for layout /
+code-org / naming, `ml-patterns.md` = ML templates), and why the
+architecture/playbook lives here, not in `CLAUDE.md`.
 
 ## Control & data flows
 
@@ -115,7 +118,8 @@ data doc) is opt-in (`/d6tflow:d6tflow explore` or a plain-language request).
 |--------------|---------|---------|
 | Skill runtime behavior / orientation logic | `skills/d6tflow/SKILL.md` | `/reload-plugins` (dev) |
 | What auto-activates the skill | `SKILL.md` frontmatter `description` | - |
-| Task-type table / deep patterns / debugging | `skills/d6tflow/reference.md` | - |
+| Task-type table / deep patterns / debugging / silent-data-error guards | `skills/d6tflow/reference.md` | - |
+| Project layout / code-org-by-subject / naming (column, task, df) | `skills/d6tflow/conventions.md` | - |
 | ML pipeline templates | `skills/d6tflow/ml-patterns.md` | - |
 | Any scaffold/template file (wiring, `CLAUDE.md`, data doc, `.gitignore`) | `resources/template-minimal/` directly | bump version |
 | Scaffold copy behavior / pre-flight | `commands/init-project.md` | - |
