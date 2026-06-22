@@ -947,19 +947,25 @@ layers:
 
 - **One canonical name per column, carried end to end.** Rename raw source codes to
   canonical ONCE, in the loader / source task; never re-alias downstream. Canonical
-  is `descriptive_snake_case` (`under_construction_rate`, not `uc_rate` or
+  is `descriptive_snake_case` (`rate_construction`, not `uc_rate` or
   `Under Construction Rate`) - self-describing (no data-doc lookup to know what it
   is) AND code-safe (attribute access, no fragile spaces / mixed case).
+- **Order tokens broad -> narrow** (category first), the OPPOSITE of English word
+  order, so columns in one family share a leading prefix and cluster - for a reader
+  and for `df.filter(like='rate_')`: `rate_construction`, `rate_completion`,
+  `rate_availability` (not `construction_rate`, nor the English "under construction
+  rate"); `return_capital`, `return_income`, `return_total`; `price_open`,
+  `price_high`, `price_low`. English order is for the DISPLAY label only.
 - **Pretty labels live ONLY at the plotting layer.** `viz/<subject>.py` maps
-  canonical -> Human-readable Title Case for axes/legends
-  (`under_construction_rate` -> "Construction"). Never a second DATA-level rename.
+  canonical -> Human-readable Title Case for axes/legends (`rate_construction` ->
+  "Construction"). Never a second DATA-level rename.
 - **Derive by suffixing the source name** with a small, fixed vocabulary, so the
   name carries provenance AND transform: `_yoy` (YoY growth ratio), `_yoy_pp` /
   `_diff` (pp difference), `_pct`, `_ma{n}`, `_lag{n}`, `_roll{n}`, `_z`, `_log`.
-  `under_construction_rate_yoy` then reads as exactly what it is and where it came
-  from. Disambiguate the FORM when a column could be read two ways (growth vs
-  pp-difference) - name the unit (`_pp` vs `_pct`); do not hide two operations
-  behind a vague `_chg`.
+  The operation goes LAST (narrowest qualifier): `rate_construction_yoy` then reads
+  as exactly what it is and where it came from. Disambiguate the FORM when a column
+  could be read two ways (growth vs pp-difference) - name the unit (`_pp` vs
+  `_pct`); do not hide two operations behind a vague `_chg`.
 - **Do not shadow a supplied series.** If the source already ships a derived series
   (e.g. an as-supplied YoY), use it; a cross-check derivation is named as a check
   and dropped once verified, not left to compete with the canonical column.

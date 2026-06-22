@@ -208,9 +208,11 @@ disposable scratch (an iterated cache, an intermediate to eyeball) goes to
 
 **Column naming**: carry ONE canonical `snake_case` name per column - rename raw
 codes once at ingestion, never re-alias downstream (no code->display->code
-round-trips). Derive by suffix (`_yoy`, `_yoy_pp`, `_ma4`, `_lag1`); apply pretty
-Title-Case labels ONLY at the `viz/` layer. Record the raw->canonical map in
-`docs/d6tflow-data.md`. Full rules in reference.md ("Column naming").
+round-trips). Order tokens broad->narrow so families share a prefix
+(`rate_construction`, `rate_completion`; not `construction_rate`); derive by suffix,
+operation last (`_yoy`, `_yoy_pp`, `_ma4`, `_lag1`); apply pretty Title-Case labels
+ONLY at the `viz/` layer. Record the raw->canonical map in `docs/d6tflow-data.md`.
+Full rules in reference.md ("Column naming").
 
 ---
 

@@ -10,13 +10,16 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 - Column-naming convention (optimizes for assistant accuracy by minimizing name
   layers): carry ONE canonical `descriptive_snake_case` name per column, renamed
   from raw codes ONCE at ingestion and never re-aliased downstream (no
-  code->display->code round-trips); derive by a small fixed suffix vocabulary
-  (`_yoy`, `_yoy_pp`/`_diff`, `_pct`, `_ma{n}`, `_lag{n}`, ...) so the name carries
-  provenance + transform; apply Human-readable Title Case labels ONLY at the `viz/`
-  plotting layer; record the raw->canonical map in `docs/d6tflow-data.md`. Full
-  section in `reference.md` ("Column naming"), pointer in `SKILL.md`. Motivated by
-  a real three-layer round-trip (raw `uc_rate` -> display `Under Construction Rate`
-  -> analysis `uc_rate` again) that caused wrong-column confusion.
+  code->display->code round-trips); order tokens broad->narrow (category first,
+  opposite of English) so families share a leading prefix and cluster
+  (`rate_construction`, `rate_completion`; not `construction_rate`); derive by a
+  small fixed suffix vocabulary with the operation LAST (`_yoy`, `_yoy_pp`/`_diff`,
+  `_pct`, `_ma{n}`, `_lag{n}`, ...) so the name carries provenance + transform;
+  apply Human-readable Title Case labels ONLY at the `viz/` plotting layer; record
+  the raw->canonical map in `docs/d6tflow-data.md`. Full section in `reference.md`
+  ("Column naming"), pointer in `SKILL.md`. Motivated by a real three-layer
+  round-trip (raw `uc_rate` -> display `Under Construction Rate` -> analysis
+  `uc_rate` again) that caused wrong-column confusion.
 - New `/d6tflow:init-gitlfs` command (`commands/init-gitlfs.md`) - puts a
   project's `data/` under Git LFS. It checks the git-lfs binary is installed AND
   that `git lfs install` has hooked LFS's filters into git (guiding the user to
