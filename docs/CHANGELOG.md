@@ -22,6 +22,12 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   creating the package by hand.
 
 ### Changed
+- Notebook authoring now points at the `NotebookEdit` tool instead of hand-writing
+  nbformat JSON via `Write` (slow, easy to corrupt). `SKILL.md`'s "Render / publish
+  a notebook" section says to edit cells with `NotebookEdit` (and `Read` to inspect
+  cells + outputs); notes that it has no kernel, so outputs come from the nbconvert
+  `--execute` step; and optionally offers a Jupyter MCP server for a live
+  write-run-inspect-fix loop (the publish path does not need it).
 - Sharpened the "load a task's data, don't re-read the source" rule against the
   cold-start (`/clear`) failure where the model shell-`head`s the raw input CSV
   even though the data already exists as a task's output. The rule is now: once a

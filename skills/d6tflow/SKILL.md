@@ -285,6 +285,13 @@ cwd = the notebook's own folder, so a notebook in a subdirectory breaks both
 root, cwd = the project root and everything resolves. `reports/render/` holds the
 rendered HTML (gitignored - regenerated output). Run nbconvert from the root.
 
+**Author/edit cells with the `NotebookEdit` tool** (`Read` shows cells + outputs);
+do NOT hand-write nbformat JSON via `Write` - slow and easy to corrupt.
+`NotebookEdit` only edits source (no kernel), so cell OUTPUTS come from the
+nbconvert `--execute` step below. (Optional: for a live write-run-inspect-fix loop
+against a kernel, a Jupyter MCP server adds that; the nbconvert publish path does
+not need it.)
+
 Refresh a notebook's outputs in place first (re-executes every cell against
 current data, saving results back into the `.ipynb`):
 ```bash
