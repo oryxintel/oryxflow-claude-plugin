@@ -4,6 +4,25 @@ All notable changes to the d6tflow plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions are
 date-based (`YY.M.D`, e.g. `26.5.30`).
 
+## [26.6.22] - 2026-06-22
+
+### Added
+- New `/d6tflow:init-gitlfs` command (`commands/init-gitlfs.md`) - puts a
+  project's `data/` under Git LFS. It checks the git-lfs binary is installed AND
+  that `git lfs install` has hooked LFS's filters into git (guiding the user to
+  `winget install GitHub.GitLFS` / `brew install git-lfs` if missing), ensures a
+  git repo on `main` (`git init -b main` if needed), comments the data-files
+  block in `.gitignore` to un-ignore data, runs `git lfs track "data/**"`, and
+  commits `.gitattributes` + `.gitignore`. Un-ignoring happens BEFORE tracking
+  so data does not bypass LFS; committing the actual data is left to the user.
+  Manual (`disable-model-invocation: true`), like init-project.
+
+### Changed
+- Renamed `/d6tflow:project-init` to `/d6tflow:init-project`
+  (`commands/project-init.md` -> `commands/init-project.md`) so the two setup
+  commands share an `init-*` prefix. Updated all references (README, CLAUDE.md,
+  architecture, design-notes). The command's behavior is unchanged.
+
 ## [26.6.6] - 2026-06-06
 
 ### Changed

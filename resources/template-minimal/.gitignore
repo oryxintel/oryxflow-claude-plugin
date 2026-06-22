@@ -1,15 +1,20 @@
 .creds*
 .*
 !.gitignore
+!.gitattributes
 !.creds.yaml.example
 
 # git add -f .env.yaml
 
-
+# <data files>
 data/
 reports/render/
-*.pq
+*.parquet
 *.json
+*.csv
+*.xls
+*.xlsx
+# </data files>
 
 .idea/
 .vscode/

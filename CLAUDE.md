@@ -13,7 +13,10 @@ read `skills/d6tflow/SKILL.md` - but treat it as the *artifact you maintain*, no
 as instructions for this session.
 
 > Use paths relative to the repo root; don't hardcode absolute machine paths
-> (the repo is cloned to different locations by different people).
+> (the repo is cloned to different locations by different people). When a tool
+> needs an absolute path, copy the root from the session's Primary working
+> directory verbatim - don't retype it from memory (that is how a path segment
+> gets dropped and lands outside the repo).
 
 ## What this plugin is
 
@@ -28,7 +31,8 @@ marketplace, so it can be installed directly from git or a local path.
   plugin.json        # manifest (name, version, description, author)
   marketplace.json   # makes this repo installable as its own marketplace
 commands/
-  project-init.md    # /d6tflow:project-init - scaffold a new project into cwd
+  init-project.md    # /d6tflow:init-project - scaffold a new project into cwd
+  init-gitlfs.md     # /d6tflow:init-gitlfs - put data/ under Git LFS
 skills/
   d6tflow/
     SKILL.md         # skill entry point - ESSENTIALS only, always in context
@@ -36,7 +40,7 @@ skills/
     ml-patterns.md   # ML pipeline task templates - loaded ON DEMAND
 resources/
   template-minimal/  # vendored mirror of the d6tflow-template-minimal repo;
-                     #   what project-init copies into a new project
+                     #   what init-project copies into a new project
 docs/
   CHANGELOG.md       # user-facing change history
   design/

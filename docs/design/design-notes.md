@@ -146,7 +146,7 @@ marker comment directly above it: `# PLACEHOLDER SCAFFOLD - ...`. The marker sit
 on the task/params, not above the imports, because the imports are real code.
 
 The marker carries over to the rest of the scaffold: the `tasks.py` module and
-task docstrings ship as placeholders, and `/d6tflow:project-init` ships
+task docstrings ship as placeholders, and `/d6tflow:init-project` ships
 `docs/d6tflow-data.md` as a short skeleton with a `PLACEHOLDER` HTML comment on
 line 1. Filling any of them means writing real content and deleting the marker.
 
@@ -210,11 +210,20 @@ ships as a marked PLACEHOLDER skeleton (see the marker note above).
 
 ## Scaffolding: the init command and the vendored template
 
-A new project is created by the `/d6tflow:project-init` slash command (commands
+A new project is created by the `/d6tflow:init-project` slash command (commands
 get a reliable `${CLAUDE_PLUGIN_ROOT}`; skills do not, so init is a command, not
 the skill). It copies the bundled template into the user's cwd with a SHELL copy
 (robocopy / cp -n), skip-existing / never-overwrite, and never reads+rewrites
 files via the LLM (which would be slow and could corrupt `visualize.ipynb`).
+
+Git LFS setup is a SEPARATE command, `/d6tflow:init-gitlfs`, not folded into
+init-project: LFS is opt-in (most scaffolds never commit `data/`), it mutates git
+state (init, .gitignore, a commit) rather than just copying files, and it has its
+own machine prerequisite (the git-lfs binary + `git lfs install` filters). The
+command un-ignores the `.gitignore` data-files block BEFORE `git lfs track`,
+because data that is ignored or staged before tracking bypasses LFS and then needs
+`git lfs migrate` to fix. Only `data/**` is LFS-tracked; the commit is just the
+config (`.gitattributes` + `.gitignore`), leaving which data to commit to the user.
 
 The template lives at `resources/template-minimal/`. It is a **vendored mirror**
 of the separate `d6tflow-template-minimal` repo (the source of truth) - kept

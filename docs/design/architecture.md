@@ -14,9 +14,9 @@ it points to them:
 
 A single-skill Claude Code plugin for working in d6tflow data-science projects
 (d6tflow = a data-pipeline library). It ships the `d6tflow` skill (model-
-activated guidance) and a `/d6tflow:project-init` command (manual scaffold of a
-new project). The repo is also its own marketplace, so it installs directly from
-git or a local path.
+activated guidance) and two manual commands - `/d6tflow:init-project` (scaffold a
+new project) and `/d6tflow:init-gitlfs` (put `data/` under Git LFS). The repo is
+also its own marketplace, so it installs directly from git or a local path.
 
 ## Three interacting artifacts
 
@@ -40,7 +40,8 @@ Keep these straight - changes go to different places:
 | `skills/d6tflow/SKILL.md` | runtime behavior + essentials; frontmatter `description` drives activation | on activation |
 | `skills/d6tflow/reference.md` | full library reference (task types, patterns) | on demand |
 | `skills/d6tflow/ml-patterns.md` | ML task templates (features, training, SHAP, backtest) | on demand |
-| `commands/project-init.md` | `/d6tflow:project-init`; manual (`disable-model-invocation: true`) | on invoke |
+| `commands/init-project.md` | `/d6tflow:init-project`; manual (`disable-model-invocation: true`) | on invoke |
+| `commands/init-gitlfs.md` | `/d6tflow:init-gitlfs`; manual (`disable-model-invocation: true`) | on invoke |
 | `resources/template-minimal/` | vendored scaffold (mirror of the source repo) | copied by init |
 | `docs/design/architecture.md` | this map | dev-time |
 | `docs/design/design-notes.md` | rationale (WHY) | dev-time |
@@ -61,7 +62,7 @@ split), and why the architecture/playbook lives here, not in `CLAUDE.md`.
 
 ## Control & data flows
 
-### Scaffold a new project - `/d6tflow:project-init`
+### Scaffold a new project - `/d6tflow:init-project`
 
 ```
 command body -> reads ${CLAUDE_PLUGIN_ROOT}/resources/template-minimal/
@@ -71,6 +72,18 @@ command body -> reads ${CLAUDE_PLUGIN_ROOT}/resources/template-minimal/
 Pre-flight refuses to clobber an existing project. The copy is a shell command,
 never an LLM read+write (slow; would corrupt `visualize.ipynb`). Commands get a
 reliable `${CLAUDE_PLUGIN_ROOT}`; skills do not - that is why init is a command.
+
+### Put data under Git LFS - `/d6tflow:init-gitlfs`
+
+```
+command body -> checks git-lfs binary + filters (git lfs install)
+             -> ensures a git repo on main (git init -b main)
+             -> comments the data-files block in .gitignore (un-ignore)
+             -> git lfs track "data/**" -> commits .gitattributes + .gitignore
+```
+A separate manual command (not part of init-project) because LFS is opt-in: most
+scaffolds never commit `data/`. Un-ignoring before `git lfs track` is deliberate -
+data ignored or added before tracking would bypass LFS.
 
 ### Activate + orient (the skill)
 
@@ -93,7 +106,7 @@ data doc) is opt-in (`/d6tflow:d6tflow explore` or a plain-language request).
 | In-code-first docs: pipeline meaning in docstrings, only data findings in a file | avoid duplication/drift; design-notes "in-code-first" |
 | One `PLACEHOLDER` marker = "not real yet" across code AND the data doc | uniform signal; design-notes "PLACEHOLDER marker" |
 | Never hand-edit `resources/template-minimal/` to fix scaffold bugs | it is a mirror; fix the source repo + re-sync |
-| `project-init` copies via shell, never LLM read+write | speed + notebook integrity |
+| `init-project` copies via shell, never LLM read+write | speed + notebook integrity |
 | No inline python / no `python -c` in user projects | skill rule (use `eda/<name>.py`) |
 | `version` is `YY.M.D`; bump on any change installed copies should get | `CLAUDE.md` release section |
 
@@ -106,7 +119,8 @@ data doc) is opt-in (`/d6tflow:d6tflow explore` or a plain-language request).
 | Task-type table / deep patterns / debugging | `skills/d6tflow/reference.md` | - |
 | ML pipeline templates | `skills/d6tflow/ml-patterns.md` | - |
 | Any scaffold/template file (wiring, `CLAUDE.md`, data doc, `.gitignore`) | the `d6tflow-template-minimal` SOURCE repo, then re-sync `resources/template-minimal/` | bump version |
-| Scaffold copy behavior / pre-flight | `commands/project-init.md` | - |
+| Scaffold copy behavior / pre-flight | `commands/init-project.md` | - |
+| Git LFS init steps (install check, track, commit) | `commands/init-gitlfs.md` | - |
 | The conventions floor a new project ships with | `resources/template-minimal/CLAUDE.md` (+ source repo) | - |
 | Cut a release | `plugin.json` `version` (`YY.M.D`) + add `docs/CHANGELOG.md` entry | commit (+ push if git-installed) |
 | Record a design decision | `docs/design/design-notes.md` (and this map if structure changed) | - |

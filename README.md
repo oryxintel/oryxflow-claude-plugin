@@ -14,7 +14,8 @@ or modifying pipeline tasks, running workflows, or analyzing outputs.
 
 Already installed? Two things to know:
 
-- Scaffold a new project: run `/d6tflow:project-init` in an empty directory.
+- Scaffold a new project: run `/d6tflow:init-project` in an empty directory.
+- Put `data/` under Git LFS: run `/d6tflow:init-gitlfs` in the project.
 - Use it: just start working in a d6tflow project and the skill auto-activates,
   or invoke it manually with `/d6tflow:d6tflow`.
 
@@ -53,7 +54,7 @@ To pull a newer version later: `/plugin marketplace update d6tflow`.
 In an empty directory, scaffold a runnable d6tflow project:
 
 ```
-/d6tflow:project-init
+/d6tflow:init-project
 ```
 
 This copies a minimal template into the current directory - the project wiring
@@ -64,6 +65,21 @@ files. `python run.py` works immediately; replace the `PLACEHOLDER SCAFFOLD`
 tasks with your real pipeline (documented via task docstrings) and fill
 `docs/d6tflow-data.md` as you learn about the data.
 
+## Version your data with Git LFS
+
+d6tflow caches per-task outputs under `data/` (parquet, csv, json); the scaffold
+gitignores them. To version them instead, run:
+
+```
+/d6tflow:init-gitlfs
+```
+
+It checks git-lfs is installed and hooked into git (guiding you through
+`winget install GitHub.GitLFS` / `brew install git-lfs` if not), initializes a
+git repo on `main` if needed, un-ignores the data files in `.gitignore`, runs
+`git lfs track "data/**"`, and commits the LFS config. Committing the actual
+data is left to you as a follow-up.
+
 ## Using the skill
 
 Once installed, the skill is always available - there is nothing to turn on per
@@ -72,8 +88,9 @@ pipeline files, adding or modifying tasks, running flows, or analyzing outputs.
 You can also invoke it explicitly any time with `/d6tflow:d6tflow`, or pass the
 deep-dive argument with `/d6tflow:d6tflow explore`.
 
-Scaffolding a new project is a separate, manually-triggered command -
-`/d6tflow:project-init` - it is not auto-invoked, since it writes files.
+Scaffolding a new project and setting up Git LFS are separate, manually-triggered
+commands - `/d6tflow:init-project` and `/d6tflow:init-gitlfs` - they are not
+auto-invoked, since they write files and run git.
 
 Things you can ask, in plain language:
 
@@ -161,9 +178,10 @@ d6tflow-claude-plugin/
 |   |-- plugin.json        # plugin manifest
 |   `-- marketplace.json   # lets this repo act as its own marketplace
 |-- commands/
-|   `-- project-init.md    # /d6tflow:project-init - scaffold a new project
+|   |-- init-project.md    # /d6tflow:init-project - scaffold a new project
+|   `-- init-gitlfs.md     # /d6tflow:init-gitlfs - put data/ under Git LFS
 |-- resources/
-|   `-- template-minimal/  # the files project-init copies into a new project
+|   `-- template-minimal/  # the files init-project copies into a new project
 `-- skills/
     `-- d6tflow/
         |-- SKILL.md       # skill entry point (loaded into context)
