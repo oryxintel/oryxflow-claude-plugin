@@ -77,8 +77,8 @@ gitignores them. To version them instead, run:
 It checks git-lfs is installed and hooked into git (guiding you through
 `winget install GitHub.GitLFS` / `brew install git-lfs` if not), initializes a
 git repo on `main` if needed, un-ignores the data files in `.gitignore`, runs
-`git lfs track "data/**"`, and commits the LFS config. Committing the actual
-data is left to you as a follow-up.
+`git lfs track "data/**"` and `git lfs track "reports/render/**"`, and commits the
+LFS config. Committing the actual data is left to you as a follow-up.
 
 ## Using the skill
 

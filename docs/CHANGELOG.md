@@ -12,9 +12,10 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   that `git lfs install` has hooked LFS's filters into git (guiding the user to
   `winget install GitHub.GitLFS` / `brew install git-lfs` if missing), ensures a
   git repo on `main` (`git init -b main` if needed), comments the data-files
-  block in `.gitignore` to un-ignore data, runs `git lfs track "data/**"`, and
-  commits `.gitattributes` + `.gitignore`. Un-ignoring happens BEFORE tracking
-  so data does not bypass LFS; committing the actual data is left to the user.
+  block in `.gitignore` to un-ignore data, runs `git lfs track "data/**"` and
+  `git lfs track "reports/render/**"`, and commits `.gitattributes` + `.gitignore`.
+  Un-ignoring happens BEFORE tracking so data does not bypass LFS; committing the
+  actual data is left to the user.
   Manual (`disable-model-invocation: true`), like init-project.
 - The project scaffold now ships an `eda/` package root (`eda/__init__.py`) so a
   new project can run probes as `python -m eda.<subject>.<name>` without first

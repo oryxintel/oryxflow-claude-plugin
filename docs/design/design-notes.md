@@ -230,8 +230,9 @@ state (init, .gitignore, a commit) rather than just copying files, and it has it
 own machine prerequisite (the git-lfs binary + `git lfs install` filters). The
 command un-ignores the `.gitignore` data-files block BEFORE `git lfs track`,
 because data that is ignored or staged before tracking bypasses LFS and then needs
-`git lfs migrate` to fix. Only `data/**` is LFS-tracked; the commit is just the
-config (`.gitattributes` + `.gitignore`), leaving which data to commit to the user.
+`git lfs migrate` to fix. `data/**` and `reports/render/**` are LFS-tracked; the
+commit is just the config (`.gitattributes` + `.gitignore`), leaving which data to
+commit to the user.
 
 The template lives at `resources/template-minimal/`, edited directly here (this
 repo is canonical for it). It is kept unpacked (not zipped) so template changes

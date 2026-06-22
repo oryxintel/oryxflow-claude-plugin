@@ -42,20 +42,19 @@ two markers by prefixing `# ` (keep the marker lines as-is). That block covers
 `data/`, `reports/render/`, `*.parquet`, `*.json`, `*.csv`, `*.xls`, `*.xlsx`.
 Comment, do not delete, so the original intent stays visible.
 
-Notes worth telling the user:
-- This un-ignores `*.json` / `*.csv` / etc. repo-wide, not only under `data/` -
-  the intended tradeoff of using these patterns.
-- `reports/render/` becomes committable too, but step 4 only LFS-tracks
-  `data/**`, so render output would commit as plain git, not LFS.
+This un-ignores both `data/` and `reports/render/` (and the `*.parquet` / `*.json`
+/ etc. patterns). Note for the user: those extension patterns un-ignore repo-wide,
+not only under `data/` - the intended tradeoff. If an older project lacks the
+marker lines, comment the equivalent data lines individually.
 
-If an older project lacks the marker lines, comment the equivalent data lines
-individually.
+## 4. Track data and rendered reports with LFS
 
-## 4. Track data with LFS
+- `git lfs track "data/**"` - everything under `data/`.
+- `git lfs track "reports/render/**"` - rendered report output.
 
-- `git lfs track "data/**"` - writes/updates `.gitattributes` with the LFS filter
-  for everything under `data/`. Do this BEFORE staging any data: files added
-  before they are tracked land in plain git and need `git lfs migrate` to fix.
+Both write/update `.gitattributes` with the LFS filter. Do this BEFORE staging any
+matching files: files added before they are tracked land in plain git and need
+`git lfs migrate` to fix.
 
 ## 5. Commit the LFS configuration
 
@@ -69,6 +68,6 @@ to commit.
 ## 6. Report
 
 State what happened: the lfs version, whether `git lfs install` or `git init`
-were needed, which `.gitignore` lines were commented, and the tracked pattern.
-Remind the user that new files under `data/` now go to LFS, and that committing
-existing data is the next step.
+were needed, which `.gitignore` lines were commented, and the tracked patterns
+(`data/**`, `reports/render/**`). Remind the user that new files under those
+paths now go to LFS, and that committing existing data is the next step.
