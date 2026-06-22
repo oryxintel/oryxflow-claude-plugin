@@ -22,6 +22,13 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   creating the package by hand.
 
 ### Changed
+- Documented how to VISUALLY check a chart (the agent confirming a figure it
+  produced is readable), since `Read` truncates a notebook's embedded base64 image
+  outputs. Keyed on where the plot is made: from `viz/<subject>.py` code, the
+  plotting/runner function `savefig`s to a file and you `Read` it (throwaway ->
+  `data/.eda/<subject>/`, deliverable -> `reports/render/`); from a notebook, do
+  NOT add `savefig` to cells - `nbconvert --to markdown` extracts the output images
+  to PNGs you `Read`. Never hand-decode base64 from the `.ipynb`. In `SKILL.md`.
 - Report notebooks are now template-based. The scaffold ships the notebook as
   `viz-template.ipynb` (was `visualize.ipynb`); the convention is one-report-per-
   notebook - copy the template to a subject-named `viz-<topic>.ipynb` at the root

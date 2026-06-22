@@ -319,6 +319,16 @@ whose path is relative to the input notebook.)
 Re-execute whenever upstream data or task code changed, so the published report
 does not show stale cell outputs.
 
+**To visually check a chart** (e.g. confirm it is readable), how depends on WHERE
+the plot is made - never hand-decode base64 from the `.ipynb` (`Read` truncates
+embedded outputs):
+- From `viz/<subject>.py` code (where most plotting lives): have the plotting /
+  runner function `savefig` to a file and `Read` it - a throwaway check goes to
+  `data/.eda/<subject>/`, a deliverable figure to `reports/render/`.
+- From a notebook (do NOT add `savefig` to cells): run `jupyter nbconvert --to
+  markdown <name>.ipynb --output-dir <dir>`, which extracts the output images to
+  real PNGs in `<name>_files/`, then `Read` those.
+
 ---
 
 ## Code Style
