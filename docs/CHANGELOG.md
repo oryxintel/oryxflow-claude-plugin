@@ -19,7 +19,11 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   the raw->canonical map in `docs/d6tflow-data.md`. Full section in `reference.md`
   ("Column naming"), pointer in `SKILL.md`. Motivated by a real three-layer
   round-trip (raw `uc_rate` -> display `Under Construction Rate` -> analysis
-  `uc_rate` again) that caused wrong-column confusion.
+  `uc_rate` again) that caused wrong-column confusion. The broad->narrow ordering
+  also extends to TASK names (a family shares a leading token - `FundamentalsAll`,
+  `FundamentalsSignals`, `FundamentalsLeadLag`, not `LeadLagAnalysis`; added to the
+  task "Naming" sections) and to DataFrame / variable names (`df_profile_division`
+  / `df_profile_cbsa` cluster; keep `df_X`/`df_y`/`df_train`/`df_test`).
 - New `/d6tflow:init-gitlfs` command (`commands/init-gitlfs.md`) - puts a
   project's `data/` under Git LFS. It checks the git-lfs binary is installed AND
   that `git lfs install` has hooked LFS's filters into git (guiding the user to

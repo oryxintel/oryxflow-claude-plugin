@@ -36,8 +36,11 @@ outputs automatically, uniquely identified by class name + parameters.
 
 **Naming**: name a task for the OUTPUT it produces (a noun: `OEWSWages`,
 `CleanedSales`, `TrainedModel`, `DataOEWS`), not the verb it performs. Avoid
-generic names like `GetData` / `LoadData` / `Process`. Some examples below use
-older verb-style names for brevity; prefer output names in real code.
+generic names like `GetData` / `LoadData` / `Process`. Order tokens broad -> narrow
+(same rule as columns) so a family shares a leading token and clusters:
+`FundamentalsAll`, `FundamentalsSignals`, `FundamentalsLeadLag` (not
+`LeadLagAnalysis`); loaders share `Data<Name>`. Some examples below use older
+verb-style names for brevity; prefer output names in real code.
 
 ```python
 import d6tflow
@@ -974,6 +977,11 @@ layers:
   that answers "what is this column." Keep the suffix vocabulary small and listed
   there (like concept-module names), so `_chg` and `_diff` do not both appear for
   the same operation.
+- **Same rule for DataFrame / variable names.** Name for content, broad -> narrow,
+  sharing a prefix across a family or a task's parameter variants:
+  `df_profile_division` / `df_profile_cbsa` (variant last, so `df_profile_*`
+  cluster), not `df_div_profile`. A bare `df` is fine for a single local frame; keep
+  the established ML idioms (`df_X`, `df_y`, `df_train`, `df_test`).
 
 ## Additional Resources
 

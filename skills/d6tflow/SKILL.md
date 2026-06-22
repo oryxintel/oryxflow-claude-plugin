@@ -212,7 +212,9 @@ round-trips). Order tokens broad->narrow so families share a prefix
 (`rate_construction`, `rate_completion`; not `construction_rate`); derive by suffix,
 operation last (`_yoy`, `_yoy_pp`, `_ma4`, `_lag1`); apply pretty Title-Case labels
 ONLY at the `viz/` layer. Record the raw->canonical map in `docs/d6tflow-data.md`.
-Full rules in reference.md ("Column naming").
+Same broad->narrow rule for TASK names (families share a leading token:
+`FundamentalsLeadLag`, not `LeadLagAnalysis`) and `df`/variable names
+(`df_profile_division`). Full rules in reference.md ("Column naming").
 
 ---
 
@@ -371,6 +373,11 @@ downstream code and the cache are keyed on, so the name reads as a noun:
 loads/produces a named dataset, `Data<Name>` (`DataOEWS`) or a plain `<Name>`
 (`OEWS`) are both fine. Avoid generic verbs (`GetData`, `LoadData`, `Process`,
 `Run`) - they say nothing about the output and collide across projects.
+
+Order the name broad -> narrow (same rule as columns) so tasks in a family share a
+leading token and cluster in `tasks.py` / `flow.preview()` / `data/`:
+`FundamentalsAll`, `FundamentalsSignals`, `FundamentalsLeadLag` (NOT
+`LeadLagAnalysis`); loaders share the `Data<Name>` prefix.
 
 A plain-language "load the OEWS data" (or "load/get/pull X") IS a request to
 create such a task - make a NEW, output-named task (`DataOEWS`); don't load data
