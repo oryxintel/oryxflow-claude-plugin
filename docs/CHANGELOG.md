@@ -18,6 +18,11 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   Manual (`disable-model-invocation: true`), like init-project.
 
 ### Changed
+- Broadened skill activation triggers in `SKILL.md` frontmatter: `description`
+  and `when_to_use` now name loading / cleaning / transforming / analyzing data
+  (each phrased as "becomes a task"), so plain-language data-prep requests like
+  "clean the data" reliably auto-activate the skill from a cold context, not only
+  task/flow-shaped phrasings. No behavior change once active.
 - Renamed `/d6tflow:project-init` to `/d6tflow:init-project`
   (`commands/project-init.md` -> `commands/init-project.md`) so the two setup
   commands share an `init-*` prefix. Updated all references (README, CLAUDE.md,

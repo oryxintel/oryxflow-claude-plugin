@@ -4,13 +4,16 @@ description: >-
   Build highly effective data science workflows with d6tflow (parameterized
   tasks, dependencies, caching, reproducible pipelines). Use when working in a
   d6tflow project - the tasks.py / flow.py / run.py / cfg.py / flow_params.py
-  files, pipeline tasks, workflow runs, output analysis, or publishing/rendering
-  a report notebook to HTML.
+  files, pipeline tasks, workflow runs, loading / cleaning / transforming /
+  analyzing data, output analysis, or publishing/rendering a report notebook to
+  HTML.
 when_to_use: >-
   Trigger on requests like: add a new task that depends on an existing one
   (wired with @d6tflow.requires), create a task that loads a source, add a task
   with multiple inputs, update / modify an existing task, make one task depend on
-  another, set the final task, or add / change a parameter; run the flow, preview
+  another, set the final task, or add / change a parameter; build a data-prep
+  task or load / clean / transform / analyze the data (each becomes a task); run
+  the flow, preview
   it (flow.preview), check what is cached, or re-run / reset a task (reset before
   re-running an edited task); load or plot a task's output; explore or inspect
   the data (the opt-in deep dive); summarize what the pipeline does; or
