@@ -22,6 +22,12 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   creating the package by hand.
 
 ### Changed
+- Sharpened the "trust auto file management" rule into an explicit do/don't: never
+  hand-read a task's data off disk (`pd.read_excel(path)` / `pd.read_csv(path)`) -
+  use `flow.outputLoad(Task)` or `self.inputLoad()`. The rule existed only as
+  "don't stat the filesystem" (existence check) and the loader-task "don't re-read
+  a csv"; this names the content-loading anti-pattern directly. Added to `SKILL.md`
+  and the template `CLAUDE.md`.
 - Task docstrings no longer carry "see `docs/d6tflow-data.md`" cross-references.
   The conventions already establish that doc as the data home, so a pointer in
   every docstring is noise (and ages badly as the data layer grows). `SKILL.md`

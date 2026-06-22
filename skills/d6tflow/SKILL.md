@@ -264,7 +264,9 @@ df = flow.outputLoad(tasks.Task)  # Load task output
 
 **Trust auto file management**: if `flow.run()` completes without errors, the
 output files exist. Debug by loading with `flow.outputLoad()`, NOT by checking
-the file system.
+the file system. Likewise, never hand-read a task's data off disk:
+- Don't: `pd.read_excel(path)` / `pd.read_csv(path)` to get a task's data.
+- Do: `flow.outputLoad(tasks.Task)` (or `self.inputLoad()` inside a task).
 
 ### Render / publish a notebook
 

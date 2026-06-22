@@ -53,7 +53,9 @@ do not ask.
   `flow_params.py` (parameters), `flow.py` (which final task runs), `run.py`
   (execute). Run the workflow with `python run.py`.
 - Trust auto file management. If `flow.run()` finishes without error, the outputs
-  exist - load them with `flow.outputLoad(...)`; do not stat the filesystem.
+  exist - load them with `flow.outputLoad(...)`; do not stat the filesystem. And
+  never hand-read a task's data off disk: not `pd.read_excel(path)` /
+  `pd.read_csv(path)`, but `flow.outputLoad(Task)` (or `self.inputLoad()` in a task).
 - `from flow import flow` everywhere - one workflow instance, imported.
 
 ## Files
