@@ -31,6 +31,13 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   updated all references (`SKILL.md`, `reference.md`, template `CLAUDE.md`,
   `init-project.md`, root `CLAUDE.md`, architecture, design-notes). `visualize.py`
   is unchanged - it has a different lifecycle (graduates into `viz/<subject>.py`).
+- Rebuilt `viz-template.ipynb`'s contents. Dropped the `tasks.GetData` placeholder
+  (loads the FINAL task via `flow.outputLoad()` instead, so it works on any
+  project), cleared the baked-in stale outputs, dropped the unused `seaborn`
+  import, and added guidance + section headers. Now demonstrates the modern load
+  patterns: `flow.outputLoad()` / `outputLoad(tasks.X)` and parameterized,
+  multi-output `d6tflow.runLoad(tasks.X, params={...})` - including `reset=True`
+  after a code edit and loading two variants to compare (the region-vs-metro case).
 - Notebook authoring now points at the `NotebookEdit` tool instead of hand-writing
   nbformat JSON via `Write` (slow, easy to corrupt). `SKILL.md`'s "Render / publish
   a notebook" section says to edit cells with `NotebookEdit` (and `Read` to inspect
