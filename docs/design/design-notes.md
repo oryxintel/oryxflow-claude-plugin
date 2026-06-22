@@ -137,6 +137,14 @@ purely "throwaway" undersold this and let probe results evaporate; an uncaptured
 result is a question that gets asked again. Keep the code-vs-finding distinction
 if this is reworded: the script may be disposable, the knowledge is not.
 
+Recording is NOT gated behind a confirmation. Two moments get conflated: deciding
+to GO exploring (opt-in - the user's call, since it can be a big detour) versus
+writing up a finding a probe has ALREADY produced (part of finishing the work).
+The second is not a new decision to ask about - asking "shall I record this?"
+after a data-quality finding just adds a round-trip and invites the finding to
+evaporate when the user moves on. So material findings, data-quality ones
+especially, get written to `docs/d6tflow-data.md` without asking.
+
 ## One uniform PLACEHOLDER marker (code AND docs)
 
 Scaffold `.py` files ship present and runnable (you cannot `from flow import

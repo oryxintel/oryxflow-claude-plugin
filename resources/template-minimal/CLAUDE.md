@@ -18,9 +18,11 @@ trust them as the source of truth:
 
 A `PLACEHOLDER` marker (the `PLACEHOLDER SCAFFOLD` comment in `tasks.py`, or the
 comment on line 1 of `d6tflow-data.md`) means that part is not captured yet. That
-is the signal to explore - but exploring (inspecting data, profiling schema,
-writing it up) is the USER's call, not automatic: ask first. Keep docstrings and
-the data doc current as part of finishing any change.
+is the signal to explore - but whether to GO exploring (inspecting data,
+profiling schema) is the USER's call, not automatic: ask first. Once a probe has
+surfaced a material finding, though, RECORDING it (docstrings, and especially
+data-quality findings into the data doc) is part of finishing the work - do it,
+do not ask.
 
 ## Conventions (non-negotiable)
 

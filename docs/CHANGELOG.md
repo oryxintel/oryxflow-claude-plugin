@@ -21,6 +21,13 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   creating the package by hand.
 
 ### Changed
+- Recording a material finding is no longer gated behind a confirmation. `SKILL.md`
+  and the template `CLAUDE.md` now separate two moments: deciding to GO exploring
+  stays opt-in (the user's call), but writing up a finding a probe has ALREADY
+  produced - especially a data-quality finding - is part of finishing the work and
+  is done without asking. Closes the case where the skill ran a check, surfaced a
+  quality issue, then asked "shall I record this?" instead of recording it.
+  Rationale in `design-notes.md` ("EDA is a learning artifact").
 - Dropped the "vendored mirror" policy for `resources/template-minimal/`. The
   scaffold is now edited directly in this repo (canonical here) instead of being
   re-synced from a separate `d6tflow-template-minimal` source repo. Updated

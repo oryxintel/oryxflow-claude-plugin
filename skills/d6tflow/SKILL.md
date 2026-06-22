@@ -242,9 +242,12 @@ re-runnable next session, and free of the Windows shell-quoting bugs `python -c`
 hits.
 
 **Document each probe** - the code is throwaway, the finding is not. One-line
-docstring stating the question; print the result legibly. Promote material
-findings (schema, quirks, quality, rules) to `docs/d6tflow-data.md` - an
-uncaptured result is a question you re-ask next session.
+docstring stating the question; print the result legibly. A material finding
+(schema, quirks, DATA-QUALITY issues, business rules) gets RECORDED in
+`docs/d6tflow-data.md` as part of finishing - do it, do not ask permission.
+(Deciding to go explore is opt-in; writing up a finding you already have is not -
+they are different moments.) An uncaptured result is a question you re-ask next
+session.
 
 ```python
 from flow import flow
