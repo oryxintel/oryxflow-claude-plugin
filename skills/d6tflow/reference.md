@@ -167,8 +167,9 @@ Notes:
 
 ### Loading Data from Upstream Tasks
 
-Default to `self.inputLoad()`. Reach for `self.input()` only when you want the
-target object itself (its `.path`, or a deliberate `.load()`).
+Rule: prefer `self.inputLoad()` - it returns the DATA. `self.input()` returns the
+raw Target (use it only for `.path` or a deliberate `.load()`). Select an output
+with `keys=` (never `persist=` - that kwarg is silently ignored; see trap above).
 
 ```python
 # Single dependency, single output

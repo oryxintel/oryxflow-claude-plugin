@@ -132,7 +132,7 @@ class FeaturesTransform(d6tflow.tasks.TaskPqPandas):
     persists = ['all', 'x', 'y']
 
     def run(self):
-        df = self.input().load()
+        df = self.inputLoad()
         df = df.sort_values(['entity_id', 'date'])  # Adjust to your columns
 
         # Transform features and target

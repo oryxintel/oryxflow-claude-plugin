@@ -21,7 +21,9 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   Tasks" section with the correct selection rules (`self.input()` mirrors
   `requires()`; outputs select by name via `keys=`, deps via `task=`/index;
   prefer the named-dict `requires({...})` form) and a warning about the silent
-  unknown-kwarg trap.
+  unknown-kwarg trap. Added a one-line `inputLoad()` (returns data) vs `input()`
+  (returns the raw target) rule, and made `ml-patterns.md` consistent (its lone
+  `self.input().load()` -> `self.inputLoad()`).
 - Scaffold floor `CLAUDE.md` "d6tflow plugin" section now tells Claude to check
   the `d6tflow` skill is available before real workflow work (editing the flow
   files or running the pipeline), and if not, to say so and ask the user to load
