@@ -138,36 +138,87 @@ class TaskB(d6tflow.tasks.TaskPqPandas):
 
 ## Working with Tasks
 
+### Load / save cheat-sheet
+
+Pick the identifier by WHAT (data vs meta), WHERE (inside `run()` vs outside with
+a `flow`), and HOW MANY (all vs one):
+
+| What you want                | Inside `run()`                          | Outside (have `flow`)              |
+|------------------------------|-----------------------------------------|------------------------------------|
+| Declare N outputs            | `persists = ['a','b']` (class attr)     | -                                  |
+| Save N outputs, list form    | `self.save([a, b], from_list=True)`     | -                                  |
+| Save N outputs, dict form    | `self.save({'a': a, 'b': b})`           | -                                  |
+| Save metadata                | `self.saveMeta({'model': m})`           | -                                  |
+| Load ALL outputs             | `self.inputLoad()` -> tuple             | `flow.outputLoad(Task)`            |
+| Load ONE output (by name)    | `self.inputLoad(keys='a')`              | `flow.outputLoad(Task, keys='a')`  |
+| Pick ONE dependency          | `self.inputLoad(task='name')`           | -                                  |
+| Load metadata                | `self.metaLoad(key=0)`                   | `flow.outputLoadMeta(Task)`        |
+
+Notes:
+- An OUTPUT is selected by name (`keys=`); a DEPENDENCY by name/index (`task=`,
+  or `self.input()[i]` for positional `requires`). `[0]`/`[1]` NEVER picks an
+  output.
+- Lower-level "load one output": `self.input()['a'].load()` - index the persist
+  NAME first, THEN `.load()`. `self.input().load(keys='a')` does NOT work for a
+  multi-`persists` dep (`self.input()` is a dict, not a target).
+- TRAP: `load()`/`inputLoad()` swallow unknown kwargs silently, so a wrong
+  selector returns the whole/default output with NO error - e.g.
+  `load(persist='a')` (the kwarg is `keys=`, not `persist=`).
+
 ### Loading Data from Upstream Tasks
 
+Default to `self.inputLoad()`. Reach for `self.input()` only when you want the
+target object itself (its `.path`, or a deliberate `.load()`).
+
 ```python
-# Single input
+# Single dependency, single output
 @d6tflow.requires(UpstreamTask)
 class MyTask(d6tflow.tasks.TaskPqPandas):
     def run(self):
         df = self.inputLoad()
 
-# Multiple inputs
+# Single dependency, multiple outputs (persists=['train','test'])
+@d6tflow.requires(SplitData)
+class MyTask(d6tflow.tasks.TaskPqPandas):
+    def run(self):
+        df_train, df_test = self.inputLoad()        # all outputs, in persists order
+        df_train = self.inputLoad(keys='train')     # just one, by name
+        df_train = self.input()['train'].load()     # lower-level equivalent
+
+# Multiple dependencies - PREFER the named-dict form (select deps by name)
+@d6tflow.requires({'data': LoadData, 'meta': LoadMetadata})
+class MyTask(d6tflow.tasks.TaskPqPandas):
+    def run(self):
+        df_data = self.inputLoad(task='data')       # or self.input()['data'].load()
+        df_meta = self.inputLoad(task='meta')
+
+# Multiple dependencies, positional - select deps by INTEGER index
 @d6tflow.requires(Task1, Task2, Task3)
 class MyTask(d6tflow.tasks.TaskPqPandas):
     def run(self):
         df1, df2, df3 = self.inputLoad()
-
-# Named inputs
-@d6tflow.requires({'data': LoadData, 'meta': LoadMetadata})
-class MyTask(d6tflow.tasks.TaskPqPandas):
-    def run(self):
-        df_data = self.input()['data'].load()
-        df_meta = self.input()['meta'].load()
 ```
+
+Selection rules - `self.input()` mirrors `requires()`:
+
+- single dep, single output -> a Target -> `self.input().load()`
+- single dep, multiple `persists` -> a `{name: target}` dict ->
+  `self.input()['train'].load()`
+- positional `requires(T0, T1)` -> a list -> `self.input()[0]` (and
+  `self.input()[0]['train']` if T0 has multiple outputs)
+- named `requires({'a': T0, 'b': T1})` -> a dict -> `self.input()['a']`
+
+(For the by-name vs by-index rule and the silent-unknown-kwarg trap, see the
+cheat-sheet above.)
 
 ### Saving Multiple Outputs
 
 ```python
 class SplitData(d6tflow.tasks.TaskPqPandas):
-    persist = ['train', 'test', 'valid']  # Names for outputs
+    persists = ['train', 'test', 'valid']  # output names
     def run(self):
         df = self.inputLoad()
+        # list -> saved positionally, in persists order; needs from_list=True
         self.save([df.sample(frac=0.7), df.sample(frac=0.2), df.sample(frac=0.1)], from_list=True)
 
 # Loading
@@ -176,12 +227,16 @@ class TrainModel(d6tflow.tasks.TaskPickle):
     def run(self):
         df_train, df_test, df_valid = self.inputLoad()
 
-# Dictionary outputs
+# Dictionary outputs - same persists; dict keys select by name
 class MyTask(d6tflow.tasks.TaskPqPandas):
-    persists = ['data', 'metadata']  # Note: 'persists' with 's'
+    persists = ['data', 'metadata']
     def run(self):
         self.save({'data': df_main, 'metadata': df_meta})
 ```
+
+`persists` names the outputs; `persist` (singular) is a backwards-compatible
+alias for the same attribute. List-vs-dict is chosen by what you pass to
+`save()`, not by the attribute name.
 
 ### Saving Metadata (Models, Configs)
 
@@ -236,15 +291,17 @@ flow.complete()  # Returns True if all tasks complete
 ### Forcing Re-runs & Loading Outputs
 
 ```python
-# Reset (force re-run)
-flow.reset(TaskName)                      # Reset specific task + downstream
-flow.reset(TaskName, confirm=False)       # No confirmation
-flow.resetAll()                           # Reset entire workflow
+# Reset (force re-run) - flow.reset is the preferred path
+flow.reset(TaskName)                      # specific task + downstream (no prompt by default)
+flow.reset(TaskName, confirm=True)        # opt IN to a confirmation prompt
+flow.resetAll()                           # entire workflow
+flow.run([TaskName()], forced_all=True)   # force this task + its upstream
+flow.run(forced_all_upstream=True)        # force everything
 
 # Load outputs
 result = flow.outputLoad()                # Final task
 df = flow.outputLoad(IntermediateTask)    # Specific task
-df_train = flow.outputLoad(SplitData, keys='train')  # Specific persist
+df_train = flow.outputLoad(SplitData, keys='train')  # Specific output by name
 meta = flow.metaLoad(TrainModel)          # Metadata
 ```
 
@@ -259,6 +316,10 @@ is auto-detected and reruns on the next `flow.run()` with no reset. A CODE edit
 the task as complete and SKIPS it, reusing the stale output. So after editing a
 task's code you MUST `flow.reset(thatTask)` before running, or the edit silently
 has no effect. This is the most common d6tflow surprise when iterating.
+`flow.reset` already cascades downstream, so it IS the whole workflow - never write
+a reset helper (`reset_if_code_changed`, a downstream-resetter); reaching for one
+means the built-in was missed. (If a PARAMETER change is not auto-rerunning, the
+fix is to define / inherit the parameter correctly, not to reset by hand.)
 
 **Changing a task's output columns** is just such a code edit: adding, removing,
 or renaming a column needs a reset (cascades downstream) and a matching update to
@@ -466,7 +527,9 @@ class ValidatedTask(d6tflow.tasks.TaskPqPandas):
 
 ### 4. Error Handling & Documentation
 
-Use loguru for logging; let the pipeline fail natively (avoid try-except); give
+Use loguru for domain logging (and `d6tflow.enable_logging()` for task lifecycle -
+see ml-patterns.md "Logging in ML tasks"); let the pipeline fail natively (avoid
+try-except); give
 every task a real docstring (purpose + input/output contract + quirks - see
 "Task Design" above, and the SKILL "Task docstrings" rule).
 
@@ -549,7 +612,7 @@ first, or merge on a key, rather than trusting positional alignment.
 
 ```python
 class SplitData(d6tflow.tasks.TaskPqPandas):
-    persist = ['train', 'test']
+    persists = ['train', 'test']
     test_size = d6tflow.FloatParameter(default=0.2)
     def run(self):
         from sklearn.model_selection import train_test_split
@@ -573,14 +636,14 @@ class EngineerFeatures(d6tflow.tasks.TaskPqPandas):
 ### Model Training & Evaluation
 
 ```python
-@d6tflow.requires(SplitData, EngineerFeatures)
+@d6tflow.requires({'split': SplitData, 'features': EngineerFeatures})
 class TrainModel(d6tflow.tasks.TaskPqPandas):
-    persist = ['predictions', 'metrics']
+    persists = ['predictions', 'metrics']
     def run(self):
-        df_train = self.input()[0].load(persist='train')
-        feature_cols = [c for c in self.inputLoad()[1].columns if c.startswith('feature_')]
+        df_train = self.input()['split']['train'].load()  # dep by name, output by name
+        feature_cols = [c for c in self.inputLoad(task='features').columns if c.startswith('feature_')]
         model = RandomForestRegressor(n_estimators=100).fit(df_train[feature_cols], df_train['target'])
-        df_test = self.input()[0].load(persist='test')
+        df_test = self.input()['split']['test'].load()
         df_test['pred'] = model.predict(df_test[feature_cols])
         metrics = {'rmse': mean_squared_error(df_test['target'], df_test['pred'], squared=False)}
         self.save([df_test, pd.DataFrame([metrics])], from_list=True)
@@ -593,7 +656,7 @@ class TrainModel(d6tflow.tasks.TaskPqPandas):
 
 - **Task not running**: Already complete (cached) -> `flow.reset(TaskName); flow.run()`
 - **Parameters not affecting task**: Check `significant=False` or parameter type
-- **Cannot load multiple outputs**: Mismatch between `persist` list and `save()` count
+- **Cannot load multiple outputs**: Mismatch between `persists` list and `save()` count
 - **Metadata not loading**: Not saved, or loading from wrong task (use `metaLoad(key=0)` for first dependency)
 
 ---
@@ -623,7 +686,7 @@ flow.reset(TaskName); flow.run()
 
 # Multiple outputs
 class MyTask(d6tflow.tasks.TaskPqPandas):
-    persist = ['a', 'b']
+    persists = ['a', 'b']
     def run(self):
         self.save([df_a, df_b], from_list=True)
 
@@ -653,7 +716,7 @@ reference. Load it when you organize files or name things.
 
 d6tflow: Reproducible, cacheable data science workflows. Tasks (classes with
 `run()`), dependencies (`@d6tflow.requires()`), parameters (task variants),
-auto-caching, multiple outputs (`persist`), metadata (models/configs).
+auto-caching, multiple outputs (`persists`), metadata (models/configs).
 
 **Use for**: Multi-step pipelines, ML workflows, reproducible research.
 **Avoid for**: Simple scripts, real-time systems, single-step processes.

@@ -332,6 +332,47 @@ source not yet in the pipeline (nothing to `outputLoad` yet). The distinction is
 carries the same wording for when the skill IS active; `CLAUDE.md` catches the
 cold-start case.
 
+## Logging: two layers, log scalars / save artifacts
+
+`loguru` for DOMAIN signal, not `print`, in two layers. d6tflow already logs the
+lifecycle (scheduling / completion / timing) via `d6tflow.enable_logging()` - the
+most useful execution log; bracketing `flow.run()` with hand-written start/done
+lines (an earlier scaffold `run.py` did this) just duplicates it. So lifecycle is
+d6tflow's; `loguru` inside `run()` covers what it does not show - shapes, drop
+rates, headline metrics, the branch taken.
+
+Load-bearing rule: log scalars + lifecycle; SAVE rows + artifacts (frames, SHAP,
+metric tables, models -> `self.save()` / xlsx), never a log line, never per-row.
+A log is what you grep; a frame is what you reload. Replaced the old
+`print("SUCCESS:/WARNING:/ERROR:")` prefixes (loguru stamps level + time). ASCII
+still binds messages. Windows wrinkle (in ml-patterns.md): d6tflow lifecycle logs
+are ANSI-colorized, so a saved log wants `logger.add("run.log", colorize=False)`.
+
+Tiering: SKILL.md Code Style + scaffold floor `CLAUDE.md` hold the rule;
+ml-patterns.md owns the ML depth (per-stage what-to-log, the `training cutoff`
+model example, the sink) plus live log lines IN the `FeaturesTransform` /
+`ModelTrain` templates so the pattern is copied, not just described.
+
+## The cache-reset gotcha is promoted to every tier (salience, not depth)
+
+d6tflow caches on task IDENTITY (class + params), not code, so a CODE/DATA change
+needs `flow.reset(Task)` (cascades downstream); a plain run reuses stale output -
+the #1 d6tflow surprise. The depth already lived in `reference.md`, but that is
+on-demand, so in a live session the rule was not in context when needed and a real
+project's agent invented a `reset_downstream` helper instead of the built-in.
+
+The fix was NOT to reorganize `reference.md` (its reset section is fine) but to
+PROMOTE the one-liner up the tiers - same logic as the "first-action rules belong
+in CLAUDE.md" corollary above: it now lives in the always-loaded floor `CLAUDE.md`
+and SKILL.md's "Modify an existing task", depth + force-run alternatives still in
+`reference.md`. Plus an explicit "never write a reset helper" (a helper always
+means the built-in was missed), and: if a PARAMETER change is not auto-rerunning,
+fix the parameter definition / inheritance, do not reset by hand. (`flow.reset`
+defaults to `confirm=False` / no prompt, so it is safe in a non-interactive run as
+is; `confirm=True` opts INTO the prompt.) General lesson: when an agent misses a
+documented rule live, first ask whether it was in a loaded tier - promotion beats
+rewriting.
+
 ## Scaffolding: the init command and the template
 
 A new project is created by the `/d6tflow:init-project` slash command (commands

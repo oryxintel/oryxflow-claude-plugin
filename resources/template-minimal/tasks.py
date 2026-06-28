@@ -5,6 +5,7 @@ top-level documentation - read on every session in place of a separate doc.
 """
 import d6tflow
 import pandas as pd
+from loguru import logger
 
 import cfg
 
@@ -25,4 +26,5 @@ class Process(d6tflow.tasks.TaskPqPandas):
         df = self.input().load()
         if self.optional:
             df = df*2
+        logger.info("rows={}", len(df))  # log the result's shape/metrics (scalars); save the frame, don't log it
         self.save(df)

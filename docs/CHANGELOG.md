@@ -6,7 +6,69 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 
 ## [26.6.28] - 2026-06-28
 
+### Changed
+- Standardized multiple-output tasks on `persists` (plural) across `reference.md`
+  and `ml-patterns.md`; `persist` (singular) is documented as a
+  backwards-compatible alias for the same attribute. Fixed the misleading
+  ml-patterns comment that implied `persist` vs `persists` switched
+  list-vs-dict output - that is decided by what you pass to `save()`
+  (`[...]`+`from_list=True` vs `{...}`), not the attribute name.
+- Fixed a dangerous input-loading example in `reference.md`: the old
+  `self.input()[0].load(persist='train')` is wrong twice over - `[0]` indexes
+  the dependency (not a persist output), and `persist=` is not a valid selector.
+  Since `load()`/`inputLoad()` take `**kwargs`, the bad selector was SILENTLY
+  ignored and returned the whole output. Rewrote the "Loading Data from Upstream
+  Tasks" section with the correct selection rules (`self.input()` mirrors
+  `requires()`; outputs select by name via `keys=`, deps via `task=`/index;
+  prefer the named-dict `requires({...})` form) and a warning about the silent
+  unknown-kwarg trap.
+- Scaffold floor `CLAUDE.md` "d6tflow plugin" section now tells Claude to check
+  the `d6tflow` skill is available before real workflow work (editing the flow
+  files or running the pipeline), and if not, to say so and ask the user to load
+  it - then, without nagging, to occasionally remind the user after substantial
+  work that they get better results with the plugin active. Replaces the soft
+  "if installed" note; catches a silently unloaded plugin (Claude editing without
+  the skill's depth) at the moments it matters, while keeping the file a portable
+  floor that still works without the plugin.
+- SKILL.md "run as a module" rule now covers ANY project script in a subfolder
+  that imports the flow (EDA probes, but also `reports/` / `utils/` scripts), not
+  just `eda/` - and notes that `python -m pkg.name` puts the root on the path, so
+  the `PYTHONPATH` workaround (PowerShell `$env:PYTHONPATH=...`) and `sys.path`
+  patching are unnecessary. Root-level scripts (`run.py`, `visualize.py`) still run
+  directly. Mirrored the PYTHONPATH point into the scaffold's project `CLAUDE.md`.
+
 ### Added
+- `reference.md` "Load / save cheat-sheet" table: pick the identifier by WHAT
+  (data vs meta) x WHERE (inside `run()` vs outside with a `flow`) x HOW MANY
+  (all vs one) - e.g. load one output `self.inputLoad(keys='a')` inside vs
+  `flow.outputLoad(Task, keys='a')` outside; meta `self.metaLoad(key=0)` vs
+  `flow.outputLoadMeta(Task)`. Folds in the by-name-not-by-index rule and the
+  silent-unknown-kwarg trap as table notes.
+- Logging convention (two layers), replacing the old `print("SUCCESS:/WARNING:/
+  ERROR:")` prefixes: `d6tflow.enable_logging()` for task lifecycle, `loguru`
+  inside `run()` for DOMAIN signal (shapes, drop rates, metrics, the branch taken).
+  Rule: log scalars + lifecycle, SAVE rows + artifacts (`self.save()` / xlsx),
+  never per-row. In SKILL.md Code Style + scaffold floor `CLAUDE.md`; ML depth, the
+  `training cutoff` model example, and an ANSI-free `logger.add("run.log",
+  colorize=False)` sink in `ml-patterns.md` ("Logging in ML tasks") + log lines in
+  the `FeaturesTransform` / `ModelTrain` templates. Scaffold `run.py` /
+  `tasks.py` now model it (not `cfg.py` - no sink config forced).
+- Reset / cache-invalidation rule promoted to the always-loaded tiers: d6tflow
+  caches on identity (class + params), NOT code, so a CODE/DATA change needs
+  `flow.reset(Task)` (cascades downstream) - and since it cascades, NEVER write a
+  reset helper. A PARAMETER change auto-reruns; if not, fix the parameter
+  definition / inheritance. Now in the scaffold floor `CLAUDE.md` + SKILL.md
+  "Modify an existing task"; depth + force-run alternatives in `reference.md`.
+- `ml-patterns.md` Productionizing: softened `env=prod/dev` - `env` is a
+  project-chosen label (also e.g. `utest` for a shareable sampled subset), not a
+  universal scheme.
+- SKILL.md "Read output straight from the run" rule: run scripts in the
+  foreground and read captured stdout directly - simpler than teeing output to a
+  temp-dir log (`Tee-Object $env:TEMP\...`, `Select-Object -Last N`) and re-reading,
+  or backgrounding-then-polling with `sleep`+`tail`. For a long run, background it
+  and wait for the completion notification, then read once. Verbosity is best
+  controlled at the source (`loguru` levels / an optional file sink), not by
+  filtering the stream after the fact.
 - "Scaling up: organizing a growing project" section in `conventions.md`,
   replacing the old thin (and internally inconsistent) "Alternative Structures"
   block. Codifies a graduated progression for a growing `tasks.py` - (a) one

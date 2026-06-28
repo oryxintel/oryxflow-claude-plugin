@@ -27,11 +27,19 @@ do not ask.
 ## Conventions (non-negotiable)
 
 - ASCII only. No emojis / unicode / smart quotes in code or output (Windows safety).
+- Log with `loguru` (`from loguru import logger`), not `print`, for domain signal
+  (shapes, drop rates, metrics, the branch taken); call `d6tflow.enable_logging()`
+  once for task lifecycle. Log SCALARS; SAVE frames / artifacts (`self.save()` /
+  xlsx), never log them or log per-row. Messages ASCII; a plain `print` is fine for
+  a small result you want to read.
 - No inline Python. No `python -c`, no inline snippets (including quick one-off
   probes) - all test / EDA / exploratory code goes under `eda/<subject>/<name>.py`
   (subject = a task or dataset, snake_case; each folder needs an `__init__.py`),
-  run as `python -m eda.<subject>.<name>` from the root. Document each probe (its
-  question + result); promote material data findings to `docs/d6tflow-data.md`.
+  run as `python -m eda.<subject>.<name>` from the root (same for any subfolder
+  script that imports the flow); `-m` puts the root on the path, so setting
+  `PYTHONPATH` (`$env:PYTHONPATH=...`) or patching `sys.path` is unnecessary.
+  Document each probe (its question + result); promote material data findings to
+  `docs/d6tflow-data.md`.
 - Organize supporting code by subject (a task, dataset, or concept, snake_case):
   `eda/<subject>/` (READ-ONLY probes), `utils/<subject>.py` (helpers),
   `viz/<subject>.py` (plots). A helper shared by 2+ subjects goes in a concept /
@@ -55,6 +63,11 @@ do not ask.
 - Edit the flow files, do not improvise: `tasks.py` (task classes),
   `flow_params.py` (parameters), `flow.py` (which final task runs), `run.py`
   (execute). Run the workflow with `python run.py`.
+- After editing a task's CODE (or when its source data changed), RESET it before
+  running: `flow.reset(Task)` (cascades downstream). d6tflow caches on identity
+  (class + params), NOT code, so a plain run reuses the stale output. A PARAMETER
+  change makes a new identity and auto-reruns (no reset). Use the built-in
+  `flow.reset` - never write a reset helper.
 - Trust auto file management. If `flow.run()` finishes without error, the outputs
   exist - load them with `flow.outputLoad(...)`; do not stat the filesystem. For a
   task's data, `flow.outputLoad(Task)` (or `self.inputLoad()` in a task) is the
@@ -81,7 +94,13 @@ docs/             # d6tflow-data.md (data findings; pipeline docs live in code)
 
 ## d6tflow plugin
 
-If the d6tflow Claude Code plugin is installed, its `d6tflow` skill covers all of
-the above in depth (task types, patterns, ML recipes, debugging) and activates
-automatically when you work here. This file is the portable floor; the plugin is
-the depth.
+This project is meant to be used WITH the d6tflow Claude Code plugin, whose
+`d6tflow` skill covers all of the above in depth (task types, patterns, ML
+recipes, debugging). Before real workflow work here - editing tasks.py /
+flow_params.py / flow.py, or running the pipeline - check that the `d6tflow`
+skill is available to you. If it is NOT, the plugin did not load: say so and ask
+the user to load it. Do not nag; but after finishing a substantial piece of work
+without it, occasionally remind the user they will get better results with the
+d6tflow Claude Code plugin active.
+
+This file is the portable floor; the plugin is the depth.

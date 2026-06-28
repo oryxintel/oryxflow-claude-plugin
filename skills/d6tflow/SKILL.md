@@ -269,11 +269,27 @@ ALWAYS:
 `python run.py` and `python visualize.py` directly - do NOT prepend
 `cd <project path>` (redundant, and brittle when the path has spaces).
 
-**EDA scripts import project modules** (`from flow import flow`), so run them as a
-MODULE from the root: `python -m eda.<subject>.<name>` (dotted path, no `.py`;
-each `eda/<subject>/` needs an `__init__.py`). Running the file directly FAILS -
-it puts the folder on `sys.path` instead of the root, so `import flow` /
-`import tasks` break. Do NOT patch `sys.path`; use `python -m`.
+**Read output straight from the run.** Run the script in the FOREGROUND and its
+stdout comes back to you directly (the tool already captures it) - simpler than
+teeing it into a temp-dir log (`Tee-Object $env:TEMP\...`, `2>&1 | ...`,
+`Select-Object -Last N`) and re-reading. For a genuinely long run (a big
+backtest), the easier path is to start it in the BACKGROUND and wait for the
+completion notification, then read its captured output once - more reliable than a
+`sleep`+`tail` polling loop. A script too chatty to read raw is better tamed at
+the source - raise the `loguru` console level (detail still reachable via a file
+sink) or write the result to a file (an Excel/parquet under `data/`) - than by
+filtering the stream after the fact.
+
+**Any project script in a SUBFOLDER imports project modules** (`from flow import
+flow`, `import cfg` / `tasks`) - EDA probes, but also a script you drop in
+`reports/`, `utils/`, etc. Run it as a MODULE from the root:
+`python -m eda.<subject>.<name>` (dotted path, no `.py`; each package dir needs an
+`__init__.py`). Running the file path directly FAILS - it puts the script's folder
+on `sys.path` instead of the root, so `import flow` / `import cfg` break. `python
+-m` puts the root on the path for you, so setting `PYTHONPATH` (PowerShell
+`$env:PYTHONPATH=...`) or patching `sys.path` is unnecessary - reach for `-m`
+instead. (Root-level scripts - `run.py`, `visualize.py` - already run directly;
+only the subfolder case needs `-m`.)
 
 **No inline Python** - no `python -c` or snippets, including quick one-off probes
 ("just checking X" is exactly what this forbids). ALL test / EDA code goes in an
@@ -376,13 +392,27 @@ embedded outputs):
 
 ## Code Style
 
-**ASCII only.** No Unicode (emojis, checkmarks, special chars) in code or print
-statements - they break encoding on Windows. Use plain prefixes:
+**ASCII only.** No Unicode (emojis, checkmarks, special chars) in code or output -
+they break encoding on Windows. Keep log / print messages plain ASCII.
+
+**Log with `loguru`, not `print`; let d6tflow log the lifecycle.** Call
+`d6tflow.enable_logging()` once (in `run.py`) for task scheduling / completion /
+timing - that is free, do NOT reinvent it with your own start/end brackets. Inside
+a task's `run()`, use `from loguru import logger` at the right LEVEL for the DOMAIN
+signal you would watch live or grep - shapes, drop rates, headline metrics, the
+branch / fallback taken:
 ```python
-print("SUCCESS: Operation completed")
-print("WARNING: Issue detected")
-print("ERROR: Operation failed")
+from loguru import logger
+logger.info("loaded {} rows, {} cols", len(df), df.shape[1])
+logger.info("dropped {:.0f}% on dropna", 100*(1 - len(df_X)/len(df)))
+logger.warning("no SHAP for model {} -> zeros", self.model)
 ```
+**Log scalars + lifecycle; SAVE rows + artifacts.** Frames, per-row predictions,
+SHAP matrices, metric tables, model objects go to `self.save()` / an xlsx - never a
+log line - and never log inside a per-row loop (one line per backtest iteration,
+not per row). loguru stamps level + time and keeps messages ASCII; a plain `print`
+is still right for the small RESULT you want to read back. (ML logging depth + an
+ANSI-free file sink: ml-patterns.md.)
 
 **No try/except wrapping.** Let code fail natively so errors surface. Exceptions
 only: when the user asks, or in temporary / EDA code under `eda/`.
@@ -468,7 +498,13 @@ class OEWSWages(d6tflow.tasks.TaskPqPandas):
 2. RESET IT BEFORE RUNNING. A code edit does NOT change task identity (class +
    parameters), so d6tflow treats it as complete and a plain `python run.py`
    SKIPS it, reusing the stale output. `flow.reset(tasks.ModifiedTask)` first -
-   reset cascades downstream, recomputing dependents too.
+   reset cascades downstream, recomputing dependents too. This is d6tflow's
+   built-in and the ONLY reset path: do NOT write a reset helper
+   (`reset_if_code_changed`, a downstream-resetter) - `flow.reset` already
+   cascades, so reaching for a helper means you missed it. (A PARAMETER
+   change, by contrast, makes a new identity and auto-reruns - no reset; if a param
+   change is NOT auto-rerunning, the parameter is not defined / inherited correctly,
+   not a reason to reset by hand.)
 3. Run: add/uncomment `flow.reset(tasks.ModifiedTask)` in `run.py`, run
    `python run.py`, then re-comment the reset line. Keep reset calls as
    commented-out toggles in `run.py` (one task per line; uncomment several at

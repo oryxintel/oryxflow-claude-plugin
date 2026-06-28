@@ -47,15 +47,20 @@ cfg.col_X_level = ['gdp', 'price', ...]        # Level features (use pct_change)
 
 ### 3. Multiple output pattern
 
-Use `persist` for tasks with multiple outputs:
+Use `persists` to name a task's multiple outputs:
 
 ```python
 class MyTask(d6tflow.tasks.TaskPqPandas):
-    persist = ['all', 'x', 'y']  # or 'persists' for dict outputs
+    persists = ['all', 'x', 'y']  # output names (persist is a legacy alias)
 
     def run(self):
-        self.save([df_all, df_X, df_y], from_list=True)
+        self.save([df_all, df_X, df_y], from_list=True)  # list: positional by order
+        # or: self.save({'all': df_all, 'x': df_X, 'y': df_y})  # dict: by name
 ```
+
+The output names live in `persists`. Whether you pass a list or a dict to
+`save()` is what selects positional-vs-by-name saving - not the attribute. The
+list form needs `from_list=True`; the dict keys must match `persists`.
 
 Load multiple outputs:
 
@@ -124,7 +129,7 @@ class FeaturesTransform(d6tflow.tasks.TaskPqPandas):
     """Transform features for modeling"""
     transformx = d6tflow.Parameter()  # Feature transformation method
     transformy = d6tflow.Parameter()  # Target transformation
-    persist = ['all', 'x', 'y']
+    persists = ['all', 'x', 'y']
 
     def run(self):
         df = self.input().load()
@@ -138,6 +143,8 @@ class FeaturesTransform(d6tflow.tasks.TaskPqPandas):
         df_X = df_X.dropna()
         assert df_X.shape[0] / df.shape[0] > 0.8, \
             f"Dropped {100*(1-df_X.shape[0]/df.shape[0]):.1f}% of data"
+        logger.info("kept {} rows ({} feats); dropped {:.1f}% on dropna",
+                    len(df_X), df_X.shape[1], 100*(1 - df_X.shape[0]/df.shape[0]))
 
         # Keep only rows with valid features
         df = df.loc[df_X.index]
@@ -189,7 +196,7 @@ Purpose: train model, save the model object in metadata, calculate SHAP values.
 class ModelTrain(d6tflow.tasks.TaskPqPandas):
     """Train ML model and save predictions"""
     model = d6tflow.Parameter()  # Model type
-    persist = ['all', 'x', 'y']
+    persists = ['all', 'x', 'y']
 
     def run(self):
         df_all, df_X, df_y = self.inputLoad()
@@ -200,6 +207,7 @@ class ModelTrain(d6tflow.tasks.TaskPqPandas):
 
         # Train model
         model = self.train_model(df_X, df_y)
+        logger.info("trained {} on {} rows, {} feats", self.model, len(df_X), df_X.shape[1])
 
         # Add predictions to dataset
         df_all['y_pred'] = model.predict(df_X)
@@ -359,7 +367,7 @@ Purpose: generate predictions for the most recent period, with SHAP values.
 class ModelPredictCurrent(d6tflow.tasks.TaskPqPandas):
     """Generate predictions for current period"""
     period_current = d6tflow.Parameter()  # e.g. '2025Q2', '2025-01-01'
-    persist = ['predictions', 'features', 'shap']
+    persists = ['predictions', 'features', 'shap']
 
     def run(self):
         _, (df_all, df_X, _) = self.inputLoad()
@@ -429,8 +437,10 @@ class RunAllModelPredictCurrentProd(d6tflow.tasks.TaskExcelPandas):
         self.save(pd.concat(dfl))
 ```
 
-**3. `env=prod` / `env=dev` data segregation** via `cfg.env`, so a prod run and a
-dev experiment never overwrite each other's outputs.
+**3. Environment-segregated outputs** via `cfg.env`, so runs under different envs
+never overwrite each other's outputs. `env` is a label YOU choose, not a fixed
+scheme - commonly `dev` vs `prod`, but also e.g. `utest` for a sampled subset you
+can share. Pick what the project needs; don't assume prod/dev is universal.
 
 **Periodic-refresh protocol** (the recurring prod run): refresh the raw inputs in
 `data/`, bump `period_current` (in `flow_params.py` or as the task parameter),
@@ -558,6 +568,36 @@ df_breakdown['other_features'] = df_shap.sum(1) - df_shap[top_features].sum(1)
 df_breakdown['prediction'] = df_breakdown['base_value'] + df_shap.sum(1)
 assert np.allclose(df_breakdown['prediction'], predictions)
 ```
+
+---
+
+## Logging in ML tasks
+
+Two layers, different jobs (see SKILL.md "Log with `loguru`"):
+
+- **Lifecycle -> d6tflow.** `d6tflow.enable_logging()` (once, in `run.py`) prints
+  task scheduling / completion / timing - the single most useful execution log.
+  Do NOT reinvent it with your own start/end brackets around `flow.run()`.
+- **Domain -> loguru, inside `run()`.** Log the scalars you would watch live or
+  grep: per-task shapes and date range, how much got dropped (`dropna` %), the
+  model type / n_features / n_train_rows / a headline metric (rmse / f1), and the
+  branch or fallback taken. One line per backtest ITERATION, never per row.
+
+```python
+logger.info("training cutoff {} -> predict {}", idate, idate_pred)
+logger.warning("no data for {}", period)           # fallback / degenerate case
+logger.warning("single-class fold at {} -> skipped", idate)
+```
+
+**Log scalars + lifecycle; SAVE everything tabular or large** - frames, per-row
+predictions, SHAP matrices, full metric tables, model objects, the comparison
+xlsx go through `self.save()` (or an xlsx), never a log line. Rule of thumb:
+scalars and lifecycle -> log; rows and artifacts -> `self.save()`.
+
+**Plain (ANSI-free) file sink.** d6tflow's lifecycle logs are color-coded (ANSI
+escape codes), which is noise in a saved log file and on Windows. For a
+grep-friendly run log, add an uncolored sink alongside the default:
+`logger.add("run.log", colorize=False)`.
 
 ---
 
