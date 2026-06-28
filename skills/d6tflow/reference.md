@@ -112,6 +112,15 @@ class ProcessData(d6tflow.tasks.TaskPqPandas):
 - `d6tflow.DateParameter()` - Date
 - `d6tflow.ListParameter()` - List
 - `d6tflow.DictParameter()` - Dictionary
+- `d6tflow.ChoiceParameter(choices=['rf','lgbm'], default='rf')` - string
+  restricted to a fixed set; an off-list value raises at task construction
+  (fail-fast on typos), NOT deep in downstream code. Values stay plain strings,
+  so it drops into existing string-valued params with zero churn - prefer this
+  for categoricals like `model='rf'`.
+- `d6tflow.EnumParameter(enum=MyEnum)` - value is an `enum.Enum` member (pass the
+  enum class). Same fail-fast benefit but heavier: you define an `enum.Enum` and
+  rewrite values from `'rf'` to `MyEnum.rf`. Use only when you genuinely want
+  enum objects; for plain string choices, `ChoiceParameter` is lighter.
 
 **Important**: Same class + same parameters = same task instance (cached).
 Different parameters = different task instance (separate cache).

@@ -40,6 +40,12 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   directly. Mirrored the PYTHONPATH point into the scaffold's project `CLAUDE.md`.
 
 ### Added
+- `reference.md` parameter-types list now includes `ChoiceParameter(choices=[...])`
+  and `EnumParameter(enum=...)`. `ChoiceParameter` is the recommended fail-fast
+  option for string categoricals (e.g. `model='rf'`): an off-list value raises at
+  task construction, not deep in downstream code, with zero churn to existing
+  string values. `EnumParameter` gives the same guarantee but requires defining an
+  `enum.Enum` and rewriting values - noted as the heavier choice.
 - `reference.md` "Load / save cheat-sheet" table: pick the identifier by WHAT
   (data vs meta) x WHERE (inside `run()` vs outside with a `flow`) x HOW MANY
   (all vs one) - e.g. load one output `self.inputLoad(keys='a')` inside vs
