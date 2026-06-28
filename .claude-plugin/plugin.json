@@ -7,6 +7,7 @@
     "email": "dev@databolt.tech"
   },
   "homepage": "https://databolt.tech",
+  "repository": "https://github.com/d6t/d6tflow-claude-plugin",
   "license": "MIT",
   "keywords": [
     "d6tflow",

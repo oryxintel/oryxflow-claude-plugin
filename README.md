@@ -25,17 +25,17 @@ New here? Start with [Install](#install).
 
 This repo is its own marketplace, so it can be installed directly.
 
-### From git (GitHub / GitLab / etc.)
+### From GitHub
 
 ```
-/plugin marketplace add <owner>/<repo>
+/plugin marketplace add d6t/d6tflow-claude-plugin
 /plugin install d6tflow@d6tflow
 ```
 
-Or with a full git URL:
+Or with the full git URL:
 
 ```
-/plugin marketplace add https://your.git.host/path/d6tflow-claude-plugin.git
+/plugin marketplace add https://github.com/d6t/d6tflow-claude-plugin.git
 /plugin install d6tflow@d6tflow
 ```
 
@@ -201,5 +201,5 @@ work with):
 - d6tflow source: https://github.com/d6t/d6tflow
 - Maintainer: https://databolt.tech
 
-This plugin's own repository and issue tracker are not public yet. Once they are,
-their link will live here (and in the plugin's `repository` manifest field).
+This plugin's own repository and issue tracker:
+https://github.com/d6t/d6tflow-claude-plugin

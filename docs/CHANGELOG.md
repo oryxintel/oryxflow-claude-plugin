@@ -53,6 +53,10 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   conventions.md owns scaling LAYOUT, ml-patterns.md owns the PROD lifecycle.
 - Template `CLAUDE.md` notes the project can scale (section-headers -> split) with
   a pointer to the plugin's "Scaling up" guidance.
+- README install instructions point at the public GitHub repo
+  (`d6t/d6tflow-claude-plugin`) instead of `<owner>/<repo>` placeholders, and the
+  Resources section now links the public repo. Added a `repository` field to
+  `plugin.json`.
 
 ## [26.6.22] - 2026-06-22
 
