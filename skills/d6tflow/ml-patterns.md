@@ -392,6 +392,68 @@ data; calculate SHAP values for interpretability; sort by prediction score.
 
 ---
 
+## Productionizing: prod vs experiment
+
+Once a research pipeline is trusted, it goes to "prod" - a repeatable run on
+frozen settings against fresh data - while experimentation continues in the same
+directory. The two coexist through three pieces:
+
+**1. `params_prod` defined ONCE, in `flow_params.py`** (see conventions.md
+"Scaling up"). The frozen production settings live in one dict; the prod
+orchestration IMPORTS it rather than re-hardcoding the values inline (re-typing
+them is how prod and the recorded params drift apart).
+
+**2. A `RunAll...Prod` orchestration task** that loops the prod variants and does
+SELECTIVE RESETS - refresh the data layers so a new period pulls fresh inputs,
+but do NOT reset `ModelTrain`, so the production model stays frozen/cached across
+runs. Its experiment twin (`RunAll`) uses `params`.
+
+```python
+# tasks.py spine - prod orchestration
+from flow_params import params_prod
+
+class RunAllModelPredictCurrentProd(d6tflow.tasks.TaskExcelPandas):
+    """Prod run: frozen params, all variants, fresh data, model stays cached."""
+    period_current = d6tflow.Parameter()
+    def run(self):
+        dfl = []
+        for sector in cfg.sectors:
+            params = {**params_prod, 'sector': sector,
+                      'period_current': self.period_current}
+            flow = d6tflow.Workflow(tasks_predict.ModelPredictCurrent,
+                                    params=params, env='prod')
+            flow.reset(tasks_features.DataSource)  # refresh data layer ONLY
+            # do NOT reset ModelTrain -> frozen model
+            flow.run()
+            dfl.append(flow.outputLoad(tasks_predict.ModelPredictCurrent))
+        self.save(pd.concat(dfl))
+```
+
+**3. `env=prod` / `env=dev` data segregation** via `cfg.env`, so a prod run and a
+dev experiment never overwrite each other's outputs.
+
+**Periodic-refresh protocol** (the recurring prod run): refresh the raw inputs in
+`data/`, bump `period_current` (in `flow_params.py` or as the task parameter),
+then run the `RunAll...Prod` task. The selective reset re-pulls the data layers
+for the new period while the trained model is reused as-is.
+
+### Productionize a research project / notebook
+
+Research often starts as a messy notebook - cells that load, munge, fit, and
+plot in one scroll. To productionize it, sort those cells into the standard task
+bins (the same ones in "Task organization checklist" below): load -> features ->
+model -> eval -> predict. Each coherent cell-group becomes a TASK with a real
+docstring; wire the DAG with `@d6tflow.requires(...)`; then add the prod
+orchestration above.
+
+This is the no-inline-Python rule (SKILL.md) applied to a whole notebook: code
+that does pipeline work becomes a task, and a throwaway check becomes an `eda/`
+probe - never a `python -c` or a cell left to rot. Once the cells are tasks, the
+notebook (if kept) imports the flow and `flow.outputLoad(...)`s, like any other
+report notebook.
+
+---
+
 ## Common feature-engineering patterns
 
 ### Time-based features
@@ -565,7 +627,9 @@ When building an ML pipeline, create these tasks in order:
 4. ModelPerformanceIS - in-sample metrics, feature importance.
 5. ModelPredictOS - out-of-sample backtest (expanding window).
 6. ModelPredictCurrent - current-period predictions with SHAP.
-7. RunAll - orchestration task (aggregates all steps).
+7. RunAll - orchestration task (aggregates all steps). When the pipeline goes to
+   prod, add a `RunAll...Prod` twin (frozen `params_prod`, selective resets, fresh
+   data) - see "Productionizing: prod vs experiment" above.
 
 Each task should: have a clear docstring; validate inputs/outputs with assertions;
 return the appropriate output format (DataFrame, dict, pickle); use meaningful

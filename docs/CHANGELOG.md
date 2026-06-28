@@ -4,6 +4,56 @@ All notable changes to the d6tflow plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions are
 date-based (`YY.M.D`, e.g. `26.5.30`).
 
+## [26.6.28] - 2026-06-28
+
+### Added
+- "Scaling up: organizing a growing project" section in `conventions.md`,
+  replacing the old thin (and internally inconsistent) "Alternative Structures"
+  block. Codifies a graduated progression for a growing `tasks.py` - (a) one
+  chain-ordered file, (b) naming families, (c) comment section-header blocks
+  (the cheap organizer that carries a file well past ~500 lines), (d) split into
+  `tasks_<phase>.py` modules only when GENUINELY long (~1000 lines / ~20+ tasks)
+  or a separable subsystem appears, cutting along the section seams. Two split
+  axes: phase (imports upstream-only -> acyclic) and subsystem (the group-by-
+  subject rule applied to tasks; subdir package when it bundles its own helpers).
+  After splitting, a slim `tasks.py` SPINE holds the project-goal docstring +
+  orchestration tasks and imports the phase modules - NOT a re-export aggregator
+  (direct imports avoid cycles). One `flow_params.py` carries both experiment
+  `params` and a frozen `params_prod`. App/reporting subsystems go at the project
+  root with their own `cfg_app.py` + launcher, importing the flow and
+  `outputLoad`ing (never reading `data/`). Splitting is cache-safe: a task's
+  identity is its class name (`task_family`), not its module path - VERIFIED
+  empirically (same class in two modules -> identical `data/<Class>/` path); only
+  RENAME orphans a cache, MOVE is free.
+- "Productionizing: prod vs experiment" section in `ml-patterns.md`: the
+  going-to-prod lifecycle. `params_prod` defined once and IMPORTED by the prod
+  orchestration (not re-hardcoded - fixes a real duplication); a `RunAll...Prod`
+  task that loops prod variants with SELECTIVE resets (refresh data layers, keep
+  `ModelTrain` frozen/cached); `env=prod/dev` data segregation; a periodic-
+  refresh protocol. Plus a "Productionize a research project / notebook"
+  subsection: sort messy notebook cells into the standard phase-task bins (load
+  -> features -> model -> eval -> predict), wire the DAG, then add prod
+  orchestration - the no-inline-Python rule applied to a whole notebook.
+- Proactive "Graduating a growing project" nudge rule in `SKILL.md`: on a real
+  trigger MID-EDIT (going to prod / a separable subsystem appears / a genuinely
+  long `tasks.py`), OFFER the next structural step - but NOT on raw task count
+  (one sectioned file scales far) and NOT on a plain orientation load (stays
+  lightweight). Data scientists tend to under-organize, so the agent leads here.
+- Example invocations in `SKILL.md`'s Build group: "split `tasks.py` along its
+  sections into modules", "set up a prod run with frozen params".
+
+### Changed
+- Fixed the older inline `tasks.py` hint in `conventions.md` ("can split into
+  `tasks_etl.py` / `tasks_models.py`") to point at the new "Scaling up" section
+  instead of giving a second, divergent splitting rule.
+- Upgraded `ml-patterns.md`'s "Task organization checklist" item 7 (`RunAll`) to
+  mention the `RunAll...Prod` twin and point at the new productionizing section.
+- `SKILL.md` code-organization block now points to "Scaling up" for when/how a
+  project graduates. Architecture playbook + component table updated:
+  conventions.md owns scaling LAYOUT, ml-patterns.md owns the PROD lifecycle.
+- Template `CLAUDE.md` notes the project can scale (section-headers -> split) with
+  a pointer to the plugin's "Scaling up" guidance.
+
 ## [26.6.22] - 2026-06-22
 
 ### Added

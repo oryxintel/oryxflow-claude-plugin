@@ -279,9 +279,11 @@ class Process(d6tflow.tasks.TaskPqPandas):
         self.save(df)
 ```
 
-Best practices: one file for simple projects; can split into multiple files for
-complex projects (e.g. `tasks_etl.py`, `tasks_models.py`). Keep tasks focused
-and documented. Import `cfg` for centralized configuration.
+Best practices: start with one file and keep it that way far longer than feels
+natural - a sectioned single file scales past 500 lines fine. Split into
+`tasks_<phase>.py` modules only once it is genuinely long or a separable
+subsystem appears; see "Scaling up" below for the full graduated progression.
+Keep tasks focused and documented. Import `cfg` for centralized configuration.
 
 #### `cfg.py` - Global Configuration
 
@@ -406,55 +408,142 @@ class DownloadData(d6tflow.tasks.TaskPqPandas):
 Benefits: consistency (same workflow instance everywhere), DRY (define once),
 flexibility (easy to switch tasks/parameters), clarity (separation of concerns).
 
-### Alternative Structures
+## Scaling up: organizing a growing project
 
-Large projects with multiple modules:
-```
-project/
-|-- tasks/
-|   |-- __init__.py
-|   |-- etl.py          # ETL tasks
-|   |-- features.py     # Feature engineering tasks
-|   `-- models.py       # Model training tasks
-|-- cfg.py
-|-- run.py
-|-- visualize.py
-`-- utils/
-    |-- __init__.py
-    |-- data_validation.py
-    `-- plotting.py
-```
+Most projects stay flat (one `tasks.py`, `run.py`, `flow.py`,
+`flow_params.py`) - that is the right shape for the ~80% that stay
+research-only, and the structure above is for them. The ~20% that grow - usually
+when something goes to "prod" - graduate along the steps below. Data scientists
+are typically weak at code organization, so the agent should be PROACTIVE here:
+nudge to graduate on a concrete trigger (see SKILL.md "Graduating a growing
+project"), restructuring as the project grows rather than over-building up front.
 
-Multiple workflows:
-```
-project/
-|-- tasks.py
-|-- cfg.py
-|-- flow_params_train.py    # Training parameters
-|-- flow_params_predict.py  # Prediction parameters
-|-- flow_train.py           # Training workflow
-|-- flow_predict.py         # Prediction workflow
-|-- run_train.py            # Run training pipeline
-|-- run_predict.py          # Run prediction pipeline
-`-- visualize_models.py
-```
+### Scaling `tasks.py` - a graduated progression
+
+Do NOT jump to splitting files. Each step is deferred until the prior one
+strains - you keep one file as long as it stays navigable:
+
+- **a. One `tasks.py`, chain-ordered** (the flat start - tasks in DAG order).
+- **b. Naming families.** Broad->narrow prefixes (the existing convention:
+  `Features*`, `Model*`, `Data*`) cluster related tasks so a branch reads
+  together. (See "Task naming".)
+- **c. Comment section-header blocks** divide branches/phases WITHIN the one
+  file. The cheap intermediate organizer - it carries a file well past ~500
+  lines without splitting, and the headers double as orientation and as unique
+  edit anchors for the agent:
+  ```python
+  # ===========================================================================
+  # Model layer - train + evaluate (parallel to the feature layer above)
+  # ===========================================================================
+  ```
+- **d. Split into modules** - only when the file is GENUINELY long (rough signal
+  ~1000 lines / ~20+ tasks, or "scrolling to find a task" pain) OR a separable
+  subsystem has emerged. Cut along the section seams from step c. This is
+  cache-safe: a task's identity is its CLASS NAME (`task_family`), not its module
+  path, so moving a class from `tasks.py` to `tasks_model.py` does NOT invalidate
+  its `data/<Class>/` cache. (RENAMING a class still orphans the old cache - see
+  "Stale caches on rename"; only MOVING is free.)
+
+### Two split axes
+
+When you do split (step d), there are two orthogonal ways to cut:
+
+- **Phase axis** - break up the main pipeline by stage: `tasks_features.py` /
+  `tasks_model.py` / `tasks_eval.py`. Each module imports the UPSTREAM phase only
+  (`tasks_model` imports `tasks_features`), so the import graph is acyclic by
+  construction.
+- **Subsystem axis** - carve off a separable concern: a distinct data
+  source/platform (`tasks_13f.py`), an app, an LLM/reporting layer. This is the
+  "group by subject" rule (above) applied to TASKS. When the subsystem bundles
+  its own helpers/config/templates, give it a SUBDIR PACKAGE
+  (`llm/tasks_llm.py` + `llm/prompts.py` + ...), matching the `eda/utils/viz`
+  by-subject grouping.
+
+### Keep a slim `tasks.py` spine (not a re-export aggregator)
+
+After splitting, `tasks.py` stays - it holds the pipeline-overview module
+docstring (the project-goal home our convention mandates) plus the orchestration
+tasks (`RunAll`, and a prod twin if any), and it imports the phase modules. The
+phase/subsystem modules hold the actual work; a cross-module dependency imports
+the specific sibling module directly. Do NOT build an aggregator module that
+re-exports every task - direct imports keep the graph acyclic and are what real
+projects use.
 
 ```python
-# flow_train.py
-from flow_params_train import params
-task = tasks.TrainModel
-flow = d6tflow.Workflow(task=task, params=params)
+# tasks.py (the spine, after splitting)
+"""<Project goal: what the pipeline produces and why - top-level project doc.>"""
+import d6tflow
+import cfg
+import tasks_features, tasks_model, tasks_eval   # phase modules (the work)
 
-# flow_predict.py
-from flow_params_predict import params
-task = tasks.MakePredictions
-flow = d6tflow.Workflow(task=task, params=params)
+@d6tflow.requires(tasks_eval.ModelEval)
+class RunAll(d6tflow.tasks.TaskJson):
+    """Run the full pipeline; completion marker."""
+    def run(self):
+        self.save({'status': 'complete'})
+```
+```python
+# tasks_model.py (a phase module - imports the UPSTREAM phase only -> acyclic)
+"""Model layer: train + in-sample performance."""
+import d6tflow
+import cfg
+import tasks_features
 
-# run_train.py
-from flow_train import flow
+@d6tflow.requires(tasks_features.FeaturesTransform)
+class ModelTrain(d6tflow.tasks.TaskPqPandas):
+    ...
+```
+
+### `flow_params.py` keeps experiment AND prod params
+
+`flow.py` / `flow_params.py` are kept at every tier. Put both the experiment
+`params` (comment-toggle, last assignment wins) and a frozen `params_prod` dict
+in the ONE `flow_params.py` - do not spin up `flow_params_<topic>.py` files
+unless the project is genuinely running independent workflows.
+
+```python
+# flow_params.py
+import cfg
+
+# Experiment params (toggle by commenting; last assignment wins)
+params = dict(sector='Residential')
+params['model'] = 'rf'
+params['env'] = cfg.env
+params['period_current'] = '2025Q4'
+
+# Frozen prod params - ONE source of truth, imported by the prod orchestration
+params_prod = dict(
+    sector='Residential', env='prod', model='rf',
+    transformx='chg_yoy_rank', transformy='rankpct', regularize=True,
+    period_current=params['period_current'],
+)
+```
+
+Prod and experiment then coexist in one directory via `env=prod` / `env=dev`
+data segregation (`cfg.env`) and a `RunAll...Prod` orchestration task that
+imports `params_prod`. That lifecycle - the prod task, selective resets to keep
+a model frozen while refreshing data, the periodic-refresh protocol - lives in
+[ml-patterns.md](ml-patterns.md) ("Productionizing: prod vs experiment").
+
+### Adding an app / reporting subsystem
+
+An app (Streamlit, a report generator) goes at the project ROOT by default - the
+same import / path-resolution reason notebooks do (cwd = project root, so
+`from flow import flow` and relative `data/` paths resolve). Give it its own
+`cfg_app.py` and a launch script. The app IMPORTS the flow, runs it, and reads
+outputs via `flow.outputLoad(tasks.X)` - it NEVER reads `data/` directly (the
+same trust-auto-file-management rule that governs everything else).
+
+```python
+# app-streamlit.py  (project root; launch: streamlit run app-streamlit.py)
+import streamlit as st
+import d6tflow
+import cfg, cfg_app
+import tasks
+from flow_params import params_prod
+
+params = {**params_prod, 'portfolio': st.session_state.portfolio}
+flow = d6tflow.Workflow(tasks.Screen, params=params)
 flow.run()
-
-# run_predict.py
-from flow_predict import flow
-flow.run()
+df = flow.outputLoad(tasks.Screen)   # load outputs; never read data/ directly
 ```

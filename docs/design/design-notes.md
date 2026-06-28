@@ -134,6 +134,67 @@ Implication: `eda/` probes are now nested (`eda/<subject>/<name>.py`, run
 `python -m eda.<subject>.<name>`, each folder an `__init__.py`), updating the
 older flat `python -m eda.<name>` form.
 
+## Scaling a growing project: graduation, not a second template
+
+The scaffold is flat (one `tasks.py` / `run.py` / `flow.py` / `flow_params.py`),
+which is right for the ~80% of projects that stay research-only. The ~20% that
+grow - mostly at the "going to prod" moment - had almost no guidance. The
+question was whether to ship a second "advanced" scaffold or document a
+graduation path. We chose graduation, documented across the load-tiered files,
+for several reasons:
+
+- **80/20 + restructure-as-you-grow.** Most projects never need the advanced
+  shape; a second scaffold would impose its cost (more files to understand) on
+  everyone or force an up-front choice the user is not equipped to make. Growing
+  into structure on a concrete trigger fits how these projects actually evolve.
+- **Maintenance cost of a second scaffold.** Two scaffolds drift; every wiring
+  change has to land in both. One scaffold + a documented path has a single
+  source of truth.
+
+The model itself, and the forks decided:
+
+- **Section-headers BEFORE splitting, with the headers as the cut seam.** A
+  sectioned single file scales far past 500 lines (validated against a real 531-
+  line / 10-task / 2-branch project that had no strain), and comment headers are
+  cheap, orient the reader, and give the agent unique edit anchors. So the
+  progression is naming-families -> section-headers -> split, and the split (step
+  d) cuts along the section seams already drawn. Splitting on raw task count is
+  explicitly wrong - hence the proactivity triggers below are file-length /
+  prod / subsystem, NOT count.
+- **A slim `tasks.py` spine, NOT a re-export aggregator.** When the file splits,
+  `tasks.py` stays as the home of the project-goal module docstring (our
+  convention mandates one, and it needs a stable home) plus the orchestration
+  tasks; phase modules hold the work and import the specific sibling they depend
+  on. An aggregator that re-exports every task was rejected: it invites import
+  cycles and no studied real project used one (all use direct imports).
+- **Two split axes: phase and subsystem.** Phase (`tasks_features/model/eval`)
+  breaks up the main pipeline and imports UPSTREAM-ONLY, so the graph is acyclic
+  by construction. Subsystem (an app, an LLM layer, an alt source) is just the
+  existing group-by-subject rule applied to tasks - so it reuses that convention
+  (subdir package when the subsystem bundles its own helpers) rather than
+  inventing a parallel one.
+- **`params_prod` single-source.** The prod settings live once in
+  `flow_params.py` and the prod orchestration imports them. This fixes a real
+  duplication seen in a studied prod project, where the prod params were re-typed
+  inline in the orchestration task and could drift from the recorded set.
+- **Cache-safe move is load-bearing and was VERIFIED, not assumed.** The whole
+  "split later" advice rests on moving a class between modules being free. A task's
+  identity is its class name: `d6tflow.core.Task.get_task_family` returns
+  `cls.__name__` (no module path), confirmed empirically: the same class in two
+  different modules resolves to the identical `data/<Class>/...` output path.
+  RENAME still orphans the old cache (class name changed) - only MOVE is free; the
+  docs keep both notes. (This is d6tflow's OWN behavior - the task base class is
+  `d6tflow.core.Task`, not a luigi subclass - so it is unaffected by anything in
+  luigi.)
+
+Where it lives (load tiers): conventions.md owns the LAYOUT progression (scaling
+`tasks.py`, the axes, the spine, the app); ml-patterns.md owns the PROD lifecycle
+(`RunAll...Prod`, selective resets, periodic refresh, productionizing a notebook);
+SKILL.md carries only the one-line pointer plus the proactive-nudge rule (trigger
++ the count-based rationalization it blocks + stay-silent-on-orient), because the
+agent's behavior-shaping rule has to be in the activation-loaded file while the
+depth does not.
+
 ## Importing notebooks stay at the project root
 
 A notebook that imports the pipeline (`from flow import flow`) must run with cwd =
@@ -292,3 +353,25 @@ commit to the user.
 The template lives at `resources/template-minimal/`, edited directly here (this
 repo is canonical for it). It is kept unpacked (not zipped) so template changes
 are diffable in PRs and copying needs no archive tooling.
+
+## d6tflow is decoupled from luigi (do not assume otherwise)
+
+d6tflow is NOT based on luigi. It once was a luigi wrapper (tasks subclassed
+luigi's; `get_task_family` lived in luigi), but is now decoupled: base class is
+`d6tflow.core.Task` (MRO `TaskPqPandas -> TaskData -> d6tflow.core.Task ->
+object`, no luigi), and `get_task_family` returns `cls.__name__` in d6tflow's own
+code.
+
+Recorded because the "luigi wrapper" belief is a live trap: a stale-but-plausible
+prior (true of old d6tflow, repeated in older docs / training data) that gets
+recalled as fact, steering verification to read `luigi.*` to explain d6tflow -
+and a leftover `import luigi` succeeding (transitive install) seems to confirm
+it. The MRO check that catches it is the one most likely skipped.
+
+Rule when reasoning about d6tflow internals (identity, caching, DAG): inspect the
+installed class (`cls.__mro__`, then the method on the class that defines it),
+never `luigi.*`; `import luigi` working is not evidence. Treat any "luigi" in an
+older plan/doc as this slip. (The cache-safe-move guarantee under "Scaling a
+growing project" is d6tflow's own, verified directly - only the luigi attribution
+was wrong, not the fact.) More generally: distrust a library-internals claim
+sourced from memory, not from the installed code.

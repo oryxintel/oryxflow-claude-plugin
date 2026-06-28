@@ -108,7 +108,8 @@ show a short, GROUPED set - pick a handful that fit the state, don't dump all:
 - Build: "load the `<X>` data" (creates an output-named loader task), "add a task
   `<Name>` that takes `<Upstream>`'s output and ...", "update `<Task>` to add/drop
   a column or save `<field>`", "make `<A>` depend on `<B>`", "set `<Task>` as the
-  final task", "add a parameter `<name>`".
+  final task", "add a parameter `<name>`", "split `tasks.py` along its sections
+  into modules", "set up a prod run with frozen params".
 - Run: "run the flow", "preview the flow", "re-run / reset `<Task>`".
 - Inspect: "load the output of `<Task>`", "plot the results".
 - Understand: "what does this pipeline do?", "explore the data".
@@ -150,6 +151,25 @@ user asks: `/d6tflow explore`, or a plain-language "orient" / "explore" /
 - Inspect schema with an `eda/` script (no-inline-Python rule), not ad hoc.
 - Capture what you learn - the payoff: data findings into `docs/d6tflow-data.md`
   (remove its `PLACEHOLDER`); pipeline meaning as `tasks.py` docstrings.
+
+### Graduating a growing project (nudge proactively)
+
+Data scientists tend to under-organize code, so when an edit hits a real
+graduation trigger, OFFER the next structural step (don't silently keep piling
+into one shape):
+
+- **Going to prod** -> offer `params_prod` + a `RunAll...Prod` task (frozen params,
+  selective resets, `env=prod/dev`).
+- **A separable subsystem appears** (an app, an LLM/reporting layer, an alt data
+  source) -> offer to carve it into its own module / subdir package.
+- **A genuinely long `tasks.py`** (~1000 lines / ~20+ tasks, or scroll-to-find
+  pain) -> offer comment section-headers, then a split into `tasks_<phase>.py`
+  behind a slim spine.
+
+Nudge MID-EDIT, on these triggers - NOT on raw task count (one sectioned file
+scales far past 500 lines, so "you have 10 tasks, split it" is wrong) and NOT on
+a plain orientation load (that stays lightweight - see above). Full how-to:
+conventions.md "Scaling up", ml-patterns.md "Productionizing".
 
 ---
 
@@ -207,6 +227,10 @@ is hand-curated, or its output is not a table/serializable object a task stores,
 which stays a maintenance script. A probe writes no pipeline artifact to `data/`;
 disposable scratch (an iterated cache, an intermediate to eyeball) goes to
 `data/.eda/<subject>/` (gitignored, regenerable), never beside task outputs.
+As a project GROWS (long `tasks.py`, going to prod, a separable subsystem),
+conventions.md "Scaling up" has the graduated path: naming families -> comment
+section-headers -> split into `tasks_<phase>.py` modules behind a slim `tasks.py`
+spine; one `flow_params.py` with `params` + frozen `params_prod`.
 
 **Column naming**: carry ONE canonical `snake_case` name per column - rename raw
 codes once at ingestion, never re-alias downstream (no code->display->code

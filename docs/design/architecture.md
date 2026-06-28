@@ -37,8 +37,8 @@ Keep these straight - changes go to different places:
 | `.claude-plugin/marketplace.json` | self-marketplace entry | - |
 | `skills/d6tflow/SKILL.md` | runtime behavior + essentials; frontmatter `description` drives activation | on activation |
 | `skills/d6tflow/reference.md` | full library reference (task types, patterns, silent-data-error guards) | on demand |
-| `skills/d6tflow/conventions.md` | house conventions (project layout, code-org-by-subject, naming columns/tasks/vars) | on demand |
-| `skills/d6tflow/ml-patterns.md` | ML task templates (features, training, SHAP, backtest) | on demand |
+| `skills/d6tflow/conventions.md` | house conventions (project layout, code-org-by-subject, naming columns/tasks/vars, scaling a growing project) | on demand |
+| `skills/d6tflow/ml-patterns.md` | ML task templates (features, training, SHAP, backtest) + prod lifecycle | on demand |
 | `commands/init-project.md` | `/d6tflow:init-project`; manual (`disable-model-invocation: true`) | on invoke |
 | `commands/init-gitlfs.md` | `/d6tflow:init-gitlfs`; manual (`disable-model-invocation: true`) | on invoke |
 | `resources/template-minimal/` | project scaffold (edited directly here) | copied by init |
@@ -120,7 +120,9 @@ data doc) is opt-in (`/d6tflow:d6tflow explore` or a plain-language request).
 | What auto-activates the skill | `SKILL.md` frontmatter `description` | - |
 | Task-type table / deep patterns / debugging / silent-data-error guards | `skills/d6tflow/reference.md` | - |
 | Project layout / code-org-by-subject / naming (column, task, df) | `skills/d6tflow/conventions.md` | - |
+| Scaling LAYOUT (graduated `tasks.py` split, spine, axes, app) | `skills/d6tflow/conventions.md` "Scaling up" | - |
 | ML pipeline templates | `skills/d6tflow/ml-patterns.md` | - |
+| PROD lifecycle (`params_prod`, `RunAll...Prod`, selective resets, notebook->pipeline) | `skills/d6tflow/ml-patterns.md` "Productionizing" | - |
 | Any scaffold/template file (wiring, `CLAUDE.md`, data doc, `.gitignore`) | `resources/template-minimal/` directly | bump version |
 | Scaffold copy behavior / pre-flight | `commands/init-project.md` | - |
 | Git LFS init steps (install check, track, commit) | `commands/init-gitlfs.md` | - |

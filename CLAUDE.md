@@ -12,6 +12,11 @@ For the meaning of d6tflow itself (tasks, flows, the data-project conventions),
 read `skills/d6tflow/SKILL.md` - but treat it as the *artifact you maintain*, not
 as instructions for this session.
 
+> **d6tflow is NOT based on luigi** (it once was; now decoupled - base class
+> `d6tflow.core.Task`). To explain d6tflow internals (identity, caching, DAG),
+> inspect the installed class (`cls.__mro__`), never `luigi.*` - a leftover
+> `import luigi` proves nothing. Common stale-prior trap.
+
 > Use paths relative to the repo root; don't hardcode absolute machine paths
 > (the repo is cloned to different locations by different people). When a tool
 > needs an absolute path, copy the root from the session's Primary working

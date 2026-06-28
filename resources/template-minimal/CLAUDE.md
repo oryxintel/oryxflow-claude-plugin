@@ -63,6 +63,9 @@ do not ask.
   file directly is fine when first writing the loader task for source not yet in
   the pipeline - there is nothing to `outputLoad` yet.
 - `from flow import flow` everywhere - one workflow instance, imported.
+- This project can scale: keep one `tasks.py` (use comment section-headers as it
+  grows) and split into `tasks_<phase>.py` modules only when genuinely long or a
+  separable subsystem appears. The plugin's "Scaling up" guidance has the path.
 
 ## Files
 
