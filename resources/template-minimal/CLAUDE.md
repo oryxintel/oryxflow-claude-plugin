@@ -27,11 +27,15 @@ do not ask.
 ## Conventions (non-negotiable)
 
 - ASCII only. No emojis / unicode / smart quotes in code or output (Windows safety).
-- Log with `loguru` (`from loguru import logger`), not `print`, for domain signal
-  (shapes, drop rates, metrics, the branch taken); call `d6tflow.enable_logging()`
-  once for task lifecycle. Log SCALARS; SAVE frames / artifacts (`self.save()` /
-  xlsx), never log them or log per-row. Messages ASCII; a plain `print` is fine for
-  a small result you want to read.
+- Log domain signal (shapes, drop rates, metrics, the branch taken) with
+  `self.logger` INSIDE a task's `run()`, not `print`; call
+  `d6tflow.enable_logging()` once (in `run.py`) for task lifecycle. Use
+  `self.logger`, NOT a raw `from loguru import logger`: after `enable_logging()`
+  only the `d6tflow` namespace survives the filter, and `self.logger` is in it
+  (and auto-tags `task_id`); a raw loguru call is silently dropped. Log SCALARS;
+  SAVE frames / artifacts (`self.save()` / xlsx), never log them or log per-row.
+  Messages ASCII. Outside a task (e.g. `run.py`) there is no `self.logger` - a
+  plain `print` is fine for a small banner / result.
 - No inline Python. No `python -c`, no inline snippets (including quick one-off
   probes) - all test / EDA / exploratory code goes under `eda/<subject>/<name>.py`
   (subject = a task or dataset, snake_case; each folder needs an `__init__.py`),

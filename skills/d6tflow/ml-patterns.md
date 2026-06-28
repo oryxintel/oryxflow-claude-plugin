@@ -143,8 +143,8 @@ class FeaturesTransform(d6tflow.tasks.TaskPqPandas):
         df_X = df_X.dropna()
         assert df_X.shape[0] / df.shape[0] > 0.8, \
             f"Dropped {100*(1-df_X.shape[0]/df.shape[0]):.1f}% of data"
-        logger.info("kept {} rows ({} feats); dropped {:.1f}% on dropna",
-                    len(df_X), df_X.shape[1], 100*(1 - df_X.shape[0]/df.shape[0]))
+        self.logger.info("kept {} rows ({} feats); dropped {:.1f}% on dropna",
+                         len(df_X), df_X.shape[1], 100*(1 - df_X.shape[0]/df.shape[0]))
 
         # Keep only rows with valid features
         df = df.loc[df_X.index]
@@ -207,7 +207,7 @@ class ModelTrain(d6tflow.tasks.TaskPqPandas):
 
         # Train model
         model = self.train_model(df_X, df_y)
-        logger.info("trained {} on {} rows, {} feats", self.model, len(df_X), df_X.shape[1])
+        self.logger.info("trained {} on {} rows, {} feats", self.model, len(df_X), df_X.shape[1])
 
         # Add predictions to dataset
         df_all['y_pred'] = model.predict(df_X)
@@ -573,31 +573,38 @@ assert np.allclose(df_breakdown['prediction'], predictions)
 
 ## Logging in ML tasks
 
-Two layers, different jobs (see SKILL.md "Log with `loguru`"):
+Two layers, different jobs (see SKILL.md "Log with `self.logger`"):
 
 - **Lifecycle -> d6tflow.** `d6tflow.enable_logging()` (once, in `run.py`) prints
   task scheduling / completion / timing - the single most useful execution log.
   Do NOT reinvent it with your own start/end brackets around `flow.run()`.
-- **Domain -> loguru, inside `run()`.** Log the scalars you would watch live or
-  grep: per-task shapes and date range, how much got dropped (`dropna` %), the
-  model type / n_features / n_train_rows / a headline metric (rmse / f1), and the
-  branch or fallback taken. One line per backtest ITERATION, never per row.
+- **Domain -> `self.logger`, inside `run()`.** Log the scalars you would watch
+  live or grep: per-task shapes and date range, how much got dropped (`dropna` %),
+  the model type / n_features / n_train_rows / a headline metric (rmse / f1), and
+  the branch or fallback taken. One line per backtest ITERATION, never per row.
 
 ```python
-logger.info("training cutoff {} -> predict {}", idate, idate_pred)
-logger.warning("no data for {}", period)           # fallback / degenerate case
-logger.warning("single-class fold at {} -> skipped", idate)
+self.logger.info("training cutoff {} -> predict {}", idate, idate_pred)
+self.logger.warning("no data for {}", period)           # fallback / degenerate case
+self.logger.warning("single-class fold at {} -> skipped", idate)
 ```
+
+Use `self.logger`, NOT a raw `from loguru import logger`: `enable_logging()`
+filters to the `d6tflow` namespace, so a raw loguru call from your task module is
+silently dropped; `self.logger` emits inside that namespace and auto-tags
+`task_id`.
 
 **Log scalars + lifecycle; SAVE everything tabular or large** - frames, per-row
 predictions, SHAP matrices, full metric tables, model objects, the comparison
 xlsx go through `self.save()` (or an xlsx), never a log line. Rule of thumb:
 scalars and lifecycle -> log; rows and artifacts -> `self.save()`.
 
-**Plain (ANSI-free) file sink.** d6tflow's lifecycle logs are color-coded (ANSI
-escape codes), which is noise in a saved log file and on Windows. For a
-grep-friendly run log, add an uncolored sink alongside the default:
-`logger.add("run.log", colorize=False)`.
+**Plain (ANSI-free) output.** d6tflow's lifecycle logs are color-coded (ANSI
+escape codes), noise in a saved log and on Windows. Because domain logs now share
+the one d6tflow sink (via `self.logger`), a single switch governs both:
+`d6tflow.enable_logging(colorize=False)`. (The default auto-detects - colored on a
+terminal, plain when redirected to a file / pipe - so you often need nothing; pass
+`colorize=False` to force plain.)
 
 ---
 

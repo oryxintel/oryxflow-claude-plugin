@@ -53,14 +53,25 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   `flow.outputLoadMeta(Task)`. Folds in the by-name-not-by-index rule and the
   silent-unknown-kwarg trap as table notes.
 - Logging convention (two layers), replacing the old `print("SUCCESS:/WARNING:/
-  ERROR:")` prefixes: `d6tflow.enable_logging()` for task lifecycle, `loguru`
+  ERROR:")` prefixes: `d6tflow.enable_logging()` for task lifecycle, `self.logger`
   inside `run()` for DOMAIN signal (shapes, drop rates, metrics, the branch taken).
   Rule: log scalars + lifecycle, SAVE rows + artifacts (`self.save()` / xlsx),
-  never per-row. In SKILL.md Code Style + scaffold floor `CLAUDE.md`; ML depth, the
-  `training cutoff` model example, and an ANSI-free `logger.add("run.log",
-  colorize=False)` sink in `ml-patterns.md` ("Logging in ML tasks") + log lines in
-  the `FeaturesTransform` / `ModelTrain` templates. Scaffold `run.py` /
-  `tasks.py` now model it (not `cfg.py` - no sink config forced).
+  never per-row. Examples use `self.logger`, NOT a raw `from loguru import logger`:
+  `enable_logging()` filters to the `d6tflow` namespace and drops loguru's default
+  handler, so a raw task-module `logger.info` is silently dropped - only
+  `self.logger` (the `Task.logger` property) survives (and auto-tags `task_id`).
+  Color is one switch, `enable_logging(colorize=False)` (auto-detects TTY vs
+  redirected), since domain logs now share the one d6tflow sink - the old
+  `logger.add("run.log", colorize=False)` side-sink is gone. In SKILL.md Code
+  Style + scaffold floor `CLAUDE.md`; ML depth + the `training cutoff` model
+  example in `ml-patterns.md` ("Logging in ML tasks") + log lines in the
+  `FeaturesTransform` / `ModelTrain` templates. Scaffold `run.py` / `tasks.py`
+  model it (`run.py` uses `print` for its banner - no `self` outside a task).
+- SKILL.md "Reading the run output" consolidates how to read a run: read it
+  straight (don't tee-and-grep), Execution Summary first (what recomputed vs
+  cache-hit), numbers from saved artifacts not scraped logs, read clean via
+  `enable_logging(colorize=False)` or anchor greps on a token, and "no metric
+  line" usually means wrong logger (raw loguru) not no signal.
 - Reset / cache-invalidation rule promoted to the always-loaded tiers: d6tflow
   caches on identity (class + params), NOT code, so a CODE/DATA change needs
   `flow.reset(Task)` (cascades downstream) - and since it cascades, NEVER write a

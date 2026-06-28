@@ -537,9 +537,9 @@ class ValidatedTask(d6tflow.tasks.TaskPqPandas):
 
 ### 4. Error Handling & Documentation
 
-Use loguru for domain logging (and `d6tflow.enable_logging()` for task lifecycle -
-see ml-patterns.md "Logging in ML tasks"); let the pipeline fail natively (avoid
-try-except); give
+Use `self.logger` for in-task domain logging (and `d6tflow.enable_logging()` for
+task lifecycle - see ml-patterns.md "Logging in ML tasks"); let the pipeline fail
+natively (avoid try-except); give
 every task a real docstring (purpose + input/output contract + quirks - see
 "Task Design" above, and the SKILL "Task docstrings" rule).
 

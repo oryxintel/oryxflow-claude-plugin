@@ -269,16 +269,29 @@ ALWAYS:
 `python run.py` and `python visualize.py` directly - do NOT prepend
 `cd <project path>` (redundant, and brittle when the path has spaces).
 
-**Read output straight from the run.** Run the script in the FOREGROUND and its
-stdout comes back to you directly (the tool already captures it) - simpler than
-teeing it into a temp-dir log (`Tee-Object $env:TEMP\...`, `2>&1 | ...`,
-`Select-Object -Last N`) and re-reading. For a genuinely long run (a big
-backtest), the easier path is to start it in the BACKGROUND and wait for the
-completion notification, then read its captured output once - more reliable than a
-`sleep`+`tail` polling loop. A script too chatty to read raw is better tamed at
-the source - raise the `loguru` console level (detail still reachable via a file
-sink) or write the result to a file (an Excel/parquet under `data/`) - than by
-filtering the stream after the fact.
+**Reading the run output.** Read the run, do not tee-and-grep it.
+- *Read it straight.* Run in the FOREGROUND and stdout comes back to you directly
+  (the tool already captures it) - do NOT tee into a temp log (`Tee-Object`,
+  `2>&1 | ...`, `Select-Object -Last N`) and re-read. For a genuinely long run
+  (a big backtest), start it in the BACKGROUND and read its captured output on the
+  completion notification - more reliable than a `sleep`+`tail` loop.
+- *Execution Summary first.* After a run, the "N complete ones encountered / M ran
+  successfully" block is the highest-value line - it tells you what RECOMPUTED vs
+  cache-hit, the reliable way to confirm a reset took (better than "it didn't
+  error"). Read it before scrolling task-by-task (see "Read the Execution Summary"
+  below).
+- *Numbers come from artifacts, not logs.* A metric you will read more than once
+  belongs in a saved table (`outputLoad` / xlsx), not scraped out of stderr. Log
+  the scalar to watch it live; LOAD the frame to use it.
+- *Read clean, or anchor the grep.* `enable_logging(colorize=False)` makes the
+  stream grep-friendly; otherwise anchor patterns on a token (`rmse-outsample`),
+  not line-start - ANSI color sits at the line edges. A stream too chatty to read
+  raw is better tamed at the source (raise the log level, or write the result to a
+  file under `data/`) than filtered after the fact.
+- *Silence is diagnosable.* Domain logs appear only if they go through
+  `self.logger` (raw loguru is filtered out under `enable_logging`); lifecycle and
+  domain share the one d6tflow stream. "No metric line" usually means wrong logger,
+  not no signal (see "Log with `self.logger`").
 
 **Any project script in a SUBFOLDER imports project modules** (`from flow import
 flow`, `import cfg` / `tasks`) - EDA probes, but also a script you drop in
@@ -395,24 +408,29 @@ embedded outputs):
 **ASCII only.** No Unicode (emojis, checkmarks, special chars) in code or output -
 they break encoding on Windows. Keep log / print messages plain ASCII.
 
-**Log with `loguru`, not `print`; let d6tflow log the lifecycle.** Call
+**Log with `self.logger`, not `print`; let d6tflow log the lifecycle.** Call
 `d6tflow.enable_logging()` once (in `run.py`) for task scheduling / completion /
 timing - that is free, do NOT reinvent it with your own start/end brackets. Inside
-a task's `run()`, use `from loguru import logger` at the right LEVEL for the DOMAIN
-signal you would watch live or grep - shapes, drop rates, headline metrics, the
-branch / fallback taken:
+a task's `run()`, use `self.logger` (NOT a raw `from loguru import logger`) at the
+right LEVEL for the DOMAIN signal you would watch live or grep - shapes, drop
+rates, headline metrics, the branch / fallback taken:
 ```python
-from loguru import logger
-logger.info("loaded {} rows, {} cols", len(df), df.shape[1])
-logger.info("dropped {:.0f}% on dropna", 100*(1 - len(df_X)/len(df)))
-logger.warning("no SHAP for model {} -> zeros", self.model)
+self.logger.info("loaded {} rows, {} cols", len(df), df.shape[1])
+self.logger.info("dropped {:.0f}% on dropna", 100*(1 - len(df_X)/len(df)))
+self.logger.warning("no SHAP for model {} -> zeros", self.model)
 ```
+WHY `self.logger`: `enable_logging()` filters to the `d6tflow` namespace (and
+drops loguru's default handler), so a raw `logger.info` from your task module is
+SILENTLY DROPPED. `self.logger` emits inside that namespace (and auto-tags
+`task_id`), so it survives - and shares the one d6tflow stream, so
+`enable_logging(colorize=False)` governs both lifecycle and domain logs at once.
+Outside a task (e.g. `run.py`) there is no `self` - use `print` there.
 **Log scalars + lifecycle; SAVE rows + artifacts.** Frames, per-row predictions,
 SHAP matrices, metric tables, model objects go to `self.save()` / an xlsx - never a
 log line - and never log inside a per-row loop (one line per backtest iteration,
 not per row). loguru stamps level + time and keeps messages ASCII; a plain `print`
-is still right for the small RESULT you want to read back. (ML logging depth + an
-ANSI-free file sink: ml-patterns.md.)
+is still right for the small RESULT you want to read back. (ML logging depth:
+ml-patterns.md.)
 
 **No try/except wrapping.** Let code fail natively so errors surface. Exceptions
 only: when the user asks, or in temporary / EDA code under `eda/`.

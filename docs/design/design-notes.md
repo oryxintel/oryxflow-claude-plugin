@@ -334,24 +334,45 @@ cold-start case.
 
 ## Logging: two layers, log scalars / save artifacts
 
-`loguru` for DOMAIN signal, not `print`, in two layers. d6tflow already logs the
-lifecycle (scheduling / completion / timing) via `d6tflow.enable_logging()` - the
-most useful execution log; bracketing `flow.run()` with hand-written start/done
-lines (an earlier scaffold `run.py` did this) just duplicates it. So lifecycle is
-d6tflow's; `loguru` inside `run()` covers what it does not show - shapes, drop
-rates, headline metrics, the branch taken.
+Domain signal, not `print`, in two layers. d6tflow already logs the lifecycle
+(scheduling / completion / timing) via `d6tflow.enable_logging()` - the most useful
+execution log; bracketing `flow.run()` with hand-written start/done lines (an
+earlier scaffold `run.py` did this) just duplicates it. So lifecycle is d6tflow's;
+in-task logging covers what it does not show - shapes, drop rates, headline
+metrics, the branch taken.
+
+Use `self.logger`, NOT a raw `from loguru import logger`. This is the load-bearing
+correction (an earlier draft taught raw loguru, which is actively wrong here):
+`enable_logging()` adds a handler filtered to the `d6tflow` namespace AND removes
+loguru's default handler, so a raw `logger.info` from the task's own module is
+SILENTLY DROPPED - the examples would have produced no output. `self.logger`
+(the `Task.logger` property -> `TaskLogger`) emits from inside the d6tflow package
+so it lands in that namespace and survives, and auto-tags `task_id`. Outside a task
+(`run.py`) there is no `self.logger` and no clean d6tflow-namespaced logger, so
+orchestration there uses `print` (verified against d6tflow source: `core.py`
+`Task.logger`, `log.py` `TaskLogger` + `enable_logging`).
+
+Knock-on simplification: because domain logs now share the ONE d6tflow sink,
+`enable_logging(colorize=False)` governs color for both lifecycle and domain at
+once - the earlier per-run `logger.add("run.log", colorize=False)` side-sink
+workaround is gone. (`enable_logging`'s `colorize` even auto-detects: colored on a
+TTY, plain when redirected - so a redirected run is grep-clean with no flag.)
 
 Load-bearing rule: log scalars + lifecycle; SAVE rows + artifacts (frames, SHAP,
 metric tables, models -> `self.save()` / xlsx), never a log line, never per-row.
 A log is what you grep; a frame is what you reload. Replaced the old
 `print("SUCCESS:/WARNING:/ERROR:")` prefixes (loguru stamps level + time). ASCII
-still binds messages. Windows wrinkle (in ml-patterns.md): d6tflow lifecycle logs
-are ANSI-colorized, so a saved log wants `logger.add("run.log", colorize=False)`.
+still binds messages.
+
+The reading half matters as much as the emitting half: SKILL.md "Reading the run
+output" consolidates it - read the run (don't tee-and-grep), Execution Summary
+first (what recomputed vs cache-hit), load artifacts for numbers (don't scrape
+logs), and "no metric line" usually means wrong logger (raw loguru), not no signal.
 
 Tiering: SKILL.md Code Style + scaffold floor `CLAUDE.md` hold the rule;
 ml-patterns.md owns the ML depth (per-stage what-to-log, the `training cutoff`
-model example, the sink) plus live log lines IN the `FeaturesTransform` /
-`ModelTrain` templates so the pattern is copied, not just described.
+model example, the colorize switch) plus live log lines IN the `FeaturesTransform`
+/ `ModelTrain` templates so the pattern is copied, not just described.
 
 ## The cache-reset gotcha is promoted to every tier (salience, not depth)
 
