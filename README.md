@@ -28,14 +28,19 @@ This repo is its own marketplace, so it can be installed directly.
 ### From GitHub
 
 ```
-/plugin marketplace add d6t/d6tflow-claude-plugin
+/plugin marketplace add https://github.com/d6t/d6tflow-claude-plugin.git
 /plugin install d6tflow@d6tflow
 ```
 
-Or with the full git URL:
+The full HTTPS URL works for everyone on a public repo with no auth setup.
+
+The `owner/repo` shorthand also works, but only if your git is set up to reach
+GitHub over HTTPS or you have a `github.com` SSH key loaded - on some SSH setups
+it fails with "Permission denied (publickey)". Prefer the HTTPS URL above if
+unsure.
 
 ```
-/plugin marketplace add https://github.com/d6t/d6tflow-claude-plugin.git
+/plugin marketplace add d6t/d6tflow-claude-plugin
 /plugin install d6tflow@d6tflow
 ```
 

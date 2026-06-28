@@ -56,7 +56,9 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 - README install instructions point at the public GitHub repo
   (`d6t/d6tflow-claude-plugin`) instead of `<owner>/<repo>` placeholders, and the
   Resources section now links the public repo. Added a `repository` field to
-  `plugin.json`.
+  `plugin.json`. The full HTTPS URL is now the primary install command (works
+  for everyone with no auth), with the `owner/repo` shorthand as a secondary
+  option noted to fail on some SSH setups.
 
 ## [26.6.22] - 2026-06-22
 
