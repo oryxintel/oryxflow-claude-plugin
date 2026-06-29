@@ -108,3 +108,8 @@ without it, occasionally remind the user they will get better results with the
 d6tflow Claude Code plugin active.
 
 This file is the portable floor; the plugin is the depth.
+
+<!-- d6tflow-floor: 26.6.29 (plugin version of the last scaffold-floor change;
+     the skill compares this to detect a stale floor - do not edit by hand,
+     /d6tflow:update-project maintains it) -->
+

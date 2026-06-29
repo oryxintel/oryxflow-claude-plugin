@@ -96,6 +96,12 @@ On a plain load with no specific task, orient cheaply and STOP:
 Do NOT, on a plain invocation: list/inspect `data/`, read raw sources, write or
 run `eda/` scripts, or build the docs - that is opt-in exploration (below).
 
+While orienting, read the floor stamp in the project's `CLAUDE.md`
+(`<!-- d6tflow-floor: VERSION -->`). If it is missing, or its VERSION is older
+than the current floor baseline **26.6.29**, the scaffold floor predates the
+current template - suggest the user run `/d6tflow:update-project` to reconcile it
+(one line; do not nag or auto-run it).
+
 When the user gives a concrete task: trust the docstrings + data doc and open
 only the files that task touches; don't re-scan to re-derive what they describe.
 
@@ -434,6 +440,15 @@ ml-patterns.md.)
 
 **No try/except wrapping.** Let code fail natively so errors surface. Exceptions
 only: when the user asks, or in temporary / EDA code under `eda/`.
+
+**Use off-the-shelf libraries; do not reinvent the wheel.** Reach for the
+established library - e.g. statsmodels / scipy / sklearn for a regression,
+statistical test, or time-series model - instead of hand-rolling the math
+yourself; the reimplementation is rarely more correct and never DRY. And if the
+import fails (missing package, ABI / version clash), that is a broken env: STOP
+and surface it - offer to fix it - do NOT route around the error by
+reimplementing the library to dodge it. A broken dependency is the user's call,
+not a license for custom code. (ML specifics: ml-patterns.md "Best practices".)
 
 **Assume given file paths exist.** When the user provides a path, don't add
 existence checks (`os.path.exists`) - a missing file should raise on read.

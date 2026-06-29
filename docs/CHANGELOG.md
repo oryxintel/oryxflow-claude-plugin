@@ -4,6 +4,40 @@ All notable changes to the d6tflow plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions are
 date-based (`YY.M.D`, e.g. `26.5.30`).
 
+## [26.6.29] - 2026-06-29
+
+### Added
+- New command `/d6tflow:update-project` - the maintenance counterpart to
+  `/d6tflow:init-project`; reconciles an existing project's scaffold floor
+  against the latest bundled template. It loads the `d6tflow` skill, sorts every
+  template file into FLOOR (reconcile by default: `CLAUDE.md`,
+  `viz-template.ipynb`), LOW-CHURN (additive / on demand only: `.gitignore` -
+  which `/d6tflow:init-gitlfs` owns - and `.creds.yaml.example`), SKELETON
+  (structure only: `docs/d6tflow-data.md`), or PROJECT (never touch: `tasks.py`,
+  `flow_params.py`, `cfg.py`, `flow.py`, `run.py`, `visualize.py`), then proposes
+  a per-file migration plan and applies it only after the user confirms. Closes the gap
+  where older projects miss newer floor conventions (e.g. the
+  skill-availability check) and `/d6tflow:init-project` deliberately will not
+  overwrite an existing `CLAUDE.md`.
+- Code Style rule (SKILL.md) "Use off-the-shelf libraries; do not reinvent the
+  wheel": reach for the established library (statsmodels / scipy / sklearn for a
+  regression, statistical test, or time-series model) instead of hand-rolling the
+  math, and treat a failed import as a broken ENV - STOP and offer to fix it
+  rather than routing around the error by reimplementing the library. ml-patterns.md
+  "Best practices" carries the ML elaboration (probe submodules on an ABI clash;
+  the one legitimate reason to wrap a library is a documented data quirk, and even
+  then build on the library and validate against it).
+
+### Changed
+- The scaffold floor `CLAUDE.md` now carries a floor-version stamp
+  (`<!-- d6tflow-floor: VERSION -->`), set to the plugin version of the last
+  floor change. The `d6tflow` skill reads it on orientation and nudges (once, no
+  nagging) toward `/d6tflow:update-project` when the stamp is missing or older
+  than the current floor baseline - so older projects discover the command
+  without the user having to know it exists. The baseline tracks *floor* changes,
+  not every release, so floor-unrelated version bumps do not trigger false
+  "stale" nudges. `/d6tflow:update-project` rewrites the stamp when it migrates.
+
 ## [26.6.28] - 2026-06-28
 
 ### Changed

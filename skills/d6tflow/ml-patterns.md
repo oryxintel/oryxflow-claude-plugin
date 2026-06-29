@@ -610,6 +610,20 @@ terminal, plain when redirected to a file / pipe - so you often need nothing; pa
 
 ## Best practices
 
+Use libraries, do not hand-roll (see SKILL.md "Use off-the-shelf libraries"):
+- Regressions, statistical tests, time-series models (AR / ACF / ARIMA),
+  cross-validation, metrics: use statsmodels / scipy.stats / sklearn. A numpy
+  reimplementation is rarely more correct and is not DRY.
+- A failed import is an ENV bug, not a cue to reimplement. ABI / version clashes
+  (e.g. a scipy <-> statsmodels mismatch) often break only the umbrella import
+  (`import statsmodels.api`) while the submodules (`statsmodels.regression`,
+  `statsmodels.tsa`) still load - so probe, then STOP and offer to fix the env
+  (pin / upgrade). Do not pivot to custom math to dodge the error.
+- Legitimate reason to wrap a library call: a documented data quirk it mishandles
+  (e.g. gap-aware lagging across missing periods). Even then, build ON the library
+  where you can and VALIDATE the custom path against it (assert equal coefs on a
+  clean slice) - do not replace it wholesale.
+
 Data preparation:
 - Merge validation: check no duplicates, minimal data loss.
 - Sort before transformations: always sort by entity + time.

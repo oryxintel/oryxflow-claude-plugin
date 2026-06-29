@@ -38,6 +38,7 @@ marketplace, so it can be installed directly from git or a local path.
 commands/
   init-project.md    # /d6tflow:init-project - scaffold a new project into cwd
   init-gitlfs.md     # /d6tflow:init-gitlfs - put data/ under Git LFS
+  update-project.md  # /d6tflow:update-project - update old project floor to latest
 skills/
   d6tflow/
     SKILL.md         # skill entry point - ESSENTIALS only, always in context
@@ -79,10 +80,18 @@ README.md            # install + quickstart for plugin users
 claude --plugin-dir D:\OneDrive\dev\d6tlib\d6tflow-claude-plugin   # load without installing
 /reload-plugins                                              # after each edit
 /plugin validate .                                           # check both manifests
+git config core.hooksPath .githooks                          # ONE-TIME: enable repo hooks
 ```
 
 `/plugin validate .` (or `claude plugin validate .`) checks `plugin.json` and
 `marketplace.json`. Run it before committing manifest changes.
+
+`git config core.hooksPath .githooks` (one-time per clone) enables the versioned
+pre-commit hook in `.githooks/`, which enforces that the scaffold floor baseline
+matches in its two homes (the template stamp and `SKILL.md`) - see the Release
+section and the architecture playbook. The hook only guards that the two AGREE;
+deciding a floor change is migration-worthy (and bumping the baseline) is still
+yours.
 
 ## Release
 

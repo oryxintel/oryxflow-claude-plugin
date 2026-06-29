@@ -40,6 +40,24 @@ throw; all yield confident wrong analysis. They get their own section in
 `validate=` on merges, look-before-you-conclude, quote-the-computed-number - is a
 different discipline from "assert your inputs," and worth naming so it is applied.
 
+## Off-the-shelf libraries first; a broken import is a STOP
+
+A recurring agent failure: an `import` fails (a missing package or an ABI /
+version clash - e.g. scipy dropping a symbol statsmodels' umbrella `statsmodels.api`
+imports eagerly), and instead of pausing, the agent routes around it by
+hand-rolling the library's work in numpy - a custom regression, AR(1), ACF. The
+result is a large block of bespoke, fragile math that duplicates a standard
+library: not DRY, rarely more correct, and a maintenance liability. The root
+cause is two-fold, so the rule names both: (1) reach for the established library
+by default, and (2) a failed import is an ENV bug to surface and fix, NOT a
+license to reimplement. The behavioral half (STOP and ask before writing custom
+math) is the load-bearing one, so it sits in always-loaded SKILL.md Code Style
+next to the sibling "let it fail" / "STOP and ask" rules (no try/except, locked
+Excel); the ML-specific depth (probe submodules on an ABI clash; the one
+legitimate wrap - a documented data quirk like gap-aware lagging - and even then
+validate the custom path against the library) lives in ml-patterns.md so the
+always-loaded tier stays lean.
+
 ## The skill orients from code + a data doc, not by re-scanning
 
 A d6tflow project documents itself in two places, and the skill reads and trusts

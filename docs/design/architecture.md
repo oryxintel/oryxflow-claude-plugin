@@ -14,9 +14,11 @@ it points to them:
 
 A single-skill Claude Code plugin for working in d6tflow data-science projects
 (d6tflow = a data-pipeline library). It ships the `d6tflow` skill (model-
-activated guidance) and two manual commands - `/d6tflow:init-project` (scaffold a
-new project) and `/d6tflow:init-gitlfs` (put `data/` under Git LFS). The repo is
-also its own marketplace, so it installs directly from git or a local path.
+activated guidance) and three manual commands - `/d6tflow:init-project` (scaffold
+a new project), `/d6tflow:init-gitlfs` (put `data/` under Git LFS), and
+`/d6tflow:update-project` (reconcile an old project's scaffold floor to the latest
+template). The repo is also its own marketplace, so it installs directly from git
+or a local path.
 
 ## Two interacting artifacts
 
@@ -41,6 +43,7 @@ Keep these straight - changes go to different places:
 | `skills/d6tflow/ml-patterns.md` | ML task templates (features, training, SHAP, backtest) + prod lifecycle | on demand |
 | `commands/init-project.md` | `/d6tflow:init-project`; manual (`disable-model-invocation: true`) | on invoke |
 | `commands/init-gitlfs.md` | `/d6tflow:init-gitlfs`; manual (`disable-model-invocation: true`) | on invoke |
+| `commands/update-project.md` | `/d6tflow:update-project`; reconcile old project floor to latest scaffold; manual | on invoke |
 | `resources/template-minimal/` | project scaffold (edited directly here) | copied by init |
 | `docs/design/architecture.md` | this map | dev-time |
 | `docs/design/design-notes.md` | rationale (WHY) | dev-time |
@@ -123,8 +126,11 @@ data doc) is opt-in (`/d6tflow:d6tflow explore` or a plain-language request).
 | Scaling LAYOUT (graduated `tasks.py` split, spine, axes, app) | `skills/d6tflow/conventions.md` "Scaling up" | - |
 | ML pipeline templates | `skills/d6tflow/ml-patterns.md` | - |
 | PROD lifecycle (`params_prod`, `RunAll...Prod`, selective resets, notebook->pipeline) | `skills/d6tflow/ml-patterns.md` "Productionizing" | - |
-| Any scaffold/template file (wiring, `CLAUDE.md`, data doc, `.gitignore`) | `resources/template-minimal/` directly | bump version |
+| Any scaffold/template file (wiring, `CLAUDE.md`, data doc, `.gitignore`) | `resources/template-minimal/` directly | bump version + floor stamp (next row) |
+| A reconcile-by-default FLOOR file (`CLAUDE.md`, `viz-template.ipynb`) | the template file, AND bump the floor baseline to the new version in BOTH the template `CLAUDE.md` `<!-- d6tflow-floor: VERSION -->` stamp and `SKILL.md`'s comparison value | the two must stay equal (the `.githooks/pre-commit` check blocks a commit if they differ) - the skill nudges a project stale when its stamp < SKILL's value |
+| A low-churn floor file (`.gitignore` - owned by `init-gitlfs` - or `.creds.yaml.example`) | the template file only | `update-project` treats these as additive / on-demand; a baseline bump is optional (low staleness value) |
 | Scaffold copy behavior / pre-flight | `commands/init-project.md` | - |
+| Reconcile an OLD project's floor to the latest scaffold | `commands/update-project.md` | - |
 | Git LFS init steps (install check, track, commit) | `commands/init-gitlfs.md` | - |
 | The conventions floor a new project ships with | `resources/template-minimal/CLAUDE.md` (+ source repo) | - |
 | Cut a release | `plugin.json` `version` (`YY.M.D`) + add `docs/CHANGELOG.md` entry | commit (+ push if git-installed) |

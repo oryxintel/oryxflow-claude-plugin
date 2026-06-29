@@ -16,6 +16,7 @@ Already installed? Two things to know:
 
 - Scaffold a new project: run `/d6tflow:init-project` in an empty directory.
 - Put `data/` under Git LFS: run `/d6tflow:init-gitlfs` in the project.
+- Update an old project to the latest scaffold: run `/d6tflow:update-project`.
 - Use it: just start working in a d6tflow project and the skill auto-activates,
   or invoke it manually with `/d6tflow:d6tflow`.
 
@@ -85,6 +86,21 @@ git repo on `main` if needed, un-ignores the data files in `.gitignore`, runs
 `git lfs track "data/**"` and `git lfs track "reports/render/**"`, and commits the
 LFS config. Committing the actual data is left to you as a follow-up.
 
+## Update an existing project
+
+A project scaffolded a while ago can fall behind the latest template (newer
+`CLAUDE.md` conventions, an older `.gitignore`, a stale report template). To bring
+its scaffold floor up to date without touching your pipeline:
+
+```
+/d6tflow:update-project
+```
+
+It diffs the template against your project, proposes a per-file migration plan,
+and applies only what you approve - never overwriting your `tasks.py` / wiring or
+your data doc's real content. The skill also points you here on its own when it
+notices a project whose floor predates the current scaffold.
+
 ## Using the skill
 
 Once installed, the skill is always available - there is nothing to turn on per
@@ -93,9 +109,10 @@ pipeline files, adding or modifying tasks, running flows, or analyzing outputs.
 You can also invoke it explicitly any time with `/d6tflow:d6tflow`, or pass the
 deep-dive argument with `/d6tflow:d6tflow explore`.
 
-Scaffolding a new project and setting up Git LFS are separate, manually-triggered
-commands - `/d6tflow:init-project` and `/d6tflow:init-gitlfs` - they are not
-auto-invoked, since they write files and run git.
+Scaffolding a new project, setting up Git LFS, and updating an old project's floor
+are separate, manually-triggered commands - `/d6tflow:init-project`,
+`/d6tflow:init-gitlfs`, and `/d6tflow:update-project` - they are not auto-invoked,
+since they write files and run git.
 
 Things you can ask, in plain language:
 
@@ -186,7 +203,8 @@ d6tflow-claude-plugin/
 |   `-- marketplace.json   # lets this repo act as its own marketplace
 |-- commands/
 |   |-- init-project.md    # /d6tflow:init-project - scaffold a new project
-|   `-- init-gitlfs.md     # /d6tflow:init-gitlfs - put data/ under Git LFS
+|   |-- init-gitlfs.md     # /d6tflow:init-gitlfs - put data/ under Git LFS
+|   `-- update-project.md  # /d6tflow:update-project - update an old project's floor
 |-- resources/
 |   `-- template-minimal/  # the files init-project copies into a new project
 `-- skills/
