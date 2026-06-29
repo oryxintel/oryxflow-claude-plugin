@@ -46,6 +46,13 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   task construction, not deep in downstream code, with zero churn to existing
   string values. `EnumParameter` gives the same guarantee but requires defining an
   `enum.Enum` and rewriting values - noted as the heavier choice.
+- SKILL.md now documents the `RunResult` returned by `flow.run()` as the agent-
+  facing way to confirm what ran: `result.did_run(tasks.X)` (confirms a reset
+  took), `result.ran`/`.complete`/`.failed`, and `flow.run(abort=False)` +
+  `result.failed[0].traceback` to diagnose a failure WITHOUT re-running (default
+  `abort=True` raises before returning). Corrected the Execution Summary example
+  (dropped a stray `- 1` item prefix; the logged luigi-compatible block still
+  prints via `RunResult.__str__` when `enable_logging` is on).
 - `reference.md` "Load / save cheat-sheet" table: pick the identifier by WHAT
   (data vs meta) x WHERE (inside `run()` vs outside with a `flow`) x HOW MANY
   (all vs one) - e.g. load one output `self.inputLoad(keys='a')` inside vs

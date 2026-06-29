@@ -275,11 +275,11 @@ ALWAYS:
   `2>&1 | ...`, `Select-Object -Last N`) and re-read. For a genuinely long run
   (a big backtest), start it in the BACKGROUND and read its captured output on the
   completion notification - more reliable than a `sleep`+`tail` loop.
-- *Execution Summary first.* After a run, the "N complete ones encountered / M ran
-  successfully" block is the highest-value line - it tells you what RECOMPUTED vs
-  cache-hit, the reliable way to confirm a reset took (better than "it didn't
-  error"). Read it before scrolling task-by-task (see "Read the Execution Summary"
-  below).
+- *Check the RunResult / summary first.* `flow.run()` returns a `RunResult`
+  (`result.did_run(tasks.X)`, `result.ran`/`.complete`/`.failed`) - the reliable
+  way to confirm a reset took (better than "it didn't error"); the logged summary
+  ("N complete ones encountered / M ran successfully") says the same in words.
+  Check it before scrolling task-by-task (see "See what ACTUALLY ran" below).
 - *Numbers come from artifacts, not logs.* A metric you will read more than once
   belongs in a saved table (`outputLoad` / xlsx), not scraped out of stderr. Log
   the scalar to watch it live; LOAD the frame to use it.
@@ -576,17 +576,29 @@ df = flow.outputLoad(tasks.Task)       # Inspect outputs
 flow.reset(tasks.Task); flow.run()     # Force re-run
 ```
 
-**Read the Execution Summary to see what ACTUALLY ran.** After a run, the summary
-distinguishes recomputed tasks from cache hits - use it to confirm your reset
-took effect (not just that the run succeeded):
+**See what ACTUALLY ran - query the `RunResult`, don't eyeball logs.** `flow.run()`
+returns a `RunResult`: ask it directly which tasks recomputed vs cache-hit. This is
+the reliable way to confirm a reset took (more than "the run did not error"):
+```python
+result = flow.run()
+result.did_run(tasks.ModelTrain)   # True if it recomputed (confirms the reset took)
+result.ran          # tasks actually recomputed   result.complete  # cache hits (skipped)
+# To inspect a FAILURE without re-running, capture it instead of raising:
+result = flow.run(abort=False)     # default abort=True raises (no result returned)
+if not result.success:
+    print(result.failed[0].traceback)   # full traceback; .failure_of(tasks.X) targets one
 ```
-* 2 complete ones were encountered:   <- loaded from cache, did NOT re-run
-    - 1 EmploymentbyMSA(jobs=support_broad)
+The same shows in words in the logged Execution Summary (when `enable_logging` is
+on; luigi-compatible wording):
+```
+Scheduled 3 tasks of which:
+* 2 complete ones were encountered:    <- cache hits, did NOT re-run
+    - EmploymentbyMSA(jobs=support_broad)
 * 1 ran successfully:                  <- actually recomputed
-    - 1 EmploymentExposure(jobs=support_broad)
+    - EmploymentExposure(jobs=support_broad)
 ```
-If a task you edited shows under "complete ones were encountered" instead of "ran
-successfully", it was skipped (stale cache) - reset it and re-run.
+A task you edited showing under "complete ones were encountered" was skipped
+(stale cache) - reset it and re-run.
 
 ---
 
