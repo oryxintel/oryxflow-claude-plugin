@@ -387,6 +387,15 @@ output" consolidates it - read the run (don't tee-and-grep), Execution Summary
 first (what recomputed vs cache-hit), load artifacts for numbers (don't scrape
 logs), and "no metric line" usually means wrong logger (raw loguru), not no signal.
 
+The scaffold `run.py` surfaces this structurally: it captures `result = flow.run()`
+and `print(result.summary())`, then comments the drill-down (`result.ran`/`.complete`
+/`.did_run`, and `.failed`/`.failure_of` under `abort=False`). The point is to remove
+the REASON to grep a finished run's log - the structured "what ran / what failed"
+answer is already in captured stdout, and the object is right there to query. A bare
+`flow.run()` discarded that object, which is what pushed the agent to scrape the log
+for status. `WorkflowMulti.run()` returns a `MultiRunResult` that carries the same
+`.summary()`/`.success`, so the one habit works for single and multi flows alike.
+
 Tiering: SKILL.md Code Style + scaffold floor `CLAUDE.md` hold the rule;
 ml-patterns.md owns the ML depth (per-stage what-to-log, the `training cutoff`
 model example, the colorize switch) plus live log lines IN the `FeaturesTransform`

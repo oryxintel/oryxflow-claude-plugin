@@ -61,7 +61,9 @@ do not ask.
   notebook in a subdir would break imports and data paths.
 - One report = one notebook: COPY `viz-template.ipynb` to `viz-<topic>.ipynb` at
   the root and edit the copy (with the `NotebookEdit` tool, not hand-written JSON);
-  never edit the template in place.
+  never edit the template in place. Name `<topic>` subject-first, enough context to
+  read standalone - the rendered `viz-<topic>.html` travels outside the project, so
+  the SUBJECT goes in the name (`viz-benchmark-coverage`, not a bare `viz-coverage`).
 - Naming - one shared rule for columns, tasks, and variables: the SUBJECT word
   LEADS, broad -> narrow, so a family shares a prefix and clusters (columns
   `yield_dividend` / `yield_earnings`; tasks `FundamentalsAll` /
@@ -94,6 +96,9 @@ do not ask.
   raw source (whose columns differ from the renamed/derived output). Reading a raw
   file directly is fine when first writing the loader task for source not yet in
   the pipeline - there is nothing to `outputLoad` yet.
+- After a run, read the returned `RunResult` for status - `result = flow.run()`,
+  then `result.summary()` (glance) or `result.ran` / `result.failed` /
+  `result.did_run(Task)` - do not scrape the log to see what ran or broke.
 - `from flow import flow` everywhere - one workflow instance, imported.
 - This project can scale: keep one `tasks.py` (use comment section-headers as it
   grows) and split into `tasks_<phase>.py` modules only when genuinely long or a

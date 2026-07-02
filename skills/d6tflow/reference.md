@@ -290,8 +290,9 @@ class MyTask(d6tflow.tasks.TaskPqPandas):
 flow = d6tflow.Workflow(FinalTask, params={'date': '2024-01-01'})
 
 # run.py - Execute
-flow.run()
-result = flow.outputLoad()
+result = flow.run()
+print(result.summary())          # ran / cache-hit / failed; result.success/.ran/.failed to drill down
+df = flow.outputLoad()
 
 # Check status
 flow.preview()   # Preview what will run
@@ -366,7 +367,8 @@ wf = d6tflow.WorkflowMulti(FinalTask, {
     'xgboost': {'model': 'xgboost'},
     'rf':      {'model': 'rf'},
 })
-wf.run()                                   # all flows; wf.run(flow='lgbm') for one
+res = wf.run()                             # all flows; wf.run(flow='lgbm') for one
+print(res.summary())                       # per-flow summary blocks; res['lgbm'] -> that flow's RunResult
 wf.reset(tasks.Train, flow='rf')           # per-flow reset
 
 df   = wf.outputLoad(tasks.Predict, flow='xgboost')  # one flow -> its output
@@ -378,6 +380,9 @@ Notes:
   (`0, 1, 2`) - prefer the named dict so `flow=` and loaded results are labelled.
 - If a dict *value* is a list, WorkflowMulti expands the cross-product of those
   values into separate flows (a param sweep).
+- `wf.run()` returns a `{name: RunResult}` (a `MultiRunResult`) that also carries
+  `.summary()`/`.success`, so `print(res.summary())` reads the same as a single
+  flow; index `res['lgbm']` for one flow's `RunResult` to drill in (`.ran`/`.failed`).
 - `d6tflow.runLoad(task, params=..., reset=False)` is the module-level
   run-and-load-in-one-call helper for a single param set (see below).
 

@@ -394,7 +394,11 @@ regenerated output). Run nbconvert from the root.
 **One report = one notebook, made by COPYING the template - never edit the template
 in place.** The scaffold ships `viz-template.ipynb`. For a report, shell-copy it to
 `viz-<topic>.ipynb` at the root (`cp viz-template.ipynb viz-leadlag.ipynb`), then
-author the copy. Name it for its subject (like `viz/<subject>.py`); `--output-dir`
+author the copy. Name `<topic>` subject-first with enough context to read
+standalone - the rendered `viz-<topic>.html` is consumed DETACHED from the project
+(emailed, dropped in a channel), so put the SUBJECT in the name, not just the
+analysis type: `viz-benchmark-coverage`, not a bare `viz-coverage` (infer the
+subject from the tasks the report loads or the project's purpose). `--output-dir`
 then yields `reports/render/viz-<topic>.html` for free. `viz-template.ipynb` stays
 pristine for the next report. (Copy via shell, not an LLM read+write of the JSON.)
 
@@ -630,6 +634,7 @@ returns a `RunResult`: ask it directly which tasks recomputed vs cache-hit. This
 the reliable way to confirm a reset took (more than "the run did not error"):
 ```python
 result = flow.run()
+print(result.summary())            # one glance: N ran / N cache-hit / N failed (result.success = verdict)
 result.did_run(tasks.ModelTrain)   # True if it recomputed (confirms the reset took)
 result.ran          # tasks actually recomputed   result.complete  # cache hits (skipped)
 # To inspect a FAILURE without re-running, capture it instead of raising:

@@ -422,8 +422,15 @@ here, just load and analyze; export results (plots, tables, reports).
 #### `viz-template.ipynb` - report-notebook template
 
 The scaffold's report-notebook starting point. Don't edit it in place: copy it to
-`viz-<topic>.ipynb` at the project root (one report = one notebook, named for its
-subject) and author the copy; the template stays pristine. Import `flow` from
+`viz-<topic>.ipynb` at the project root (one report = one notebook) and author the
+copy; the template stays pristine. Name `<topic>` subject-first, with enough
+context to read standalone - the rendered `reports/render/viz-<topic>.html` is
+consumed DETACHED from the project (emailed, dropped in a channel), so the SUBJECT
+must be in the name, not just the analysis type: `viz-benchmark-coverage`, not a
+bare `viz-coverage` ("coverage of WHAT" has to survive the file travelling alone).
+Infer that subject from what the report is built on - the task names it loads
+(`BenchmarkCoverage` -> `benchmark`) or the project's overall purpose - rather
+than inventing a new word. Import `flow` from
 `flow.py`; comment out `flow.run()` (run via `run.py` first); keep cells
 independent for easy re-running. Edit cells with the `NotebookEdit` tool, not by
 hand-writing JSON. Render to `reports/render/` (see SKILL.md "Render / publish a

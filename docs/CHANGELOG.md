@@ -4,6 +4,26 @@ All notable changes to the d6tflow plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions are
 date-based (`YY.M.D`, e.g. `26.5.30`).
 
+## [26.7.3] - 2026-07-01
+
+### Changed
+- Report-notebook naming now says the `<topic>` must be subject-first with enough
+  context to read standalone, because the rendered `viz-<topic>.html` is consumed
+  detached from the project (emailed, dropped in a channel): `viz-benchmark-coverage`,
+  not a bare `viz-coverage` - infer the subject from the tasks the report loads or
+  the project's purpose. Sharpened in place (no new rule) in SKILL.md "Render /
+  publish a notebook", `conventions.md`, and the scaffold floor `CLAUDE.md`.
+- Scaffold `run.py` now captures the `RunResult` and prints `result.summary()`
+  instead of discarding a bare `flow.run()`, and comments the drill-down
+  (`result.ran`/`.complete`/`.did_run`, and `.failed`/`.failure_of` via
+  `abort=False`). The structured "what ran / what failed" is now in captured
+  stdout, so there is no reason to scrape a finished run's log for status. The
+  skill's "See what ACTUALLY ran" block, `reference.md` run/WorkflowMulti
+  examples, and the scaffold floor `CLAUDE.md` gained the matching one-line
+  guidance; `WorkflowMulti.run()` returns a `MultiRunResult` that carries the
+  same `.summary()`/`.success`, so the habit is uniform across single and multi
+  flows.
+
 ## [26.7.2] - 2026-07-01
 
 ### Added
