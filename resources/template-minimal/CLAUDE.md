@@ -62,6 +62,21 @@ do not ask.
 - One report = one notebook: COPY `viz-template.ipynb` to `viz-<topic>.ipynb` at
   the root and edit the copy (with the `NotebookEdit` tool, not hand-written JSON);
   never edit the template in place.
+- Naming - one shared rule for columns, tasks, and variables: the SUBJECT word
+  LEADS, broad -> narrow, so a family shares a prefix and clusters (columns
+  `yield_dividend` / `yield_earnings`; tasks `FundamentalsAll` /
+  `FundamentalsSignals`; vars `df_returns_gross` / `df_returns_net`).
+  Columns: `descriptive_snake_case`, canonicalized ONCE at the source, with any
+  operation / unit / stat a TRAILING suffix, never a leading prefix
+  (`avg_position_value` -> `position_value_avg`, `pct_wins` -> `win_rate`,
+  `n_holdings` -> `holdings_count`; stat outermost; pretty labels only when
+  plotting). A derived metric is `{subject}_{concept}_{unit}` - the count's
+  subject leads, the analysis's PURPOSE word + unit trail (`user_churn_rate`, not
+  a bare `pct_`); a count/ratio triple shares that ONE leading token so the math
+  reads off the names: `X_total` / `X_covered` / `X_coverage_pct` (all three lead
+  with the same `X`). Tasks: a PascalCase NOUN for the OUTPUT produced, not the
+  verb (`DataPrices`, not `GetData`). Full rules + the Don't/Do table are in the
+  skill's `conventions.md` "Naming".
 - No try/except wrapping. Let code fail natively so errors surface (except in
   throwaway `eda/` code, or when the user asks for it).
 - Edit the flow files, do not improvise: `tasks.py` (task classes),

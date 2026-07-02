@@ -85,8 +85,19 @@ shorthand. Usually it auto-activates and the user just talks to it.)
 
 On a plain load with no specific task, orient cheaply and STOP:
 
-1. Read the `tasks.py` docstrings and `docs/d6tflow-data.md`. If markers are
-   gone, trust them.
+0. No scaffold present (no `tasks.py` / `flow.py`) -> an empty or not-yet-
+   d6tflow directory, not a built project; don't hunt for pipeline files.
+   CONFIDENTLY recommend `/d6tflow:init-project`, leading with the payoff - a
+   runnable, reproducible pipeline: parameterized tasks, caching that skips
+   unchanged steps and reruns intelligently after edits, a clean
+   tasks/flow/run/cfg layout instead of ad-hoc scripts - then have the user run
+   it. You CANNOT invoke it yourself (manual command; the skill also lacks the
+   plugin root to scaffold inline) - so end with a clear call to action: "scaffold
+   one by typing `/d6tflow:init-project`." State it as the obvious next step, not
+   an apology, and don't offer a menu of alternatives. (After it runs, give the
+   fresh-scaffold onboarding below.)
+1. Otherwise read the `tasks.py` docstrings and `docs/d6tflow-data.md`. If
+   markers are gone, trust them.
 2. `tasks.py` still carries `PLACEHOLDER SCAFFOLD` -> fresh scaffold; else ->
    built pipeline (data doc maybe just not written yet).
 3. Report the state in a sentence or two and ask what the user wants. Built
@@ -191,6 +202,9 @@ conventions.md "Scaling up", ml-patterns.md "Productionizing".
    should not affect identity.
 4. **Workflows** - `d6tflow.Workflow(FinalTask, params=params)`. One instance is
    imported everywhere (`from flow import flow`). Caching skips completed tasks.
+   To compare a fixed named set of params (models, dates, cohorts), use one
+   `d6tflow.WorkflowMulti(FinalTask, {'lgbm': {...}, 'xgboost': {...}})` keyed by
+   name - still one importable object; `flow=name` selects a variant (reference.md).
 5. **Project-structure pattern** - Separation of concerns across config, task
    definition, execution, and analysis layers (below).
 
@@ -241,12 +255,12 @@ spine; one `flow_params.py` with `params` + frozen `params_prod`.
 **Column naming**: carry ONE canonical `snake_case` name per column - rename raw
 codes once at ingestion, never re-alias downstream (no code->display->code
 round-trips). Order tokens broad->narrow so families share a prefix
-(`rate_construction`, `rate_completion`; not `construction_rate`); derive by suffix,
+(`yield_dividend`, `yield_earnings`; not `dividend_yield`); derive by suffix,
 operation last (`_yoy`, `_yoy_pp`, `_ma4`, `_lag1`); apply pretty Title-Case labels
 ONLY at the `viz/` layer. Record the raw->canonical map in `docs/d6tflow-data.md`.
 Same broad->narrow rule for TASK names (families share a leading token:
 `FundamentalsLeadLag`, not `LeadLagAnalysis`) and `df`/variable names
-(`df_profile_division`). Full rules in conventions.md ("Naming").
+(`df_returns_gross`). Full rules in conventions.md ("Naming").
 
 ---
 
@@ -271,9 +285,15 @@ ALWAYS:
   (so imports + `data/` paths resolve); render them to `reports/render/`
   (gitignored). See "Render / publish a notebook" below.
 
-**Run from the working directory.** The shell starts in the project root, so run
-`python run.py` and `python visualize.py` directly - do NOT prepend
-`cd <project path>` (redundant, and brittle when the path has spaces).
+**Run from the working directory - never `cd`.** The shell ALREADY starts in the
+project root, so run EVERY command there directly - not only `python run.py` /
+`visualize.py` / `-m eda.<subject>.<name>` but `jupyter nbconvert`, `cp`, and any
+other tool. NEVER prepend `cd <path> && ...` (or `cd` at all): you are already
+there, so it is redundant, it breaks when the path has spaces, and a `cd` +
+output redirection even forces a manual approval prompt. No command is an
+exception - a `python -m` probe, an nbconvert render, a file copy all run as-is
+from the root. (The Bash-tool habit of `cd`-ing for a fresh shell does not apply;
+the session's shell is in the root and stays there.)
 
 **Reading the run output.** Read the run, do not tee-and-grep it.
 - *Read it straight.* Run in the FOREGROUND and stdout comes back to you directly
@@ -356,6 +376,14 @@ watch pandas index alignment in arithmetic. Full guidance: reference.md
 
 ### Render / publish a notebook
 
+**To READ a notebook's content, use `Read`** - it renders `.ipynb` natively
+(cells + their outputs), no kernel or subprocess. If a rendered HTML already
+exists in `reports/render/`, read THAT instead - it is the executed narrative +
+outputs in one file, the fastest way to see what a report says. Do NOT dump raw
+cell JSON (`json.load`, `cat`) or pipe it through `nbconvert --to markdown` to
+read it: that truncates cells and drops outputs. (`nbconvert --to markdown` is
+only for extracting chart IMAGES - see the visual-check note below.)
+
 Notebooks that import the pipeline live at the PROJECT ROOT, NOT in `reports/`.
 `nbconvert --execute` runs the kernel with cwd = the notebook's own folder, so a
 notebook in a subdirectory breaks both `from flow import flow` and the relative
@@ -404,8 +432,10 @@ embedded outputs):
   runner function `savefig` to a file and `Read` it - a throwaway check goes to
   `data/.eda/<subject>/`, a deliverable figure to `reports/render/`.
 - From a notebook (do NOT add `savefig` to cells): run `jupyter nbconvert --to
-  markdown <name>.ipynb --output-dir <dir>`, which extracts the output images to
-  real PNGs in `<name>_files/`, then `Read` those.
+  markdown <name>.ipynb --output-dir reports/render/images`, which extracts the
+  output images to real PNGs under `reports/render/images/<name>_files/`, then
+  `Read` those. Use that dir (the scaffold ships it, gitignored) - not a system
+  temp path, which may not exist.
 
 ---
 
@@ -549,6 +579,10 @@ class OEWSWages(d6tflow.tasks.TaskPqPandas):
 the docstring's `Out:` column list to match, then reset + re-run. Adding is safe;
 REMOVING or renaming a column breaks any downstream task that read it - the reset
 cascade re-runs them and surfaces the break, so fix those readers in the same edit.
+When you write `.agg(name=...)`, `.rename(columns=...)`, or an output column list,
+name each column suffix-style (operation / unit / stat is a TRAILING suffix, never
+a leading prefix: `position_value_avg`, not `avg_position_value`) and check it
+against the Don't/Do table in conventions.md before you save.
 
 **Iterate-then-run rule**: if a task's code was edited this session and you are
 then asked to "run the flow", do reset-then-run for that task - do NOT just
@@ -635,4 +669,8 @@ A task you edited showing under "complete ones were encountered" was skipped
 
 - [reference.md](reference.md) - comprehensive d6tflow patterns and reference.
 - [ml-patterns.md](ml-patterns.md) - ML pipeline task templates. Load on demand.
+- **When this skill doesn't cover an API**, confirm against the *installed*
+  package first - `inspect.signature(cls.method)`, `cls.__mro__` - that is
+  version-matched ground truth. Then the docs / GitHub below. On any conflict the
+  installed code wins (the online docs can lag the luigi decoupling).
 - d6tflow docs: https://d6tflow.readthedocs.io/ | GitHub: https://github.com/d6t/d6tflow

@@ -4,6 +4,100 @@ All notable changes to the d6tflow plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions are
 date-based (`YY.M.D`, e.g. `26.5.30`).
 
+## [26.7.1] - 2026-07-01
+
+### Added
+- SKILL.md "Render / publish a notebook" now leads with how to READ a notebook:
+  use `Read` (renders `.ipynb` cells + outputs natively), or read the already-
+  rendered HTML in `reports/render/` when present - and do NOT dump raw cell JSON
+  or pipe through `nbconvert --to markdown` to read it (truncates cells, drops
+  outputs; that command is only for extracting chart images). The section
+  previously covered only PRODUCING notebooks, so the agent defaulted to inline
+  `json.load` / nbconvert to read one.
+- Scaffold now ships `reports/render/images/` (gitignored via the existing
+  `reports/render/` rule). The skill's "visually check a chart from a notebook"
+  step (SKILL.md) now points `jupyter nbconvert --to markdown --output-dir` at
+  this dir instead of an unspecified `<dir>`, and warns against a system temp
+  path. Fixes a real run where the agent sent nbconvert output to a temp dir
+  that did not exist and got a PermissionError.
+
+### Changed
+- SKILL.md "Run from the working directory" broadened to "never `cd`": the rule
+  was framed around python project commands, so the agent still `cd`'d for other
+  tools (`jupyter nbconvert`, `cp`). It now says EVERY command runs from the root
+  as-is, names those tools explicitly, and notes that a `cd` + output redirection
+  forces a manual approval prompt.
+- Column-naming guidance both deepened in `conventions.md` and reinforced at the
+  point of decision (the rule was correct but lived only in on-demand
+  `conventions.md`, so an agent naming columns off the floor on pandas-agg
+  autopilot never met it). `conventions.md` "Column naming" gained: (a) name a
+  derived metric for WHAT IT MEASURES - the domain word must be in the name
+  (`win_rate`, `benchmark_coverage_pct`), never a bare unit/stat PREFIX
+  (`pct_x`, `avg_x`) that hides the metric; (b) an extended derive-by-suffix
+  vocabulary - unit tags (`_usd`/`_local`/`_eur`) and series aggregations
+  (`_avg`/`_min`/`_max`/`_median`/`_std`), stacked innermost->outermost =
+  transform, unit, aggregation, so a stat is the OUTERMOST suffix and siblings
+  sort adjacently (`benchmark_coverage_pct_avg` / `_min` / `_max`); and (c) a
+  Don't/Do table plus a worked count/ratio family (the `X_total` / `X_covered` /
+  `X_coverage_pct` triple sharing ONE leading subject token - shape
+  `{subject}_{concept}_{unit}`, e.g. `user_churn_rate` because the counts are
+  `users_total` / `users_churned`; purpose-first is allowed only when applied to
+  all three) with the trap-resolving contrast - a leading STAT/unit (`avg_`, `pct_`, `n_`) is wrong
+  and must be a suffix, but a leading SUBJECT family word (`yield_`, `price_`,
+  `return_`) is correct. The rule is now also placed where
+  the agent acts: the scaffold `CLAUDE.md` non-negotiables carry a compact naming
+  bullet - the one shared rule for columns / tasks / variables (subject-first
+  broad->narrow), the column suffix rule with concrete rewrites, the
+  purpose-named metric + shared-stem family (`X_total` / `X_covered` /
+  `X_coverage_pct`), and the task noun-for-output rule; the "add / rename an
+  output column"
+  recipe (SKILL.md) says to name suffix-style and check the table when writing
+  `.agg()` / `.rename()` / a column list; and the scaffold `docs/d6tflow-data.md`
+  points to the conventions (its job is to record THIS project's canonical names,
+  not restate house rules). Fixes a real project where the agent produced
+  stat-prefixed names like `avg_x` / `pct_x` on pandas-agg autopilot. (No
+  linter/hook: a prefix regex would flag the plugin's own blessed
+  `return_`/`price_` families.)
+- Multi-parameter execution is now documented as an idiom. reference.md's
+  `WorkflowMulti` example (Pattern 1) switched from the list form (integer keys)
+  to the idiomatic named-dict form (`{'lgbm': {...}, 'xgboost': {...}}`), showing
+  `flow=name` selection, the all-flows `{name: output}` return, per-flow reset,
+  the list/cross-product variants, and `runLoad` as the single-param one-call
+  helper. SKILL.md's Workflow concept gained a one-line pointer: compare a fixed
+  named set of params via one `WorkflowMulti` keyed by name (still one importable
+  object). Fixes a real project where the agent had to inspect the package to
+  confirm the API the skill under-documented.
+- SKILL.md's Additional Resources footer is now an escalation rule, not a passive
+  link list: when the skill lacks an API, confirm against the INSTALLED package
+  first (`inspect.signature`, `cls.__mro__`) as version-matched ground truth, then
+  the online docs - and on conflict the installed code wins (the online docs can
+  lag the luigi decoupling).
+- Skill orientation (SKILL.md) now handles an EMPTY / not-yet-d6tflow directory
+  as an explicit first case: when no `tasks.py` / `flow.py` is present, the skill
+  stops hunting for pipeline files and CONFIDENTLY recommends
+  `/d6tflow:init-project`, leading with the payoff (a runnable, reproducible
+  pipeline - parameterized tasks, intelligent caching, a clean
+  tasks/flow/run/cfg layout instead of ad-hoc scripts) and ending with a clear
+  call to action for the user to type `/d6tflow:init-project`, rather than
+  presenting a tentative menu of options. The recommendation is explicit that the
+  skill CANNOT invoke the command itself (it is manual / `disable-model-
+  invocation`, and the skill lacks the plugin root to scaffold inline) - so it no
+  longer says "want me to run it?", which wrongly implied Claude could. Previously
+  the orientation steps assumed the scaffold files existed, so an empty dir was
+  handled ad hoc.
+- `/d6tflow:init-project` copy step (init-project.md) now names `robocopy` as the
+  explicit DEFAULT on Windows (use it consistently; do not improvise `cp` /
+  `Copy-Item` instead) and documents that robocopy exit codes 0-7 are SUCCESS
+  (1 = files copied), so exit code 1 must not be treated as an error or retried -
+  only >= 8 is a real failure. Fixes runs that flip between robocopy and cp, or
+  abort a successful scaffold on the benign exit-1.
+- "Run from the working directory" rule (SKILL.md) now covers EVERY project
+  command, not just `run.py` / `visualize.py`: `python -m eda.<subject>.<name>`
+  probes are explicitly included, and the rule spells out that the session shell
+  already starts in the project root, so prepending `cd "<path>" && ...` is
+  redundant and breaks on spaced paths. Stops the recurring habit of `cd`-ing into
+  the project before every `python -m` probe.
+
 ## [26.6.29] - 2026-06-29
 
 ### Added

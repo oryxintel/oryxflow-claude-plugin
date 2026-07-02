@@ -354,7 +354,38 @@ with `flow.outputLoad()`, not by checking the file system.
 
 ## Advanced Patterns
 
-### Pattern 1: Dynamic Task Creation
+### Pattern 1: Compare a named set of parameter variants (WorkflowMulti)
+
+Use ONE `WorkflowMulti` keyed by name to run/compare a fixed set of param sets
+(models, dates, cohorts) - one importable object, named access, no ad-hoc loop:
+
+```python
+# params is a dict KEYED BY FLOW NAME; each value is a param set
+wf = d6tflow.WorkflowMulti(FinalTask, {
+    'lgbm':    {'model': 'lgbm'},
+    'xgboost': {'model': 'xgboost'},
+    'rf':      {'model': 'rf'},
+})
+wf.run()                                   # all flows; wf.run(flow='lgbm') for one
+wf.reset(tasks.Train, flow='rf')           # per-flow reset
+
+df   = wf.outputLoad(tasks.Predict, flow='xgboost')  # one flow -> its output
+alldf = wf.outputLoad(tasks.Predict)                 # omit flow= -> {name: output}
+```
+
+Notes:
+- A **list** of param sets also works, but the keys become integer indices
+  (`0, 1, 2`) - prefer the named dict so `flow=` and loaded results are labelled.
+- If a dict *value* is a list, WorkflowMulti expands the cross-product of those
+  values into separate flows (a param sweep).
+- `d6tflow.runLoad(task, params=..., reset=False)` is the module-level
+  run-and-load-in-one-call helper for a single param set (see below).
+
+See the escalation note in SKILL.md for the full signatures - confirm against the
+installed package (`inspect.signature(d6tflow.WorkflowMulti.outputLoad)`) rather
+than assuming.
+
+### Pattern 1b: Dynamic Task Creation
 
 ```python
 import d6tflow.utils
@@ -591,8 +622,8 @@ Every figure in prose or a report comes from the FRAME, pulled and rounded
 explicitly - never read off a chart, guessed, or carried from memory:
 
 ```python
-val = df.loc[df['region'] == 'US', 'rate_construction'].iloc[0]
-print(f"US construction rate: {val:.1%}")   # quote THIS, not "looks like ~6%"
+val = df.loc[df['sector'] == 'Tech', 'yield_dividend'].iloc[0]
+print(f"Tech dividend yield: {val:.1%}")   # quote THIS, not "looks like ~6%"
 ```
 
 A chart is for shape and direction; the number behind it comes from the data. If

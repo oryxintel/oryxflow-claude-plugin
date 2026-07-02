@@ -9,6 +9,11 @@
 |--------|------|-------|
 | <col> | <dtype> | <meaning, units> |
 
+Record this project's canonical column names + the raw->canonical map here (the
+one place that answers "what is this column"). For HOW to name columns - canonical
+`snake_case`, broad->narrow token order, purpose-named metrics, the suffix
+vocabulary - see the d6tflow skill's naming conventions.
+
 ## Quality issues & quirks
 - <nulls, dupes, encoding, outliers, gotchas>
 

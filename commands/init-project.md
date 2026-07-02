@@ -31,12 +31,19 @@ that already exists in the target - skip it and remember it for the report.
 
 Do the copy with a single SHELL COPY COMMAND. Do NOT read the template files into
 context and re-write them with the Write tool - that is slow and can corrupt
-binary-ish files like `viz-template.ipynb`. Use the platform-appropriate, no-clobber
-copy and let the tool handle the recursion and skipping:
+binary-ish files like `viz-template.ipynb`. Pick the copy command by PLATFORM and
+use it consistently - do not improvise a different one each run:
 
-- Windows (PowerShell): `robocopy "<src>" "<dst>" /E /XC /XN /XO` (the `/XC /XN
-  /XO` flags skip files that already exist in the target).
+- **Windows (the default here): `robocopy`** via the PowerShell tool:
+  `robocopy "<src>" "<dst>" /E /XC /XN /XO` (the `/XC /XN /XO` flags skip files
+  that already exist in the target). This is the standard path on this OS - reach
+  for `robocopy` first, not `cp` / `Copy-Item`.
 - macOS / Linux: `cp -rn "<src>/." "<dst>/"` (`-n` = no-clobber).
+
+**robocopy exit codes are NOT shell errors.** robocopy returns 0-7 on SUCCESS
+(1 = files copied, 0 = nothing to copy, 2/3 = extras present) and only >= 8 is a
+real failure. Exit code 1 means the copy worked - do NOT treat it as an error or
+retry with a different command. Only investigate when the code is >= 8.
 
 After the copy, diff the source and target file lists to determine what was newly
 created vs skipped (for the report) - again via shell (e.g. compare directory

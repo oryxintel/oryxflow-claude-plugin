@@ -27,25 +27,39 @@ layers:
 
 - **One canonical name per column, carried end to end.** Rename raw source codes to
   canonical ONCE, in the loader / source task; never re-alias downstream. Canonical
-  is `descriptive_snake_case` (`rate_construction`, not `uc_rate` or
-  `Under Construction Rate`) - self-describing (no data-doc lookup to know what it
+  is `descriptive_snake_case` (`yield_dividend`, not `div_yld` or
+  `Dividend Yield`) - self-describing (no data-doc lookup to know what it
   is) AND code-safe (attribute access, no fragile spaces / mixed case).
 - **Order tokens broad -> narrow** (category first), the OPPOSITE of English word
   order, so columns in one family share a leading prefix and cluster - for a reader
-  and for `df.filter(like='rate_')`: `rate_construction`, `rate_completion`,
-  `rate_availability` (not `construction_rate`, nor the English "under construction
-  rate"); `return_capital`, `return_income`, `return_total`; `price_open`,
+  and for `df.filter(like='yield_')`: `yield_dividend`, `yield_earnings`,
+  `yield_fcf` (not `dividend_yield`, nor the English "dividend yield");
+  `return_capital`, `return_income`, `return_total`; `price_open`,
   `price_high`, `price_low`. English order is for the DISPLAY label only.
+- **Name a derived metric for WHAT IT MEASURES, not just its unit.** The domain
+  word is the most-searched token and must be IN the name: `win_rate`,
+  `benchmark_coverage_pct` (share of benchmark constituents held), not `pct_wins`
+  or `pct_covered` - and never a bare unit/stat PREFIX (`pct_x`, `avg_x`) that
+  hides which metric it is and scatters a family under the unit instead of the
+  subject. Same broad->narrow rule: subject first, unit/operation last (next
+  bullet). A whole count/ratio family should share ONE stem so the arithmetic
+  reads from the names - see the worked family after the Don't/Do table.
 - **Pretty labels live ONLY at the plotting layer.** `viz/<subject>.py` maps
-  canonical -> Human-readable Title Case for axes/legends (`rate_construction` ->
-  "Construction"). Never a second DATA-level rename.
+  canonical -> Human-readable Title Case for axes/legends (`yield_dividend` ->
+  "Dividend Yield"). Never a second DATA-level rename.
 - **Derive by suffixing the source name** with a small, fixed vocabulary, so the
   name carries provenance AND transform: `_yoy` (YoY growth ratio), `_yoy_pp` /
-  `_diff` (pp difference), `_pct`, `_ma{n}`, `_lag{n}`, `_roll{n}`, `_z`, `_log`.
-  The operation goes LAST (narrowest qualifier): `rate_construction_yoy` then reads
-  as exactly what it is and where it came from. Disambiguate the FORM when a column
-  could be read two ways (growth vs pp-difference) - name the unit (`_pp` vs
-  `_pct`); do not hide two operations behind a vague `_chg`.
+  `_diff` (pp difference), `_pct`, `_ma{n}`, `_lag{n}`, `_roll{n}`, `_z`, `_log`;
+  unit tags (`_usd`, `_local`, `_eur`); and aggregations over a series (`_avg`,
+  `_min`, `_max`, `_median`, `_std`). The operation goes LAST (narrowest
+  qualifier): `yield_dividend_yoy` then reads as exactly what it is and where it
+  came from. When several suffixes stack, order them innermost->outermost =
+  transform, unit, aggregation - so an aggregation stat is the OUTERMOST suffix
+  (it wraps the whole metric) and sibling stats of one metric sort adjacently:
+  `benchmark_coverage_pct_avg` / `_min` / `_max`, `return_yoy_usd_avg`. NEVER a
+  leading `avg_`/`min_` prefix (see the metric-naming bullet). Disambiguate the
+  FORM when a column could be read two ways (growth vs pp-difference) - name the
+  unit (`_pp` vs `_pct`); do not hide two operations behind a vague `_chg`.
 - **Do not shadow a supplied series.** If the source already ships a derived series
   (e.g. an as-supplied YoY), use it; a cross-check derivation is named as a check
   and dropped once verified, not left to compete with the canonical column.
@@ -54,6 +68,57 @@ layers:
   that answers "what is this column." Keep the suffix vocabulary small and listed
   there (like concept-module names), so `_chg` and `_diff` do not both appear for
   the same operation.
+
+**Don't / Do (the one trap: a leading stat/unit vs a leading subject).** A stat or
+unit as a LEADING prefix is the wrong-way-round default that pandas `.agg()` habit
+produces; move it to a suffix. This is NOT the same as a leading SUBJECT word (a
+family prefix like `yield_`, `price_`, `return_`), which is correct - the subject
+leads, the operation trails:
+
+| Don't (stat/unit prefix)        | Do (subject leads, stat/unit trails) | Why                                  |
+|---------------------------------|--------------------------------------|--------------------------------------|
+| `avg_position_value`            | `position_value_avg`                 | stat is the outermost suffix         |
+| `pct_wins`                      | `win_rate`                           | subject first; `pct_` hides the metric |
+| `n_holdings` / `count_holdings` | `holdings_count`                     | count is a unit suffix, not a prefix |
+| `min_price`                     | `price_min`                          | stat suffix                          |
+| `avg_coverage_pct`              | `benchmark_coverage_pct_avg`         | stack innermost->outermost: metric, unit, stat |
+
+Contrast - these leading tokens are CORRECT because the token is the subject, not a
+stat: `yield_dividend` / `yield_earnings` (family word `yield` leads),
+`price_open` / `price_high`, `return_capital` / `return_total`. The test: if the
+leading token names WHAT the column is (a subject family), it leads; if it names an
+OPERATION on some other subject (`avg`, `pct`, `n`, `count`, `min`, `max`, `sum`,
+`median`, `std`), it is a suffix.
+
+**A worked family** (a count/ratio triple - e.g. a benchmark-coverage analysis:
+what share of the benchmark's constituents does the portfolio hold?) shows both
+ideas at once - the numerator, denominator, and ratio are ONE family that share
+the SAME leading token, and the ratio is named for the analysis's PURPOSE:
+
+| role              | column                    |
+|-------------------|---------------------------|
+| denominator count | `benchmark_total`         |
+| numerator count   | `benchmark_covered`       |
+| headline metric   | `benchmark_coverage_pct` (= covered / total) |
+
+The leading token is the SUBJECT the counts are about (`benchmark`), so the ratio
+inherits it: the shape is `{subject}_{concept}_{unit}`. That is what the `*`
+stands for in `*_coverage_pct` / `*_churn_rate` - the count's subject, not a blank
+slot: `user_churn_rate` because the counts are `users_total` / `users_churned`;
+`submarket_coverage_pct` because the counts are `submarkets_total` /
+`submarkets_covered`. Subject leads because the counts inherently do (a count OF
+users), and the ratio must match its own counts to cluster. Reading
+`benchmark_coverage_pct = benchmark_covered / benchmark_total` straight off the
+names is the payoff.
+
+Keep all three on ONE leading token; the anti-pattern is a mixed grammar where no
+two columns relate on their face (`benchmark_total`, `names_with_data`,
+`pct_covered` - three shapes, headline metric hidden behind a bare `pct_`). Pick
+one word for the concept (`covered` for the count, `coverage` for the ratio) and
+reuse it. Lead with the PURPOSE instead (`churn_*` / `coverage_*`) only when the
+purpose is the top-level key you group a whole multi-subject analysis by - and
+then commit ALL three to it (`churn_users_total` / `churn_users_churned` /
+`churn_users_rate`), never a mix like `churn_users_total` + `churn_rate`.
 
 ### Task naming: name for the output, broad -> narrow
 
@@ -72,8 +137,8 @@ leading token and cluster in `tasks.py` / `flow.preview()` / `data/`:
 ### DataFrame / variable naming
 
 Same rule for `df` and variable names. Name for content, broad -> narrow, sharing a
-prefix across a family or a task's parameter variants: `df_profile_division` /
-`df_profile_cbsa` (variant last, so `df_profile_*` cluster), not `df_div_profile`.
+prefix across a family or a task's parameter variants: `df_returns_gross` /
+`df_returns_net` (variant last, so `df_returns_*` cluster), not `df_gross_returns`.
 A bare `df` is fine for a single local frame; keep the established ML idioms
 (`df_X`, `df_y`, `df_train`, `df_test`).
 
