@@ -17,6 +17,7 @@ Already installed? Two things to know:
 - Scaffold a new project: run `/d6tflow:init-project` in an empty directory.
 - Put `data/` under Git LFS: run `/d6tflow:init-gitlfs` in the project.
 - Update an old project to the latest scaffold: run `/d6tflow:update-project`.
+- Check code against the house standards: run `/d6tflow:check-standards`.
 - Use it: just start working in a d6tflow project and the skill auto-activates,
   or invoke it manually with `/d6tflow:d6tflow`.
 
@@ -109,10 +110,11 @@ pipeline files, adding or modifying tasks, running flows, or analyzing outputs.
 You can also invoke it explicitly any time with `/d6tflow:d6tflow`, or pass the
 deep-dive argument with `/d6tflow:d6tflow explore`.
 
-Scaffolding a new project, setting up Git LFS, and updating an old project's floor
-are separate, manually-triggered commands - `/d6tflow:init-project`,
-`/d6tflow:init-gitlfs`, and `/d6tflow:update-project` - they are not auto-invoked,
-since they write files and run git.
+Scaffolding a new project, setting up Git LFS, updating an old project's floor,
+and checking code against the standards are separate, manually-triggered
+commands - `/d6tflow:init-project`, `/d6tflow:init-gitlfs`,
+`/d6tflow:update-project`, and `/d6tflow:check-standards` - they are not
+auto-invoked, since they write files, run git, or edit your code.
 
 Things you can ask, in plain language:
 
@@ -204,7 +206,8 @@ d6tflow-claude-plugin/
 |-- commands/
 |   |-- init-project.md    # /d6tflow:init-project - scaffold a new project
 |   |-- init-gitlfs.md     # /d6tflow:init-gitlfs - put data/ under Git LFS
-|   `-- update-project.md  # /d6tflow:update-project - update an old project's floor
+|   |-- update-project.md  # /d6tflow:update-project - update an old project's floor
+|   `-- check-standards.md # /d6tflow:check-standards - check names, style, docstrings
 |-- resources/
 |   `-- template-minimal/  # the files init-project copies into a new project
 `-- skills/

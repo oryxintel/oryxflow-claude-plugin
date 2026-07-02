@@ -4,6 +4,18 @@ All notable changes to the d6tflow plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions are
 date-based (`YY.M.D`, e.g. `26.5.30`).
 
+## [26.7.2] - 2026-07-01
+
+### Added
+- New command `/d6tflow:check-standards` - a check-and-recommend pass over project
+  code against the house standards for readable, reliable code: NAMING (tasks,
+  columns, variables, `eda/utils/viz` modules), CODE STYLE (ASCII-only,
+  `self.logger`, no try/except, off-the-shelf libraries, no inline Python), and
+  DOCSTRING contracts. Loads the skill + `conventions.md` as the rubric, defaults
+  to the working-tree diff, reports findings with a concrete fix each, and edits
+  only what the user approves. A companion `/d6tflow:cleanup-tasks` (consolidate
+  repeated calls / reused data into cached tasks) is reserved.
+
 ## [26.7.1] - 2026-07-01
 
 ### Added

@@ -1,7 +1,7 @@
 {
   "name": "d6tflow",
   "description": "Build highly effective data science workflows with d6tflow - chain parameterized tasks with dependencies, cache intermediate results, and rerun intelligently after code or parameter changes to build better models faster.",
-  "version": "26.7.1",
+  "version": "26.7.2",
   "author": {
     "name": "d6t",
     "email": "dev@databolt.tech"

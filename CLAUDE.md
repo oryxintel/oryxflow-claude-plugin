@@ -39,6 +39,7 @@ commands/
   init-project.md    # /d6tflow:init-project - scaffold a new project into cwd
   init-gitlfs.md     # /d6tflow:init-gitlfs - put data/ under Git LFS
   update-project.md  # /d6tflow:update-project - update old project floor to latest
+  check-standards.md # /d6tflow:check-standards - check names, style, docstrings
 skills/
   d6tflow/
     SKILL.md         # skill entry point - ESSENTIALS only, always in context
