@@ -4,6 +4,20 @@ All notable changes to the oryxflow plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions are
 date-based (`YY.M.D`, e.g. `26.5.30`).
 
+## [26.7.11] - 2026-07-11
+
+### Changed
+- `conventions.md` now addresses the coding agent directly (second person)
+  throughout its framing, instead of a human reader or the agent in the third
+  person ("the AI agent working in it", "the agent should be PROACTIVE", "How We
+  Organize", "our convention"). The rules and the pedagogical rationale are
+  unchanged - only the voice, so the on-demand file reads as instructions FOR the
+  agent, not a description ABOUT it. Added an "address the agent directly"
+  authoring convention to `CLAUDE.md` to keep skill files agent-facing.
+- README Install section now states updates are pull-based: there is no push
+  channel, so run `/plugin marketplace update oryxflow` periodically to pick up
+  new releases (the CHANGELOG lists what changed).
+
 ## [26.7.3] - 2026-07-01
 
 ### Changed

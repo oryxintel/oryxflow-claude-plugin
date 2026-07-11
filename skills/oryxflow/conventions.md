@@ -1,17 +1,17 @@
-# oryxflow Conventions: How We Organize a Project
+# oryxflow Conventions: How to Organize a Project
 
 House conventions loaded on demand by the `oryxflow` skill - the project layout,
 how to group supporting code, and how to name things. This is the "house style"
-companion to [reference.md](reference.md) (the library API). The library tells
-you how oryxflow WORKS; this tells you how to ORGANIZE a project so it - and the
-AI agent working in it - stays accurate as it grows.
+companion to [reference.md](reference.md) (the library API). reference.md tells
+you how oryxflow WORKS; this tells you how to ORGANIZE a project so it stays
+accurate as you build and grow it.
 
 ---
 
 ## Naming: one principle behind all of it
 
 One idea drives every naming rule below: **a name is something the reader (you,
-me, the next session) has to hold and can mis-apply, so every convention pushes
+the next session) has to hold and can mis-apply, so every convention pushes
 the same direction - fewer translation layers, self-describing tokens, and
 shared prefixes that turn scattered names into recognizable families.** A wrong-
 column or wrong-variable bug starts as a name you had to translate in your head
@@ -486,7 +486,7 @@ Most projects stay flat (one `tasks.py`, `run.py`, `flow.py`,
 `flow_params.py`) - that is the right shape for the ~80% that stay
 research-only, and the structure above is for them. The ~20% that grow - usually
 when something goes to "prod" - graduate along the steps below. Data scientists
-are typically weak at code organization, so the agent should be PROACTIVE here:
+are typically weak at code organization, so be PROACTIVE here:
 nudge to graduate on a concrete trigger (see SKILL.md "Graduating a growing
 project"), restructuring as the project grows rather than over-building up front.
 
@@ -502,7 +502,7 @@ strains - you keep one file as long as it stays navigable:
 - **c. Comment section-header blocks** divide branches/phases WITHIN the one
   file. The cheap intermediate organizer - it carries a file well past ~500
   lines without splitting, and the headers double as orientation and as unique
-  edit anchors for the agent:
+  edit anchors for you:
   ```python
   # ===========================================================================
   # Model layer - train + evaluate (parallel to the feature layer above)
@@ -534,7 +534,7 @@ When you do split (step d), there are two orthogonal ways to cut:
 ### Keep a slim `tasks.py` spine (not a re-export aggregator)
 
 After splitting, `tasks.py` stays - it holds the pipeline-overview module
-docstring (the project-goal home our convention mandates) plus the orchestration
+docstring (the project-goal home this convention mandates) plus the orchestration
 tasks (`RunAll`, and a prod twin if any), and it imports the phase modules. The
 phase/subsystem modules hold the actual work; a cross-module dependency imports
 the specific sibling module directly. Do NOT build an aggregator module that

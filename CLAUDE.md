@@ -72,6 +72,12 @@ README.md            # install + quickstart for plugin users
   edit is a smell - tighten it or push the depth down a tier. (E.g. a good rule is
   usually just imperative + the rationalization it blocks + one reason - but treat
   that as a sample of the style, not a required template.)
+- **Address the agent directly (second person).** Skill files are consumed by the
+  coding agent, not read by a human. Never refer to "the agent" / "the AI agent"
+  in the third person, or frame the reader as a human collaborator ("we"/"our",
+  "you and me") - that makes the file read as being *about* the agent rather than
+  *for* it. Keep the rationale (it helps the agent decide edge cases); just point
+  it at "you".
 - When you change skill behavior, update `docs/design/design-notes.md` if the *rationale*
   changed, and `docs/CHANGELOG.md` always.
 

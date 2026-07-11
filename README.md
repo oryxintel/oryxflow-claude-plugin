@@ -54,7 +54,9 @@ unsure.
 /plugin install oryxflow@oryxflow
 ```
 
-To pull a newer version later: `/plugin marketplace update oryxflow`.
+To pull a newer version later: `/plugin marketplace update oryxflow`. Updates are
+pull-based - there is no push notification, so run this periodically to pick up
+new releases (the [CHANGELOG](docs/CHANGELOG.md) lists what changed).
 
 ## Start a new project
 
