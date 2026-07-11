@@ -1,10 +1,10 @@
-# Architecture - the d6tflow plugin
+# Architecture - the oryxflow plugin
 
 The map to read FIRST when changing this repo - so you can edit the right file
 without exploring. This doc is a map; it does NOT restate the operative files,
 it points to them:
 
-- `skills/d6tflow/SKILL.md` - the skill's runtime behavior (the spec).
+- `skills/oryxflow/SKILL.md` - the skill's runtime behavior (the spec).
 - root `CLAUDE.md` - how to develop/release the plugin (dev loop, conventions).
 - `README.md` - install + how an end user uses it.
 - `docs/design/design-notes.md` - WHY each non-obvious decision was made (read
@@ -12,12 +12,12 @@ it points to them:
 
 ## What this is (one paragraph)
 
-A single-skill Claude Code plugin for working in d6tflow data-science projects
-(d6tflow = a data-pipeline library). It ships the `d6tflow` skill (model-
-activated guidance) and four manual commands - `/d6tflow:init-project` (scaffold
-a new project), `/d6tflow:init-gitlfs` (put `data/` under Git LFS),
-`/d6tflow:update-project` (reconcile an old project's scaffold floor to the latest
-template), and `/d6tflow:check-standards` (check code against the house standards -
+A single-skill Claude Code plugin for working in oryxflow data-science projects
+(oryxflow = a data-pipeline library). It ships the `oryxflow` skill (model-
+activated guidance) and four manual commands - `/oryxflow:init-project` (scaffold
+a new project), `/oryxflow:init-gitlfs` (put `data/` under Git LFS),
+`/oryxflow:update-project` (reconcile an old project's scaffold floor to the latest
+template), and `/oryxflow:check-standards` (check code against the house standards -
 naming, style, docstrings). The repo is also its own marketplace, so it installs
 directly from git or a local path.
 
@@ -28,9 +28,9 @@ Keep these straight - changes go to different places:
 1. **This repo (the plugin)** - ships the skill, the commands, and the project
    scaffold at `resources/template-minimal/`. The scaffold is edited directly
    here; this repo is canonical for it.
-2. **The installed `d6tflow` library** (pip) - the framework user projects run on.
+2. **The installed `oryxflow` library** (pip) - the framework user projects run on.
    Not shipped here; the skill documents how to use it. This repo is NOT a place
-   to run d6tflow (there is no pipeline here).
+   to run oryxflow (there is no pipeline here).
 
 ## Components (this repo)
 
@@ -38,14 +38,14 @@ Keep these straight - changes go to different places:
 |------|----------------|-----------|
 | `.claude-plugin/plugin.json` | manifest; `version` is date-based `YY.M.D` | - |
 | `.claude-plugin/marketplace.json` | self-marketplace entry | - |
-| `skills/d6tflow/SKILL.md` | runtime behavior + essentials; frontmatter `description` drives activation | on activation |
-| `skills/d6tflow/reference.md` | full library reference (task types, patterns, silent-data-error guards) | on demand |
-| `skills/d6tflow/conventions.md` | house conventions (project layout, code-org-by-subject, naming columns/tasks/vars, scaling a growing project) | on demand |
-| `skills/d6tflow/ml-patterns.md` | ML task templates (features, training, SHAP, backtest) + prod lifecycle | on demand |
-| `commands/init-project.md` | `/d6tflow:init-project`; manual (`disable-model-invocation: true`) | on invoke |
-| `commands/init-gitlfs.md` | `/d6tflow:init-gitlfs`; manual (`disable-model-invocation: true`) | on invoke |
-| `commands/update-project.md` | `/d6tflow:update-project`; reconcile old project floor to latest scaffold; manual | on invoke |
-| `commands/check-standards.md` | `/d6tflow:check-standards`; check code against the house standards (naming, style, docstrings); manual. Points AT `conventions.md`/`SKILL.md` for the rules (does not restate them) | on invoke |
+| `skills/oryxflow/SKILL.md` | runtime behavior + essentials; frontmatter `description` drives activation | on activation |
+| `skills/oryxflow/reference.md` | full library reference (task types, patterns, silent-data-error guards) | on demand |
+| `skills/oryxflow/conventions.md` | house conventions (project layout, code-org-by-subject, naming columns/tasks/vars, scaling a growing project) | on demand |
+| `skills/oryxflow/ml-patterns.md` | ML task templates (features, training, SHAP, backtest) + prod lifecycle | on demand |
+| `commands/init-project.md` | `/oryxflow:init-project`; manual (`disable-model-invocation: true`) | on invoke |
+| `commands/init-gitlfs.md` | `/oryxflow:init-gitlfs`; manual (`disable-model-invocation: true`) | on invoke |
+| `commands/update-project.md` | `/oryxflow:update-project`; reconcile old project floor to latest scaffold; manual | on invoke |
+| `commands/check-standards.md` | `/oryxflow:check-standards`; check code against the house standards (naming, style, docstrings); manual. Points AT `conventions.md`/`SKILL.md` for the rules (does not restate them) | on invoke |
 | `resources/template-minimal/` | project scaffold (edited directly here) | copied by init |
 | `docs/design/architecture.md` | this map | dev-time |
 | `docs/design/design-notes.md` | rationale (WHY) | dev-time |
@@ -68,7 +68,7 @@ architecture/playbook lives here, not in `CLAUDE.md`.
 
 ## Control & data flows
 
-### Scaffold a new project - `/d6tflow:init-project`
+### Scaffold a new project - `/oryxflow:init-project`
 
 ```
 command body -> reads ${CLAUDE_PLUGIN_ROOT}/resources/template-minimal/
@@ -79,7 +79,7 @@ Pre-flight refuses to clobber an existing project. The copy is a shell command,
 never an LLM read+write (slow; would corrupt `viz-template.ipynb`). Commands get a
 reliable `${CLAUDE_PLUGIN_ROOT}`; skills do not - that is why init is a command.
 
-### Put data under Git LFS - `/d6tflow:init-gitlfs`
+### Put data under Git LFS - `/oryxflow:init-gitlfs`
 
 ```
 command body -> checks git-lfs binary + filters (git lfs install)
@@ -95,15 +95,15 @@ data ignored or added before tracking would bypass LFS.
 
 ### Activate + orient (the skill)
 
-The skill auto-activates when working in a d6tflow project (or `/d6tflow:d6tflow`).
+The skill auto-activates when working in a oryxflow project (or `/oryxflow:oryxflow`).
 It orients from what the project already documents, instead of re-scanning:
 - **pipeline meaning is in the code**: `tasks.py` module docstring (goal) + per-
-  task docstrings + `@d6tflow.requires(...)` (the DAG; `flow.preview()` summarizes
+  task docstrings + `@oryxflow.requires(...)` (the DAG; `flow.preview()` summarizes
   it) + `flow_params.py` comments.
-- **data findings** live in `docs/d6tflow-data.md` (the one fact set with no code
+- **data findings** live in `docs/oryxflow-data.md` (the one fact set with no code
   home).
 Default invocation is lightweight; deep exploration (profiling data, writing the
-data doc) is opt-in (`/d6tflow:d6tflow explore` or a plain-language request).
+data doc) is opt-in (`/oryxflow:oryxflow explore` or a plain-language request).
 
 ## Invariants (do NOT break)
 
@@ -121,15 +121,15 @@ data doc) is opt-in (`/d6tflow:d6tflow explore` or a plain-language request).
 
 | To change... | Edit... | Then... |
 |--------------|---------|---------|
-| Skill runtime behavior / orientation logic | `skills/d6tflow/SKILL.md` | `/reload-plugins` (dev) |
+| Skill runtime behavior / orientation logic | `skills/oryxflow/SKILL.md` | `/reload-plugins` (dev) |
 | What auto-activates the skill | `SKILL.md` frontmatter `description` | - |
-| Task-type table / deep patterns / debugging / silent-data-error guards | `skills/d6tflow/reference.md` | - |
-| Project layout / code-org-by-subject / naming (column, task, df) | `skills/d6tflow/conventions.md` | - |
-| Scaling LAYOUT (graduated `tasks.py` split, spine, axes, app) | `skills/d6tflow/conventions.md` "Scaling up" | - |
-| ML pipeline templates | `skills/d6tflow/ml-patterns.md` | - |
-| PROD lifecycle (`params_prod`, `RunAll...Prod`, selective resets, notebook->pipeline) | `skills/d6tflow/ml-patterns.md` "Productionizing" | - |
+| Task-type table / deep patterns / debugging / silent-data-error guards | `skills/oryxflow/reference.md` | - |
+| Project layout / code-org-by-subject / naming (column, task, df) | `skills/oryxflow/conventions.md` | - |
+| Scaling LAYOUT (graduated `tasks.py` split, spine, axes, app) | `skills/oryxflow/conventions.md` "Scaling up" | - |
+| ML pipeline templates | `skills/oryxflow/ml-patterns.md` | - |
+| PROD lifecycle (`params_prod`, `RunAll...Prod`, selective resets, notebook->pipeline) | `skills/oryxflow/ml-patterns.md` "Productionizing" | - |
 | Any scaffold/template file (wiring, `CLAUDE.md`, data doc, `.gitignore`) | `resources/template-minimal/` directly | bump version + floor stamp (next row) |
-| A reconcile-by-default FLOOR file (`CLAUDE.md`, `viz-template.ipynb`) | the template file, AND bump the floor baseline to the new version in BOTH the template `CLAUDE.md` `<!-- d6tflow-floor: VERSION -->` stamp and `SKILL.md`'s comparison value | the two must stay equal (the `.githooks/pre-commit` check blocks a commit if they differ) - the skill nudges a project stale when its stamp < SKILL's value |
+| A reconcile-by-default FLOOR file (`CLAUDE.md`, `viz-template.ipynb`) | the template file, AND bump the floor baseline to the new version in BOTH the template `CLAUDE.md` `<!-- oryxflow-floor: VERSION -->` stamp and `SKILL.md`'s comparison value | the two must stay equal (the `.githooks/pre-commit` check blocks a commit if they differ) - the skill nudges a project stale when its stamp < SKILL's value |
 | A low-churn floor file (`.gitignore` - owned by `init-gitlfs` - or `.creds.yaml.example`) | the template file only | `update-project` treats these as additive / on-demand; a baseline bump is optional (low staleness value) |
 | Scaffold copy behavior / pre-flight | `commands/init-project.md` | - |
 | Reconcile an OLD project's floor to the latest scaffold | `commands/update-project.md` | - |
@@ -143,5 +143,5 @@ data doc) is opt-in (`/d6tflow:d6tflow explore` or a plain-language request).
 
 Short version: `--plugin-dir` + `/reload-plugins` for the dev loop (reads files
 live, no bump). An *installed* copy (git or local-clone marketplace) only picks up
-changes after a `version` bump + commit + `/plugin marketplace update d6tflow`.
+changes after a `version` bump + commit + `/plugin marketplace update oryxflow`.
 Full detail: root `CLAUDE.md` and README "How edits propagate".

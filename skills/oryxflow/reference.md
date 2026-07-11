@@ -1,15 +1,15 @@
-# d6tflow Reference: Working with d6tflow Workflows
+# oryxflow Reference: Working with oryxflow Workflows
 
-Comprehensive LIBRARY reference loaded on demand by the `d6tflow` skill. Covers
+Comprehensive LIBRARY reference loaded on demand by the `oryxflow` skill. Covers
 core concepts in depth, task types, working with tasks, running workflows,
 advanced patterns, best practices, avoiding silent data errors, data-science
 recipes, and debugging. For the HOUSE conventions - project layout, grouping
 supporting code, and naming columns / tasks / variables - see
 [conventions.md](conventions.md).
 
-## What is d6tflow?
+## What is oryxflow?
 
-**d6tflow** is a Python library for building highly effective data science
+**oryxflow** is a Python library for building highly effective data science
 workflows. It lets you chain together complex, parameterized data flows and
 execute them, caching intermediate calculations so you build better models
 faster.
@@ -21,7 +21,7 @@ faster.
 - **Data persistence**: Automatically saves/loads data between tasks
 - **Reproducibility**: Complete lineage of data transformations
 
-### When to Use d6tflow
+### When to Use oryxflow
 - Multi-step data pipelines (loading -> cleaning -> features -> models -> predictions)
 - Machine learning workflows with dependencies between tasks
 - Workflows that need to be re-run with different parameters
@@ -33,7 +33,7 @@ faster.
 
 ### 1. Tasks
 
-Building blocks: Inherit from d6tflow task class, have `run()` method, save
+Building blocks: Inherit from oryxflow task class, have `run()` method, save
 outputs automatically, uniquely identified by class name + parameters.
 
 **Naming**: name a task for the OUTPUT it produces (a noun: `OEWSWages`,
@@ -44,10 +44,10 @@ rules in [conventions.md](conventions.md) ("Task naming"). Some examples below u
 older verb-style names for brevity; prefer output names in real code.
 
 ```python
-import d6tflow
+import oryxflow
 import pandas as pd
 
-class LoadData(d6tflow.tasks.TaskPqPandas):
+class LoadData(oryxflow.tasks.TaskPqPandas):
     """Load raw data from CSV"""
     def run(self):
         df = pd.read_csv('data.csv')
@@ -70,18 +70,18 @@ for models/objects.
 
 ### 3. Dependencies
 
-Declare with `@d6tflow.requires()` decorator. Auto-runs tasks in correct order.
+Declare with `@oryxflow.requires()` decorator. Auto-runs tasks in correct order.
 
 ```python
-@d6tflow.requires(LoadData)
-class CleanData(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(LoadData)
+class CleanData(oryxflow.tasks.TaskPqPandas):
     def run(self):
         df = self.inputLoad()  # Load from LoadData
         self.save(df.dropna())
 
 # Multiple dependencies
-@d6tflow.requires(LoadData, LoadMetadata)
-class MergeData(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(LoadData, LoadMetadata)
+class MergeData(oryxflow.tasks.TaskPqPandas):
     def run(self):
         df_data, df_meta = self.inputLoad()
         self.save(df_data.merge(df_meta, on='id'))
@@ -92,10 +92,10 @@ class MergeData(d6tflow.tasks.TaskPqPandas):
 Parameters make tasks dynamic and reusable. They affect task identity:
 
 ```python
-class ProcessData(d6tflow.tasks.TaskPqPandas):
-    date = d6tflow.DateParameter()
-    region = d6tflow.Parameter()
-    threshold = d6tflow.IntParameter(default=100)
+class ProcessData(oryxflow.tasks.TaskPqPandas):
+    date = oryxflow.DateParameter()
+    region = oryxflow.Parameter()
+    threshold = oryxflow.IntParameter(default=100)
 
     def run(self):
         df = self.input().load()
@@ -105,19 +105,19 @@ class ProcessData(d6tflow.tasks.TaskPqPandas):
 ```
 
 **Parameter Types**:
-- `d6tflow.Parameter()` - String
-- `d6tflow.IntParameter()` - Integer
-- `d6tflow.FloatParameter()` - Float
-- `d6tflow.BoolParameter()` - Boolean
-- `d6tflow.DateParameter()` - Date
-- `d6tflow.ListParameter()` - List
-- `d6tflow.DictParameter()` - Dictionary
-- `d6tflow.ChoiceParameter(choices=['rf','lgbm'], default='rf')` - string
+- `oryxflow.Parameter()` - String
+- `oryxflow.IntParameter()` - Integer
+- `oryxflow.FloatParameter()` - Float
+- `oryxflow.BoolParameter()` - Boolean
+- `oryxflow.DateParameter()` - Date
+- `oryxflow.ListParameter()` - List
+- `oryxflow.DictParameter()` - Dictionary
+- `oryxflow.ChoiceParameter(choices=['rf','lgbm'], default='rf')` - string
   restricted to a fixed set; an off-list value raises at task construction
   (fail-fast on typos), NOT deep in downstream code. Values stay plain strings,
   so it drops into existing string-valued params with zero churn - prefer this
   for categoricals like `model='rf'`.
-- `d6tflow.EnumParameter(enum=MyEnum)` - value is an `enum.Enum` member (pass the
+- `oryxflow.EnumParameter(enum=MyEnum)` - value is an `enum.Enum` member (pass the
   enum class). Same fail-fast benefit but heavier: you define an `enum.Enum` and
   rewrite values from `'rf'` to `MyEnum.rf`. Use only when you genuinely want
   enum objects; for plain string choices, `ChoiceParameter` is lighter.
@@ -131,12 +131,12 @@ Parameters auto-inherit from dependencies. Use `significant=False` for params
 that do not affect task identity:
 
 ```python
-class TaskA(d6tflow.tasks.TaskPqPandas):
-    date = d6tflow.DateParameter()
-    verbose = d6tflow.BoolParameter(default=False, significant=False)
+class TaskA(oryxflow.tasks.TaskPqPandas):
+    date = oryxflow.DateParameter()
+    verbose = oryxflow.BoolParameter(default=False, significant=False)
 
-@d6tflow.requires(TaskA)
-class TaskB(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(TaskA)
+class TaskB(oryxflow.tasks.TaskPqPandas):
     # Auto-inherits 'date' and 'verbose' from TaskA
     def run(self):
         df = self.inputLoad()
@@ -182,29 +182,29 @@ with `keys=` (never `persist=` - that kwarg is silently ignored; see trap above)
 
 ```python
 # Single dependency, single output
-@d6tflow.requires(UpstreamTask)
-class MyTask(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(UpstreamTask)
+class MyTask(oryxflow.tasks.TaskPqPandas):
     def run(self):
         df = self.inputLoad()
 
 # Single dependency, multiple outputs (persists=['train','test'])
-@d6tflow.requires(SplitData)
-class MyTask(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(SplitData)
+class MyTask(oryxflow.tasks.TaskPqPandas):
     def run(self):
         df_train, df_test = self.inputLoad()        # all outputs, in persists order
         df_train = self.inputLoad(keys='train')     # just one, by name
         df_train = self.input()['train'].load()     # lower-level equivalent
 
 # Multiple dependencies - PREFER the named-dict form (select deps by name)
-@d6tflow.requires({'data': LoadData, 'meta': LoadMetadata})
-class MyTask(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires({'data': LoadData, 'meta': LoadMetadata})
+class MyTask(oryxflow.tasks.TaskPqPandas):
     def run(self):
         df_data = self.inputLoad(task='data')       # or self.input()['data'].load()
         df_meta = self.inputLoad(task='meta')
 
 # Multiple dependencies, positional - select deps by INTEGER index
-@d6tflow.requires(Task1, Task2, Task3)
-class MyTask(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(Task1, Task2, Task3)
+class MyTask(oryxflow.tasks.TaskPqPandas):
     def run(self):
         df1, df2, df3 = self.inputLoad()
 ```
@@ -224,7 +224,7 @@ cheat-sheet above.)
 ### Saving Multiple Outputs
 
 ```python
-class SplitData(d6tflow.tasks.TaskPqPandas):
+class SplitData(oryxflow.tasks.TaskPqPandas):
     persists = ['train', 'test', 'valid']  # output names
     def run(self):
         df = self.inputLoad()
@@ -232,13 +232,13 @@ class SplitData(d6tflow.tasks.TaskPqPandas):
         self.save([df.sample(frac=0.7), df.sample(frac=0.2), df.sample(frac=0.1)], from_list=True)
 
 # Loading
-@d6tflow.requires(SplitData)
-class TrainModel(d6tflow.tasks.TaskPickle):
+@oryxflow.requires(SplitData)
+class TrainModel(oryxflow.tasks.TaskPickle):
     def run(self):
         df_train, df_test, df_valid = self.inputLoad()
 
 # Dictionary outputs - same persists; dict keys select by name
-class MyTask(d6tflow.tasks.TaskPqPandas):
+class MyTask(oryxflow.tasks.TaskPqPandas):
     persists = ['data', 'metadata']
     def run(self):
         self.save({'data': df_main, 'metadata': df_meta})
@@ -253,7 +253,7 @@ alias for the same attribute. List-vs-dict is chosen by what you pass to
 For models and configs that do not fit standard formats:
 
 ```python
-class TrainModel(d6tflow.tasks.TaskPqPandas):
+class TrainModel(oryxflow.tasks.TaskPqPandas):
     def run(self):
         df = self.inputLoad()
         model = RandomForestClassifier()
@@ -263,8 +263,8 @@ class TrainModel(d6tflow.tasks.TaskPqPandas):
         self.saveMeta({'model': model, 'accuracy': 0.95, 'features': features})
 
 # Loading metadata
-@d6tflow.requires(TrainModel)
-class ApplyModel(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(TrainModel)
+class ApplyModel(oryxflow.tasks.TaskPqPandas):
     def run(self):
         df = self.inputLoad()
         meta = self.metaLoad()
@@ -272,8 +272,8 @@ class ApplyModel(d6tflow.tasks.TaskPqPandas):
         self.save(df)
 
 # Load from specific dependency (key=0 is first)
-@d6tflow.requires(TrainModel, LoadData)
-class MyTask(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(TrainModel, LoadData)
+class MyTask(oryxflow.tasks.TaskPqPandas):
     def run(self):
         meta = self.metaLoad(key=0)  # From TrainModel
         df = self.input()[1].load()  # From LoadData
@@ -287,7 +287,7 @@ class MyTask(d6tflow.tasks.TaskPqPandas):
 
 ```python
 # flow.py - Create workflow
-flow = d6tflow.Workflow(FinalTask, params={'date': '2024-01-01'})
+flow = oryxflow.Workflow(FinalTask, params={'date': '2024-01-01'})
 
 # run.py - Execute
 result = flow.run()
@@ -320,13 +320,13 @@ meta = flow.metaLoad(TrainModel)          # Metadata
 results. `flow.reset(TaskName)` cascades to downstream tasks, so resetting the
 one task you changed is enough.
 
-**Code edits vs parameter changes (the iterate gotcha)**: d6tflow caches by task
+**Code edits vs parameter changes (the iterate gotcha)**: oryxflow caches by task
 identity = class + parameters. A PARAMETER change creates a new identity, so it
 is auto-detected and reruns on the next `flow.run()` with no reset. A CODE edit
-(changing a task's `run()` body) does NOT change identity - d6tflow still treats
+(changing a task's `run()` body) does NOT change identity - oryxflow still treats
 the task as complete and SKIPS it, reusing the stale output. So after editing a
 task's code you MUST `flow.reset(thatTask)` before running, or the edit silently
-has no effect. This is the most common d6tflow surprise when iterating.
+has no effect. This is the most common oryxflow surprise when iterating.
 `flow.reset` already cascades downstream, so it IS the whole workflow - never write
 a reset helper (`reset_if_code_changed`, a downstream-resetter); reaching for one
 means the built-in was missed. (If a PARAMETER change is not auto-rerunning, the
@@ -342,7 +342,7 @@ dependents silently consume the new semantics, so reset and re-verify them.
 
 ### Important: Trust Auto File Management
 
-d6tflow auto-handles file creation. DO NOT manually verify files after running
+oryxflow auto-handles file creation. DO NOT manually verify files after running
 tasks.
 
 - Don't: `flow.run()` then `ls data/TaskName/` or check paths
@@ -362,7 +362,7 @@ Use ONE `WorkflowMulti` keyed by name to run/compare a fixed set of param sets
 
 ```python
 # params is a dict KEYED BY FLOW NAME; each value is a param set
-wf = d6tflow.WorkflowMulti(FinalTask, {
+wf = oryxflow.WorkflowMulti(FinalTask, {
     'lgbm':    {'model': 'lgbm'},
     'xgboost': {'model': 'xgboost'},
     'rf':      {'model': 'rf'},
@@ -383,26 +383,26 @@ Notes:
 - `wf.run()` returns a `{name: RunResult}` (a `MultiRunResult`) that also carries
   `.summary()`/`.success`, so `print(res.summary())` reads the same as a single
   flow; index `res['lgbm']` for one flow's `RunResult` to drill in (`.ran`/`.failed`).
-- `d6tflow.runLoad(task, params=..., reset=False)` is the module-level
+- `oryxflow.runLoad(task, params=..., reset=False)` is the module-level
   run-and-load-in-one-call helper for a single param set (see below).
 
 See the escalation note in SKILL.md for the full signatures - confirm against the
-installed package (`inspect.signature(d6tflow.WorkflowMulti.outputLoad)`) rather
+installed package (`inspect.signature(oryxflow.WorkflowMulti.outputLoad)`) rather
 than assuming.
 
 ### Pattern 1b: Dynamic Task Creation
 
 ```python
-import d6tflow.utils
+import oryxflow.utils
 
 params_base = {'threshold': 100}
-params_list = d6tflow.utils.params_generator_dictlist(
+params_list = oryxflow.utils.params_generator_dictlist(
     {'date': ['2024-01-01', '2024-01-02', '2024-01-03']},
     params_base
 )
 # Result: one dict per date, each with threshold=100
 
-flow = d6tflow.WorkflowMulti(FinalTask, params_list)
+flow = oryxflow.WorkflowMulti(FinalTask, params_list)
 flow.run()
 ```
 
@@ -411,8 +411,8 @@ flow.run()
 Create a task that just runs dependencies without saving output:
 
 ```python
-@d6tflow.requires(Task1, Task2, Task3)
-class RunAll(d6tflow.tasks.TaskJson):
+@oryxflow.requires(Task1, Task2, Task3)
+class RunAll(oryxflow.tasks.TaskJson):
     def run(self):
         self.save({'status': 'complete', 'timestamp': datetime.now()})
 ```
@@ -420,11 +420,11 @@ class RunAll(d6tflow.tasks.TaskJson):
 ### Pattern 3: Nested Workflows
 
 ```python
-class MasterTask(d6tflow.tasks.TaskPqPandas):
+class MasterTask(oryxflow.tasks.TaskPqPandas):
     def run(self):
         results = []
         for region in ['US', 'EU', 'ASIA']:
-            sub_flow = d6tflow.Workflow(ProcessRegion, params={'region': region})
+            sub_flow = oryxflow.Workflow(ProcessRegion, params={'region': region})
             sub_flow.run()
             results.append(sub_flow.outputLoad())
         self.save(pd.concat(results))
@@ -433,8 +433,8 @@ class MasterTask(d6tflow.tasks.TaskPqPandas):
 ### Pattern 4: Incremental Processing
 
 ```python
-class IncrementalTask(d6tflow.tasks.TaskPqPandas):
-    date = d6tflow.DateParameter()
+class IncrementalTask(oryxflow.tasks.TaskPqPandas):
+    date = oryxflow.DateParameter()
 
     def run(self):
         prev_date = self.date - timedelta(days=1)
@@ -455,8 +455,8 @@ class IncrementalTask(d6tflow.tasks.TaskPqPandas):
 ### Environment-Based Configuration
 
 ```python
-class MyTask(d6tflow.tasks.TaskPqPandas):
-    env = d6tflow.Parameter(significant=False)  # 'dev' or 'prod'
+class MyTask(oryxflow.tasks.TaskPqPandas):
+    env = oryxflow.Parameter(significant=False)  # 'dev' or 'prod'
 
     def run(self):
         if self.env == 'dev':
@@ -465,15 +465,15 @@ class MyTask(d6tflow.tasks.TaskPqPandas):
             df = pd.read_csv('full.csv')
         self.save(df)
 
-flow = d6tflow.Workflow(MyTask, params={'env': 'dev'})
+flow = oryxflow.Workflow(MyTask, params={'env': 'dev'})
 ```
 
 ### Custom Task Directories
 
 ```python
-class MyTask(d6tflow.tasks.TaskPqPandas):
+class MyTask(oryxflow.tasks.TaskPqPandas):
     def output(self):
-        return d6tflow.targets.PqPandas(path='/custom/path/output.parquet')
+        return oryxflow.targets.PqPandas(path='/custom/path/output.parquet')
 ```
 
 ---
@@ -500,7 +500,7 @@ Don't:
 - Assume data shape/columns without validation
 
 ```python
-class CalculateFeatures(d6tflow.tasks.TaskPqPandas):
+class CalculateFeatures(oryxflow.tasks.TaskPqPandas):
     """
     Calculate rolling averages and momentum features
 
@@ -542,7 +542,7 @@ params = {
     'date': '2024-01-01', 'region': 'US', 'model_type': 'rf',
     'n_estimators': 100, 'test_size': 0.2
 }
-flow = d6tflow.Workflow(FinalTask, params=params)
+flow = oryxflow.Workflow(FinalTask, params=params)
 ```
 
 ### 3. Data Validation
@@ -555,7 +555,7 @@ Do:
 - Log warnings for anomalies
 
 ```python
-class ValidatedTask(d6tflow.tasks.TaskPqPandas):
+class ValidatedTask(oryxflow.tasks.TaskPqPandas):
     def run(self):
         df = self.input().load()
 
@@ -573,7 +573,7 @@ class ValidatedTask(d6tflow.tasks.TaskPqPandas):
 
 ### 4. Error Handling & Documentation
 
-Use `self.logger` for in-task domain logging (and `d6tflow.enable_logging()` for
+Use `self.logger` for in-task domain logging (and `oryxflow.enable_logging()` for
 task lifecycle - see ml-patterns.md "Logging in ML tasks"); let the pipeline fail
 natively (avoid try-except); give
 every task a real docstring (purpose + input/output contract + quirks - see
@@ -657,9 +657,9 @@ first, or merge on a key, rather than trusting positional alignment.
 ### Train/Test Split
 
 ```python
-class SplitData(d6tflow.tasks.TaskPqPandas):
+class SplitData(oryxflow.tasks.TaskPqPandas):
     persists = ['train', 'test']
-    test_size = d6tflow.FloatParameter(default=0.2)
+    test_size = oryxflow.FloatParameter(default=0.2)
     def run(self):
         from sklearn.model_selection import train_test_split
         df_train, df_test = train_test_split(self.inputLoad(), test_size=self.test_size, random_state=42)
@@ -669,8 +669,8 @@ class SplitData(d6tflow.tasks.TaskPqPandas):
 ### Feature Engineering
 
 ```python
-@d6tflow.requires(CleanData)
-class EngineerFeatures(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(CleanData)
+class EngineerFeatures(oryxflow.tasks.TaskPqPandas):
     def run(self):
         df = self.inputLoad()
         df['hour'] = df['timestamp'].dt.hour
@@ -682,8 +682,8 @@ class EngineerFeatures(d6tflow.tasks.TaskPqPandas):
 ### Model Training & Evaluation
 
 ```python
-@d6tflow.requires({'split': SplitData, 'features': EngineerFeatures})
-class TrainModel(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires({'split': SplitData, 'features': EngineerFeatures})
+class TrainModel(oryxflow.tasks.TaskPqPandas):
     persists = ['predictions', 'metrics']
     def run(self):
         df_train = self.input()['split']['train'].load()  # dep by name, output by name
@@ -698,7 +698,7 @@ class TrainModel(d6tflow.tasks.TaskPqPandas):
 
 ---
 
-## Debugging d6tflow Workflows
+## Debugging oryxflow Workflows
 
 - **Task not running**: Already complete (cached) -> `flow.reset(TaskName); flow.run()`
 - **Parameters not affecting task**: Check `significant=False` or parameter type
@@ -711,19 +711,19 @@ class TrainModel(d6tflow.tasks.TaskPqPandas):
 
 ```python
 # Create task
-class MyTask(d6tflow.tasks.TaskPqPandas):
-    param = d6tflow.Parameter()
+class MyTask(oryxflow.tasks.TaskPqPandas):
+    param = oryxflow.Parameter()
     def run(self):
         self.save(result)
 
 # Add dependencies
-@d6tflow.requires(UpstreamTask)
-class MyTask(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(UpstreamTask)
+class MyTask(oryxflow.tasks.TaskPqPandas):
     def run(self):
         df = self.inputLoad()
 
 # Run workflow
-flow = d6tflow.Workflow(FinalTask, params={'param': 'value'})
+flow = oryxflow.Workflow(FinalTask, params={'param': 'value'})
 flow.run()
 result = flow.outputLoad()
 
@@ -731,7 +731,7 @@ result = flow.outputLoad()
 flow.reset(TaskName); flow.run()
 
 # Multiple outputs
-class MyTask(d6tflow.tasks.TaskPqPandas):
+class MyTask(oryxflow.tasks.TaskPqPandas):
     persists = ['a', 'b']
     def run(self):
         self.save([df_a, df_b], from_list=True)
@@ -753,15 +753,15 @@ reference. Load it when you organize files or name things.
 
 ## Additional Resources
 
-- Official docs: https://d6tflow.readthedocs.io/
-- GitHub: https://github.com/d6t/d6tflow
+- Official docs: https://oryxflow.readthedocs.io/
+- GitHub: https://github.com/oryxintel/oryxflow
 
 ---
 
 ## Summary
 
-d6tflow: Reproducible, cacheable data science workflows. Tasks (classes with
-`run()`), dependencies (`@d6tflow.requires()`), parameters (task variants),
+oryxflow: Reproducible, cacheable data science workflows. Tasks (classes with
+`run()`), dependencies (`@oryxflow.requires()`), parameters (task variants),
 auto-caching, multiple outputs (`persists`), metadata (models/configs).
 
 **Use for**: Multi-step pipelines, ML workflows, reproducible research.

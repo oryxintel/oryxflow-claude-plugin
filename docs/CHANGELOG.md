@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the d6tflow plugin are recorded here.
+All notable changes to the oryxflow plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions are
 date-based (`YY.M.D`, e.g. `26.5.30`).
 
@@ -27,13 +27,13 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 ## [26.7.2] - 2026-07-01
 
 ### Added
-- New command `/d6tflow:check-standards` - a check-and-recommend pass over project
+- New command `/oryxflow:check-standards` - a check-and-recommend pass over project
   code against the house standards for readable, reliable code: NAMING (tasks,
   columns, variables, `eda/utils/viz` modules), CODE STYLE (ASCII-only,
   `self.logger`, no try/except, off-the-shelf libraries, no inline Python), and
   DOCSTRING contracts. Loads the skill + `conventions.md` as the rubric, defaults
   to the working-tree diff, reports findings with a concrete fix each, and edits
-  only what the user approves. A companion `/d6tflow:cleanup-tasks` (consolidate
+  only what the user approves. A companion `/oryxflow:cleanup-tasks` (consolidate
   repeated calls / reused data into cached tasks) is reserved.
 
 ## [26.7.1] - 2026-07-01
@@ -84,7 +84,7 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   `X_coverage_pct`), and the task noun-for-output rule; the "add / rename an
   output column"
   recipe (SKILL.md) says to name suffix-style and check the table when writing
-  `.agg()` / `.rename()` / a column list; and the scaffold `docs/d6tflow-data.md`
+  `.agg()` / `.rename()` / a column list; and the scaffold `docs/oryxflow-data.md`
   points to the conventions (its job is to record THIS project's canonical names,
   not restate house rules). Fixes a real project where the agent produced
   stat-prefixed names like `avg_x` / `pct_x` on pandas-agg autopilot. (No
@@ -104,20 +104,20 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   first (`inspect.signature`, `cls.__mro__`) as version-matched ground truth, then
   the online docs - and on conflict the installed code wins (the online docs can
   lag the luigi decoupling).
-- Skill orientation (SKILL.md) now handles an EMPTY / not-yet-d6tflow directory
+- Skill orientation (SKILL.md) now handles an EMPTY / not-yet-oryxflow directory
   as an explicit first case: when no `tasks.py` / `flow.py` is present, the skill
   stops hunting for pipeline files and CONFIDENTLY recommends
-  `/d6tflow:init-project`, leading with the payoff (a runnable, reproducible
+  `/oryxflow:init-project`, leading with the payoff (a runnable, reproducible
   pipeline - parameterized tasks, intelligent caching, a clean
   tasks/flow/run/cfg layout instead of ad-hoc scripts) and ending with a clear
-  call to action for the user to type `/d6tflow:init-project`, rather than
+  call to action for the user to type `/oryxflow:init-project`, rather than
   presenting a tentative menu of options. The recommendation is explicit that the
   skill CANNOT invoke the command itself (it is manual / `disable-model-
   invocation`, and the skill lacks the plugin root to scaffold inline) - so it no
   longer says "want me to run it?", which wrongly implied Claude could. Previously
   the orientation steps assumed the scaffold files existed, so an empty dir was
   handled ad hoc.
-- `/d6tflow:init-project` copy step (init-project.md) now names `robocopy` as the
+- `/oryxflow:init-project` copy step (init-project.md) now names `robocopy` as the
   explicit DEFAULT on Windows (use it consistently; do not improvise `cp` /
   `Copy-Item` instead) and documents that robocopy exit codes 0-7 are SUCCESS
   (1 = files copied), so exit code 1 must not be treated as an error or retried -
@@ -133,17 +133,17 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 ## [26.6.29] - 2026-06-29
 
 ### Added
-- New command `/d6tflow:update-project` - the maintenance counterpart to
-  `/d6tflow:init-project`; reconciles an existing project's scaffold floor
-  against the latest bundled template. It loads the `d6tflow` skill, sorts every
+- New command `/oryxflow:update-project` - the maintenance counterpart to
+  `/oryxflow:init-project`; reconciles an existing project's scaffold floor
+  against the latest bundled template. It loads the `oryxflow` skill, sorts every
   template file into FLOOR (reconcile by default: `CLAUDE.md`,
   `viz-template.ipynb`), LOW-CHURN (additive / on demand only: `.gitignore` -
-  which `/d6tflow:init-gitlfs` owns - and `.creds.yaml.example`), SKELETON
-  (structure only: `docs/d6tflow-data.md`), or PROJECT (never touch: `tasks.py`,
+  which `/oryxflow:init-gitlfs` owns - and `.creds.yaml.example`), SKELETON
+  (structure only: `docs/oryxflow-data.md`), or PROJECT (never touch: `tasks.py`,
   `flow_params.py`, `cfg.py`, `flow.py`, `run.py`, `visualize.py`), then proposes
   a per-file migration plan and applies it only after the user confirms. Closes the gap
   where older projects miss newer floor conventions (e.g. the
-  skill-availability check) and `/d6tflow:init-project` deliberately will not
+  skill-availability check) and `/oryxflow:init-project` deliberately will not
   overwrite an existing `CLAUDE.md`.
 - Code Style rule (SKILL.md) "Use off-the-shelf libraries; do not reinvent the
   wheel": reach for the established library (statsmodels / scipy / sklearn for a
@@ -156,13 +156,13 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 
 ### Changed
 - The scaffold floor `CLAUDE.md` now carries a floor-version stamp
-  (`<!-- d6tflow-floor: VERSION -->`), set to the plugin version of the last
-  floor change. The `d6tflow` skill reads it on orientation and nudges (once, no
-  nagging) toward `/d6tflow:update-project` when the stamp is missing or older
+  (`<!-- oryxflow-floor: VERSION -->`), set to the plugin version of the last
+  floor change. The `oryxflow` skill reads it on orientation and nudges (once, no
+  nagging) toward `/oryxflow:update-project` when the stamp is missing or older
   than the current floor baseline - so older projects discover the command
   without the user having to know it exists. The baseline tracks *floor* changes,
   not every release, so floor-unrelated version bumps do not trigger false
-  "stale" nudges. `/d6tflow:update-project` rewrites the stamp when it migrates.
+  "stale" nudges. `/oryxflow:update-project` rewrites the stamp when it migrates.
 
 ## [26.6.28] - 2026-06-28
 
@@ -184,8 +184,8 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   unknown-kwarg trap. Added a one-line `inputLoad()` (returns data) vs `input()`
   (returns the raw target) rule, and made `ml-patterns.md` consistent (its lone
   `self.input().load()` -> `self.inputLoad()`).
-- Scaffold floor `CLAUDE.md` "d6tflow plugin" section now tells Claude to check
-  the `d6tflow` skill is available before real workflow work (editing the flow
+- Scaffold floor `CLAUDE.md` "oryxflow plugin" section now tells Claude to check
+  the `oryxflow` skill is available before real workflow work (editing the flow
   files or running the pipeline), and if not, to say so and ask the user to load
   it - then, without nagging, to occasionally remind the user after substantial
   work that they get better results with the plugin active. Replaces the soft
@@ -220,15 +220,15 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   `flow.outputLoadMeta(Task)`. Folds in the by-name-not-by-index rule and the
   silent-unknown-kwarg trap as table notes.
 - Logging convention (two layers), replacing the old `print("SUCCESS:/WARNING:/
-  ERROR:")` prefixes: `d6tflow.enable_logging()` for task lifecycle, `self.logger`
+  ERROR:")` prefixes: `oryxflow.enable_logging()` for task lifecycle, `self.logger`
   inside `run()` for DOMAIN signal (shapes, drop rates, metrics, the branch taken).
   Rule: log scalars + lifecycle, SAVE rows + artifacts (`self.save()` / xlsx),
   never per-row. Examples use `self.logger`, NOT a raw `from loguru import logger`:
-  `enable_logging()` filters to the `d6tflow` namespace and drops loguru's default
+  `enable_logging()` filters to the `oryxflow` namespace and drops loguru's default
   handler, so a raw task-module `logger.info` is silently dropped - only
   `self.logger` (the `Task.logger` property) survives (and auto-tags `task_id`).
   Color is one switch, `enable_logging(colorize=False)` (auto-detects TTY vs
-  redirected), since domain logs now share the one d6tflow sink - the old
+  redirected), since domain logs now share the one oryxflow sink - the old
   `logger.add("run.log", colorize=False)` side-sink is gone. In SKILL.md Code
   Style + scaffold floor `CLAUDE.md`; ML depth + the `training cutoff` model
   example in `ml-patterns.md` ("Logging in ML tasks") + log lines in the
@@ -239,7 +239,7 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   cache-hit), numbers from saved artifacts not scraped logs, read clean via
   `enable_logging(colorize=False)` or anchor greps on a token, and "no metric
   line" usually means wrong logger (raw loguru) not no signal.
-- Reset / cache-invalidation rule promoted to the always-loaded tiers: d6tflow
+- Reset / cache-invalidation rule promoted to the always-loaded tiers: oryxflow
   caches on identity (class + params), NOT code, so a CODE/DATA change needs
   `flow.reset(Task)` (cascades downstream) - and since it cascades, NEVER write a
   reset helper. A PARAMETER change auto-reruns; if not, fix the parameter
@@ -302,7 +302,7 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 - Template `CLAUDE.md` notes the project can scale (section-headers -> split) with
   a pointer to the plugin's "Scaling up" guidance.
 - README install instructions point at the public GitHub repo
-  (`d6t/d6tflow-claude-plugin`) instead of `<owner>/<repo>` placeholders, and the
+  (`d6t/oryxflow-claude-plugin`) instead of `<owner>/<repo>` placeholders, and the
   Resources section now links the public repo. Added a `repository` field to
   `plugin.json`. The full HTTPS URL is now the primary install command (works
   for everyone with no auth), with the `owner/repo` shorthand as a secondary
@@ -333,7 +333,7 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   small fixed suffix vocabulary with the operation LAST (`_yoy`, `_yoy_pp`/`_diff`,
   `_pct`, `_ma{n}`, `_lag{n}`, ...) so the name carries provenance + transform;
   apply Human-readable Title Case labels ONLY at the `viz/` plotting layer; record
-  the raw->canonical map in `docs/d6tflow-data.md`. Full section in `conventions.md`
+  the raw->canonical map in `docs/oryxflow-data.md`. Full section in `conventions.md`
   ("Naming"), pointer in `SKILL.md`. Motivated by a real three-layer
   round-trip (raw `uc_rate` -> display `Under Construction Rate` -> analysis
   `uc_rate` again) that caused wrong-column confusion. The broad->narrow ordering
@@ -341,7 +341,7 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   `FundamentalsSignals`, `FundamentalsLeadLag`, not `LeadLagAnalysis`; added to the
   task "Naming" sections) and to DataFrame / variable names (`df_profile_division`
   / `df_profile_cbsa` cluster; keep `df_X`/`df_y`/`df_train`/`df_test`).
-- New `/d6tflow:init-gitlfs` command (`commands/init-gitlfs.md`) - puts a
+- New `/oryxflow:init-gitlfs` command (`commands/init-gitlfs.md`) - puts a
   project's `data/` under Git LFS. It checks the git-lfs binary is installed AND
   that `git lfs install` has hooked LFS's filters into git (guiding the user to
   `winget install GitHub.GitLFS` / `brew install git-lfs` if missing), ensures a
@@ -361,7 +361,7 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   code go", "how do I name this") had to page the whole file. New
   `conventions.md` (house style: project-layout deep dive, code-organization-by-
   subject, and naming columns/tasks/variables) is now a sibling on-demand file;
-  `reference.md` keeps the d6tflow LIBRARY (task types, params, running/reset,
+  `reference.md` keeps the oryxflow LIBRARY (task types, params, running/reset,
   patterns, recipes, debugging, silent-data-error guards). Moved the three
   sections out of `reference.md`, left a pointer, and updated routing in
   `SKILL.md` (header + inline pointers), `architecture.md` (component table, load
@@ -388,7 +388,7 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   project), cleared the baked-in stale outputs, dropped the unused `seaborn`
   import, and added guidance + section headers. Now demonstrates the modern load
   patterns: `flow.outputLoad()` / `outputLoad(tasks.X)` and parameterized,
-  multi-output `d6tflow.runLoad(tasks.X, params={...})` - including `reset=True`
+  multi-output `oryxflow.runLoad(tasks.X, params={...})` - including `reset=True`
   after a code edit and loading two variants to compare (the region-vs-metro case).
 - Notebook authoring now points at the `NotebookEdit` tool instead of hand-writing
   nbformat JSON via `Write` (slow, easy to corrupt). `SKILL.md`'s "Render / publish
@@ -421,7 +421,7 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   "don't stat the filesystem" (existence check) and the loader-task "don't re-read
   a csv"; this names the content-loading anti-pattern directly. Added to `SKILL.md`
   and the template `CLAUDE.md`.
-- Task docstrings no longer carry "see `docs/d6tflow-data.md`" cross-references.
+- Task docstrings no longer carry "see `docs/oryxflow-data.md`" cross-references.
   The conventions already establish that doc as the data home, so a pointer in
   every docstring is noise (and ages badly as the data layer grows). `SKILL.md`
   now says to state quirks inline and explicitly NOT to tack on the cross-ref;
@@ -442,14 +442,14 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   Rationale in `design-notes.md` ("EDA is a learning artifact").
 - Dropped the "vendored mirror" policy for `resources/template-minimal/`. The
   scaffold is now edited directly in this repo (canonical here) instead of being
-  re-synced from a separate `d6tflow-template-minimal` source repo. Updated
+  re-synced from a separate `oryxflow-template-minimal` source repo. Updated
   `CLAUDE.md`, `architecture.md`, and `design-notes.md` accordingly.
 - Broadened skill activation triggers in `SKILL.md` frontmatter: `description`
   and `when_to_use` now name loading / cleaning / transforming / analyzing data
   (each phrased as "becomes a task"), so plain-language data-prep requests like
   "clean the data" reliably auto-activate the skill from a cold context, not only
   task/flow-shaped phrasings. No behavior change once active.
-- Renamed `/d6tflow:project-init` to `/d6tflow:init-project`
+- Renamed `/oryxflow:project-init` to `/oryxflow:init-project`
   (`commands/project-init.md` -> `commands/init-project.md`) so the two setup
   commands share an `init-*` prefix. Updated all references (README, CLAUDE.md,
   architecture, design-notes). The command's behavior is unchanged.
@@ -468,7 +468,7 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 - `SKILL.md` now requires EDA probes to be documented, not just relocated: each
   `eda/` script states the question it answers (docstring) and makes its result
   legible (print / recorded comment), and material findings (schema, quirks,
-  quality issues, business rules) get promoted into `docs/d6tflow-data.md`. An
+  quality issues, business rules) get promoted into `docs/oryxflow-data.md`. An
   `eda/` script is throwaway as code, but its finding is not - capturing it is
   what spares the next session from re-deriving it. Rationale recorded in
   `docs/design/design-notes.md` ("EDA is a learning artifact, not throwaway").
@@ -528,12 +528,12 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   (gitignored, for rendered output) with `.gitkeep` files, matching the layout
   the skill documents. These are plugin-specific additions on top of the
   vendored template (like `CLAUDE.md` / the data-doc skeleton); fold them back
-  into the `d6tflow-template-minimal` source repo on the next sync.
+  into the `oryxflow-template-minimal` source repo on the next sync.
 - Iterate-then-run across parameter variants: a code edit invalidates EVERY
   cached instance of a task (one per parameter value), but a reset/run only
   recomputes the variant you actually run - so loading another variant later
   yields the stale schema (e.g. `KeyError` on a newly added column). Documented
-  the `d6tflow.runLoad(Task, params=..., reset=True)` fix to force a recompute
+  the `oryxflow.runLoad(Task, params=..., reset=True)` fix to force a recompute
   per setting (SKILL.md "Modify an existing task").
 - Reading the Execution Summary: after a run, the summary's "complete ones were
   encountered" (cache hits) vs "ran successfully" (recomputed) lines are how you
@@ -604,7 +604,7 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   `GetData` / `Process` are placeholder names to REPLACE, never to write real
   logic into. Captured in SKILL.md ("Naming tasks", "Add a new task", scaffold
   + onboarding notes) and reference.md.
-- Iterate-then-run guidance for the common data-science loop: d6tflow caches by
+- Iterate-then-run guidance for the common data-science loop: oryxflow caches by
   task identity (class + params), so PARAMETER changes auto-detect but CODE edits
   do NOT - an edited-but-unreset task is silently skipped on the next run. The
   skill now mandates `flow.reset(<EditedTask>)` (which cascades downstream)
@@ -619,7 +619,7 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   requests ("run the flow", "explore the data", etc.) so a first-time user
   learns how to drive the skill. Mirrored as a "Things you can ask" list in
   `README.md` under "Using the skill". The examples lead with the most common
-  build action - adding a new task wired to an upstream via `@d6tflow.requires`
+  build action - adding a new task wired to an upstream via `@oryxflow.requires`
   - and the README list adds the root-task and multiple-input variants.
 - `when_to_use` frontmatter on the skill, carrying the invocation trigger
   phrases (create/modify task, run/preview the flow, re-run/reset, load/plot
@@ -629,7 +629,7 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   shows during autocomplete.
 - Top-level `description` in `marketplace.json` (was missing; the marketplace
   listing showed a blank line for it).
-- `README.md` "Resources" section linking the upstream d6tflow docs / source for
+- `README.md` "Resources" section linking the upstream oryxflow docs / source for
   the invoking user, with a placeholder note that the plugin's own public repo /
   `homepage` / `repository` links will go there once the repo is public.
 
@@ -642,17 +642,17 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
   `dev@oryxintel.com`) in both manifests; added `homepage: https://databolt.tech`
   to `plugin.json` and a "Maintainer" link in the README "Resources" section.
 - Removed all "Luigi" references (manifests, README, SKILL.md, reference.md,
-  template `CLAUDE.md`, architecture notes, and the `luigi` keyword) - d6tflow is
+  template `CLAUDE.md`, architecture notes, and the `luigi` keyword) - oryxflow is
   described on its own terms now.
-- Aligned every d6tflow description (both manifests, README intro, SKILL.md
+- Aligned every oryxflow description (both manifests, README intro, SKILL.md
   body + frontmatter, reference.md) to the library's official framing: "build
   highly effective data science workflows ... chain complex parameterized data
   flows, cache intermediate results, rerun intelligently, build better models
   faster" (was generic "reproducible data pipelines").
 - Tightened the skill `description` (what it does + core trigger) now that
   `when_to_use` carries the example requests; the two share a 1,536-char cap.
-- Skill body notes that `/d6tflow` / `/d6tflow explore` are shorthand for the
-  real `/d6tflow:d6tflow [explore]` invocation form.
+- Skill body notes that `/oryxflow` / `/oryxflow explore` are shorthand for the
+  real `/oryxflow:oryxflow [explore]` invocation form.
 - `commands/project-init.md` is now `disable-model-invocation: true` - the
   scaffold writes files, so it is manual-trigger only (type the command), not
   auto-invoked. README "Using the skill" notes this.
@@ -662,24 +662,24 @@ date-based (`YY.M.D`, e.g. `26.5.30`).
 Plugin-first documentation model and a project scaffolding command.
 
 ### Added
-- `/d6tflow:project-init` (`commands/project-init.md`) - scaffolds a new project
+- `/oryxflow:project-init` (`commands/project-init.md`) - scaffolds a new project
   by shell-copying the bundled template into the current directory,
   skip-existing / never-overwrite.
-- `resources/template-minimal/` - vendored mirror of the `d6tflow-template-minimal`
+- `resources/template-minimal/` - vendored mirror of the `oryxflow-template-minimal`
   repo (the scaffold source), plus plugin-specific additions: a compact
   self-contained project `CLAUDE.md`, a `PLACEHOLDER` data-doc skeleton
-  (`docs/d6tflow-data.md`), placeholder module + task docstrings in `tasks.py`,
+  (`docs/oryxflow-data.md`), placeholder module + task docstrings in `tasks.py`,
   and `.creds.yaml.example`.
-- `skills/d6tflow/ml-patterns.md` - on-demand ML pipeline task templates (feature
+- `skills/oryxflow/ml-patterns.md` - on-demand ML pipeline task templates (feature
   engineering, model training, SHAP, expanding-window backtest), harvested from
-  the former `docs/claude-d6tflow-ml.md`.
+  the former `docs/claude-oryxflow-ml.md`.
 
 ### Changed
 - Adopted an in-code-first documentation model: pipeline meaning lives in the
   code (a `tasks.py` module docstring for the goal, per-task docstrings, and the
-  `@d6tflow.requires(...)` graph / `flow.preview()`), so there is no separate
+  `@oryxflow.requires(...)` graph / `flow.preview()`), so there is no separate
   pipeline doc to drift. Only data findings - which have no code home - keep a
-  file, `docs/d6tflow-data.md` (was `claude-data-doc.md`).
+  file, `docs/oryxflow-data.md` (was `claude-data-doc.md`).
 - Unified the `PLACEHOLDER` marker across code AND the data doc: a marker means
   "not real yet" everywhere, replacing the old "docs absence = explore" signal.
 - `SKILL.md` now orients from code + the data doc instead of carrying inline doc
@@ -690,19 +690,19 @@ Plugin-first documentation model and a project scaffolding command.
 
 ### Removed
 - Legacy generic docs `docs/claude-project.md`, `docs/claude-data-doc.md`,
-  `docs/claude-ml-plan.md`, `docs/claude-d6tflow-ml.md` (redundant with the
+  `docs/claude-ml-plan.md`, `docs/claude-oryxflow-ml.md` (redundant with the
   plugin's reference/ml-patterns, or superseded by the model above).
 
 ## [26.5.30] - 2026-05-30
 
-Initial packaging of the standalone `d6tflow` skill into a versioned plugin.
+Initial packaging of the standalone `oryxflow` skill into a versioned plugin.
 
 ### Added
 - Plugin manifest (`.claude-plugin/plugin.json`) and self-marketplace
   (`.claude-plugin/marketplace.json`) so the repo is installable from git or a
   local path.
-- `skills/d6tflow/SKILL.md` and `skills/d6tflow/reference.md` (copied from the
-  pre-plugin skill at `~/.claude/skills/d6tflow`).
+- `skills/oryxflow/SKILL.md` and `skills/oryxflow/reference.md` (copied from the
+  pre-plugin skill at `~/.claude/skills/oryxflow`).
 - `README.md` (install + dev instructions), `CLAUDE.md` (plugin-development
   guide), `docs/design-notes.md` (design rationale), `.gitignore`.
 
@@ -710,11 +710,11 @@ Initial packaging of the standalone `d6tflow` skill into a versioned plugin.
 - Session-start orientation protocol: read the per-project docs first, treat
   them as a cache, and avoid re-scanning what is already recorded.
 - Lightweight default invocation; deep exploration is opt-in
-  (`/d6tflow explore` or a plain-language request).
+  (`/oryxflow explore` or a plain-language request).
 - `PLACEHOLDER SCAFFOLD` marker convention for recognizing fresh scaffolds.
 - Raw source data lives in `data/` (`.csv` / `.xlsx`); task outputs are parquet
   under per-task subfolders.
-- Fresh-scaffold orientation on a plain `/d6tflow` invocation gives friendly
+- Fresh-scaffold orientation on a plain `/oryxflow` invocation gives friendly
   onboarding rather than narrating the placeholder internals: it confirms the
   project is a fresh scaffold, points the user at how to create tasks, load
   data, and run the flow, then offers the two next steps (explore vs. describe

@@ -1,8 +1,8 @@
 #!/bin/sh
 # Enforce the one cross-file invariant the scaffold floor relies on:
 # the floor baseline must be IDENTICAL in the two places it is recorded -
-#   - the template stamp:  resources/template-minimal/CLAUDE.md  (<!-- d6tflow-floor: X -->)
-#   - the skill baseline:  skills/d6tflow/SKILL.md               (... floor baseline **X**)
+#   - the template stamp:  resources/template-minimal/CLAUDE.md  (<!-- oryxflow-floor: X -->)
+#   - the skill baseline:  skills/oryxflow/SKILL.md               (... floor baseline **X**)
 # The skill nudges a project "stale" when its stamp < the skill's baseline, so a
 # mismatch here silently breaks staleness detection. There is no CI, so this runs
 # at commit time. One-time install: git config core.hooksPath .githooks
@@ -13,15 +13,15 @@
 set -e
 root=$(git rev-parse --show-toplevel) || exit 0
 tmpl_file="$root/resources/template-minimal/CLAUDE.md"
-skill_file="$root/skills/d6tflow/SKILL.md"
+skill_file="$root/skills/oryxflow/SKILL.md"
 
 ver='[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?'
-tmpl=$(grep -oiE "d6tflow-floor:[[:space:]]*$ver" "$tmpl_file" 2>/dev/null | head -1 | grep -oE "$ver")
+tmpl=$(grep -oiE "oryxflow-floor:[[:space:]]*$ver" "$tmpl_file" 2>/dev/null | head -1 | grep -oE "$ver")
 skill=$(grep -oiE "floor baseline[^0-9]*$ver" "$skill_file" 2>/dev/null | head -1 | grep -oE "$ver")
 
 if [ -z "$tmpl" ] || [ -z "$skill" ]; then
   echo "pre-commit: could not read the floor baseline (template='$tmpl' skill='$skill')." >&2
-  echo "  Check the d6tflow-floor stamp in $tmpl_file" >&2
+  echo "  Check the oryxflow-floor stamp in $tmpl_file" >&2
   echo "  and the 'floor baseline' value in $skill_file" >&2
   exit 1
 fi
@@ -29,7 +29,7 @@ fi
 if [ "$tmpl" != "$skill" ]; then
   echo "pre-commit: scaffold floor baseline MISMATCH." >&2
   echo "  template stamp (resources/template-minimal/CLAUDE.md): $tmpl" >&2
-  echo "  skill baseline (skills/d6tflow/SKILL.md):              $skill" >&2
+  echo "  skill baseline (skills/oryxflow/SKILL.md):              $skill" >&2
   echo "  These must be equal. Set both to the same version (see the" >&2
   echo "  'scaffold-FLOOR file' row in docs/design/architecture.md)." >&2
   exit 1

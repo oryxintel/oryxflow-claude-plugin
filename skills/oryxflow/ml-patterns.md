@@ -1,7 +1,7 @@
-# d6tflow ML Pipeline Patterns
+# oryxflow ML Pipeline Patterns
 
 Concrete, copy-adaptable task templates for machine-learning pipelines built with
-d6tflow. Loaded ON DEMAND by the `d6tflow` skill - pull this in only when the work
+oryxflow. Loaded ON DEMAND by the `oryxflow` skill - pull this in only when the work
 is ML (feature engineering, model training, backtesting, predictions). For the
 general library reference see [reference.md](reference.md); for the essentials see
 [SKILL.md](SKILL.md).
@@ -50,7 +50,7 @@ cfg.col_X_level = ['gdp', 'price', ...]        # Level features (use pct_change)
 Use `persists` to name a task's multiple outputs:
 
 ```python
-class MyTask(d6tflow.tasks.TaskPqPandas):
+class MyTask(oryxflow.tasks.TaskPqPandas):
     persists = ['all', 'x', 'y']  # output names (persist is a legacy alias)
 
     def run(self):
@@ -92,8 +92,8 @@ model = meta['model']
 Purpose: merge multiple data sources, create derived features.
 
 ```python
-@d6tflow.requires(DataSource1, DataSource2)
-class FeaturesRaw(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(DataSource1, DataSource2)
+class FeaturesRaw(oryxflow.tasks.TaskPqPandas):
     """Merge data sources and create base features"""
 
     def run(self):
@@ -124,11 +124,11 @@ loss; use `how='left'` to preserve the primary dataset.
 Purpose: transform features (normalize, rank, time-series features), split X/y.
 
 ```python
-@d6tflow.requires(FeaturesRaw)
-class FeaturesTransform(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(FeaturesRaw)
+class FeaturesTransform(oryxflow.tasks.TaskPqPandas):
     """Transform features for modeling"""
-    transformx = d6tflow.Parameter()  # Feature transformation method
-    transformy = d6tflow.Parameter()  # Target transformation
+    transformx = oryxflow.Parameter()  # Feature transformation method
+    transformy = oryxflow.Parameter()  # Target transformation
     persists = ['all', 'x', 'y']
 
     def run(self):
@@ -192,10 +192,10 @@ transformations and validate <20% loss; return `[df_all, df_X, df_y]`.
 Purpose: train model, save the model object in metadata, calculate SHAP values.
 
 ```python
-@d6tflow.requires(FeaturesTransform)
-class ModelTrain(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(FeaturesTransform)
+class ModelTrain(oryxflow.tasks.TaskPqPandas):
     """Train ML model and save predictions"""
-    model = d6tflow.Parameter()  # Model type
+    model = oryxflow.Parameter()  # Model type
     persists = ['all', 'x', 'y']
 
     def run(self):
@@ -261,8 +261,8 @@ def train_model(self, X, y):
 Purpose: calculate performance metrics and feature importance.
 
 ```python
-@d6tflow.requires(ModelTrain)
-class ModelPerformanceIS(d6tflow.tasks.TaskPickle):
+@oryxflow.requires(ModelTrain)
+class ModelPerformanceIS(oryxflow.tasks.TaskPickle):
     """Calculate in-sample performance metrics"""
 
     def run(self):
@@ -311,10 +311,10 @@ Purpose: generate out-of-sample predictions using an expanding window to avoid
 lookahead bias.
 
 ```python
-@d6tflow.requires(ModelTrain, FeaturesTransform)
-class ModelPredictOS(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(ModelTrain, FeaturesTransform)
+class ModelPredictOS(oryxflow.tasks.TaskPqPandas):
     """Generate out-of-sample predictions"""
-    forecast_periods = d6tflow.IntParameter()  # Periods ahead to predict
+    forecast_periods = oryxflow.IntParameter()  # Periods ahead to predict
 
     def run(self):
         (df_trainIS, _, _), (df_full, df_X_full, df_y_full) = self.inputLoad()
@@ -363,10 +363,10 @@ idx_train = (df['date'] > train_date - window) & (df['date'] <= train_date)
 Purpose: generate predictions for the most recent period, with SHAP values.
 
 ```python
-@d6tflow.requires(ModelTrain, FeaturesTransform)
-class ModelPredictCurrent(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(ModelTrain, FeaturesTransform)
+class ModelPredictCurrent(oryxflow.tasks.TaskPqPandas):
     """Generate predictions for current period"""
-    period_current = d6tflow.Parameter()  # e.g. '2025Q2', '2025-01-01'
+    period_current = oryxflow.Parameter()  # e.g. '2025Q2', '2025-01-01'
     persists = ['predictions', 'features', 'shap']
 
     def run(self):
@@ -420,15 +420,15 @@ runs. Its experiment twin (`RunAll`) uses `params`.
 # tasks.py spine - prod orchestration
 from flow_params import params_prod
 
-class RunAllModelPredictCurrentProd(d6tflow.tasks.TaskExcelPandas):
+class RunAllModelPredictCurrentProd(oryxflow.tasks.TaskExcelPandas):
     """Prod run: frozen params, all variants, fresh data, model stays cached."""
-    period_current = d6tflow.Parameter()
+    period_current = oryxflow.Parameter()
     def run(self):
         dfl = []
         for sector in cfg.sectors:
             params = {**params_prod, 'sector': sector,
                       'period_current': self.period_current}
-            flow = d6tflow.Workflow(tasks_predict.ModelPredictCurrent,
+            flow = oryxflow.Workflow(tasks_predict.ModelPredictCurrent,
                                     params=params, env='prod')
             flow.reset(tasks_features.DataSource)  # refresh data layer ONLY
             # do NOT reset ModelTrain -> frozen model
@@ -453,7 +453,7 @@ Research often starts as a messy notebook - cells that load, munge, fit, and
 plot in one scroll. To productionize it, sort those cells into the standard task
 bins (the same ones in "Task organization checklist" below): load -> features ->
 model -> eval -> predict. Each coherent cell-group becomes a TASK with a real
-docstring; wire the DAG with `@d6tflow.requires(...)`; then add the prod
+docstring; wire the DAG with `@oryxflow.requires(...)`; then add the prod
 orchestration above.
 
 This is the no-inline-Python rule (SKILL.md) applied to a whole notebook: code
@@ -575,7 +575,7 @@ assert np.allclose(df_breakdown['prediction'], predictions)
 
 Two layers, different jobs (see SKILL.md "Log with `self.logger`"):
 
-- **Lifecycle -> d6tflow.** `d6tflow.enable_logging()` (once, in `run.py`) prints
+- **Lifecycle -> oryxflow.** `oryxflow.enable_logging()` (once, in `run.py`) prints
   task scheduling / completion / timing - the single most useful execution log.
   Do NOT reinvent it with your own start/end brackets around `flow.run()`.
 - **Domain -> `self.logger`, inside `run()`.** Log the scalars you would watch
@@ -590,7 +590,7 @@ self.logger.warning("single-class fold at {} -> skipped", idate)
 ```
 
 Use `self.logger`, NOT a raw `from loguru import logger`: `enable_logging()`
-filters to the `d6tflow` namespace, so a raw loguru call from your task module is
+filters to the `oryxflow` namespace, so a raw loguru call from your task module is
 silently dropped; `self.logger` emits inside that namespace and auto-tags
 `task_id`.
 
@@ -599,10 +599,10 @@ predictions, SHAP matrices, full metric tables, model objects, the comparison
 xlsx go through `self.save()` (or an xlsx), never a log line. Rule of thumb:
 scalars and lifecycle -> log; rows and artifacts -> `self.save()`.
 
-**Plain (ANSI-free) output.** d6tflow's lifecycle logs are color-coded (ANSI
+**Plain (ANSI-free) output.** oryxflow's lifecycle logs are color-coded (ANSI
 escape codes), noise in a saved log and on Windows. Because domain logs now share
-the one d6tflow sink (via `self.logger`), a single switch governs both:
-`d6tflow.enable_logging(colorize=False)`. (The default auto-detects - colored on a
+the one oryxflow sink (via `self.logger`), a single switch governs both:
+`oryxflow.enable_logging(colorize=False)`. (The default auto-detects - colored on a
 terminal, plain when redirected to a file / pipe - so you often need nothing; pass
 `colorize=False` to force plain.)
 

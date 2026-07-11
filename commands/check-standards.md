@@ -1,11 +1,11 @@
 ---
-description: Check d6tflow project code against the house standards for readable, reliable code - naming (task / column / variable / module), code style (ASCII-only, self.logger, no try/except, off-the-shelf libraries), and docstring contracts. Evaluates and recommends a concrete fix per issue; applies only what the user approves. Use before or after writing a task.
+description: Check oryxflow project code against the house standards for readable, reliable code - naming (task / column / variable / module), code style (ASCII-only, self.logger, no try/except, off-the-shelf libraries), and docstring contracts. Evaluates and recommends a concrete fix per issue; applies only what the user approves. Use before or after writing a task.
 disable-model-invocation: true
 ---
 
-# Check d6tflow code against the house standards
+# Check oryxflow code against the house standards
 
-Check the project's code against the `d6tflow` skill's house standards for
+Check the project's code against the `oryxflow` skill's house standards for
 readable, reliable code - the NAMING rules (tasks, columns, variables,
 `eda`/`utils`/`viz` modules), the CODE STYLE rules, and DOCSTRING contracts.
 This is a read-first, evaluate-and-recommend review: you surface findings with a
@@ -13,7 +13,7 @@ concrete fix each, and edit ONLY what the user approves. Run it before committin
 a change, or on code you are about to write to sanity-check the names first.
 Target directory: `${CLAUDE_PROJECT_DIR}`.
 
-Companion command: `/d6tflow:cleanup-tasks` reviews code ORGANIZATION (repeated
+Companion command: `/oryxflow:cleanup-tasks` reviews code ORGANIZATION (repeated
 calls / reused data that should be consolidated into a cached task, task
 decomposition). This command stays on NAMES + STYLE + DOCSTRINGS - do not drift
 into re-architecting the pipeline; note an organization smell as a one-line
@@ -21,7 +21,7 @@ pointer to `cleanup-tasks` and move on.
 
 ## 1. Load the rules first (they are the rubric)
 
-Load the `d6tflow` skill if it is not active, then read the source of truth for
+Load the `oryxflow` skill if it is not active, then read the source of truth for
 the rules so you review against the ACTUAL conventions, not your priors:
 
 - `conventions.md` "Naming" - columns, tasks, variables, modules (the Don't/Do
@@ -81,10 +81,10 @@ cautions when a fix is a RENAME:
 - Renaming a column or variable means updating EVERY reader in scope, plus the
   docstring `Out:` list - do them together or not at all.
 - Renaming a TASK class orphans its `data/<OldName>/` cache and breaks
-  `@d6tflow.requires` / `tasks.X` references - flag this as more than a
+  `@oryxflow.requires` / `tasks.X` references - flag this as more than a
   find-replace and let the user confirm (the skill's "Stale caches on rename").
 
 ## 5. Finish
 
 Summarize what was flagged, what was fixed, and what was left as a note
-(including any organization smell you punted to `/d6tflow:cleanup-tasks`).
+(including any organization smell you punted to `/oryxflow:cleanup-tasks`).

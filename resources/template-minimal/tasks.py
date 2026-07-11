@@ -3,23 +3,23 @@
 What does this pipeline produce, and why? A few lines here are the project's
 top-level documentation - read on every session in place of a separate doc.
 """
-import d6tflow
+import oryxflow
 import pandas as pd
 
 import cfg
 
 # PLACEHOLDER SCAFFOLD - replace the tasks below with the real pipeline.
-class GetData(d6tflow.tasks.TaskPqPandas):
+class GetData(oryxflow.tasks.TaskPqPandas):
     """PLACEHOLDER - load this project's raw data and save it for downstream tasks."""
 
     def run(self):
         df = pd.DataFrame({'a':range(10)})
         self.save(df)
 
-@d6tflow.requires(GetData)
-class Process(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(GetData)
+class Process(oryxflow.tasks.TaskPqPandas):
     """PLACEHOLDER - transform GetData's output into the pipeline's result."""
-    optional = d6tflow.BoolParameter(default=False)
+    optional = oryxflow.BoolParameter(default=False)
 
     def run(self):
         df = self.input().load()

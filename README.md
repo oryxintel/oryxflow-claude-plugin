@@ -1,12 +1,12 @@
-# d6tflow plugin
+# oryxflow plugin
 
 A Claude Code plugin for building highly effective data science workflows with
-[d6tflow](https://github.com/d6t/d6tflow): chain together complex,
+[oryxflow](https://github.com/oryxintel/oryxflow): chain together complex,
 parameterized data flows with dependencies and caching, and rerun them
 intelligently after code or parameter changes - so you build better models
 faster.
 
-It ships one skill, `d6tflow`, that activates when you work in a d6tflow project
+It ships one skill, `oryxflow`, that activates when you work in a oryxflow project
 - editing `tasks.py` / `flow.py` / `run.py` / `cfg.py` / `flow_params.py`, adding
 or modifying pipeline tasks, running workflows, or analyzing outputs.
 
@@ -14,12 +14,12 @@ or modifying pipeline tasks, running workflows, or analyzing outputs.
 
 Already installed? Two things to know:
 
-- Scaffold a new project: run `/d6tflow:init-project` in an empty directory.
-- Put `data/` under Git LFS: run `/d6tflow:init-gitlfs` in the project.
-- Update an old project to the latest scaffold: run `/d6tflow:update-project`.
-- Check code against the house standards: run `/d6tflow:check-standards`.
-- Use it: just start working in a d6tflow project and the skill auto-activates,
-  or invoke it manually with `/d6tflow:d6tflow`.
+- Scaffold a new project: run `/oryxflow:init-project` in an empty directory.
+- Put `data/` under Git LFS: run `/oryxflow:init-gitlfs` in the project.
+- Update an old project to the latest scaffold: run `/oryxflow:update-project`.
+- Check code against the house standards: run `/oryxflow:check-standards`.
+- Use it: just start working in a oryxflow project and the skill auto-activates,
+  or invoke it manually with `/oryxflow:oryxflow`.
 
 New here? Start with [Install](#install).
 
@@ -30,8 +30,8 @@ This repo is its own marketplace, so it can be installed directly.
 ### From GitHub
 
 ```
-/plugin marketplace add https://github.com/d6t/d6tflow-claude-plugin.git
-/plugin install d6tflow@d6tflow
+/plugin marketplace add https://github.com/oryxintel/oryxflow-claude-plugin.git
+/plugin install oryxflow@oryxflow
 ```
 
 The full HTTPS URL works for everyone on a public repo with no auth setup.
@@ -42,43 +42,43 @@ it fails with "Permission denied (publickey)". Prefer the HTTPS URL above if
 unsure.
 
 ```
-/plugin marketplace add d6t/d6tflow-claude-plugin
-/plugin install d6tflow@d6tflow
+/plugin marketplace add oryxintel/oryxflow-claude-plugin
+/plugin install oryxflow@oryxflow
 ```
 
 ### From a local clone
 
 ```
-/plugin marketplace add /path/to/d6tflow-claude-plugin
-/plugin marketplace add D:\OneDrive\dev\d6tlib\d6tflow-claude-plugin   # e.g.
-/plugin install d6tflow@d6tflow
+/plugin marketplace add /path/to/oryxflow-claude-plugin
+/plugin marketplace add D:\OneDrive\dev\oryxlib\oryxflow-claude-plugin   # e.g.
+/plugin install oryxflow@oryxflow
 ```
 
-To pull a newer version later: `/plugin marketplace update d6tflow`.
+To pull a newer version later: `/plugin marketplace update oryxflow`.
 
 ## Start a new project
 
-In an empty directory, scaffold a runnable d6tflow project:
+In an empty directory, scaffold a runnable oryxflow project:
 
 ```
-/d6tflow:init-project
+/oryxflow:init-project
 ```
 
 This copies a minimal template into the current directory - the project wiring
 (`tasks.py`, `cfg.py`, `flow.py`, `run.py`, `flow_params.py`, `visualize.py`),
 a project `CLAUDE.md`, a `.gitignore` / `.creds.yaml.example`, and a
-`docs/d6tflow-data.md` skeleton for data findings. It never overwrites existing
+`docs/oryxflow-data.md` skeleton for data findings. It never overwrites existing
 files. `python run.py` works immediately; replace the `PLACEHOLDER SCAFFOLD`
 tasks with your real pipeline (documented via task docstrings) and fill
-`docs/d6tflow-data.md` as you learn about the data.
+`docs/oryxflow-data.md` as you learn about the data.
 
 ## Version your data with Git LFS
 
-d6tflow caches per-task outputs under `data/` (parquet, csv, json); the scaffold
+oryxflow caches per-task outputs under `data/` (parquet, csv, json); the scaffold
 gitignores them. To version them instead, run:
 
 ```
-/d6tflow:init-gitlfs
+/oryxflow:init-gitlfs
 ```
 
 It checks git-lfs is installed and hooked into git (guiding you through
@@ -94,7 +94,7 @@ A project scaffolded a while ago can fall behind the latest template (newer
 its scaffold floor up to date without touching your pipeline:
 
 ```
-/d6tflow:update-project
+/oryxflow:update-project
 ```
 
 It diffs the template against your project, proposes a per-file migration plan,
@@ -105,15 +105,15 @@ notices a project whose floor predates the current scaffold.
 ## Using the skill
 
 Once installed, the skill is always available - there is nothing to turn on per
-session. It auto-activates when you work in a d6tflow project: editing the
+session. It auto-activates when you work in a oryxflow project: editing the
 pipeline files, adding or modifying tasks, running flows, or analyzing outputs.
-You can also invoke it explicitly any time with `/d6tflow:d6tflow`, or pass the
-deep-dive argument with `/d6tflow:d6tflow explore`.
+You can also invoke it explicitly any time with `/oryxflow:oryxflow`, or pass the
+deep-dive argument with `/oryxflow:oryxflow explore`.
 
 Scaffolding a new project, setting up Git LFS, updating an old project's floor,
 and checking code against the standards are separate, manually-triggered
-commands - `/d6tflow:init-project`, `/d6tflow:init-gitlfs`,
-`/d6tflow:update-project`, and `/d6tflow:check-standards` - they are not
+commands - `/oryxflow:init-project`, `/oryxflow:init-gitlfs`,
+`/oryxflow:update-project`, and `/oryxflow:check-standards` - they are not
 auto-invoked, since they write files, run git, or edit your code.
 
 Things you can ask, in plain language:
@@ -121,7 +121,7 @@ Things you can ask, in plain language:
 Build the pipeline:
 - "load the `<X>` data" - creates an output-named loader task (e.g. `DataOEWS`)
 - "add a task `<Name>` that takes `<Upstream>`'s output and ..." - the common
-  case: a new task wired to an upstream with `@d6tflow.requires(<Upstream>)`
+  case: a new task wired to an upstream with `@oryxflow.requires(<Upstream>)`
 - "create a task `<Name>` that loads `<source>`" - a root task (no dependency)
 - "add a task `<Name>` that depends on `<A>` and `<B>`" - multiple inputs
 - "save `<field>` in `<Task>`" / "add (or drop) a column in `<Task>`" - edits the
@@ -141,15 +141,15 @@ Understand:
 - "what does this pipeline do?" - summarize the flow
 - "explore the data" - opt-in deep dive that profiles `data/` and writes findings
 
-For more on d6tflow itself, see [Resources](#resources).
+For more on oryxflow itself, see [Resources](#resources).
 
 ## Developing the plugin
 
 Iterate without installing - load the plugin directly for one session:
 
 ```
-claude --plugin-dir /path/to/d6tflow-claude-plugin
-claude --plugin-dir D:\OneDrive\dev\d6tlib\d6tflow-claude-plugin   # e.g.
+claude --plugin-dir /path/to/oryxflow-claude-plugin
+claude --plugin-dir D:\OneDrive\dev\oryxlib\oryxflow-claude-plugin   # e.g.
 ```
 
 After editing any plugin file (`SKILL.md`, `reference.md`, `commands/*`,
@@ -162,7 +162,7 @@ only works in `--plugin-dir` mode, where files are read live from disk. If you
 instead *installed* the plugin (see [Install](#install)) - even from a local
 clone - your edits do NOT show up via reload or a restart. An install resolves a
 fixed `version`, so changes only propagate after you release them (bump `version`
-+ commit, below) and the owner runs `/plugin marketplace update d6tflow`. That is
++ commit, below) and the owner runs `/plugin marketplace update oryxflow`. That is
 the right behavior for consumers, but it makes an install a poor way to iterate.
 
 **Suggested setup: use both, for their two different jobs.**
@@ -170,7 +170,7 @@ the right behavior for consumers, but it makes an install a poor way to iterate.
 - *Developing the plugin* (editing `SKILL.md`, `reference.md`, etc.): launch with
   `claude --plugin-dir <repo>` and `/reload-plugins` after each edit. Instant
   feedback, no version bump.
-- *Using the plugin* in your real d6tflow projects: `/plugin install` it once
+- *Using the plugin* in your real oryxflow projects: `/plugin install` it once
   (see [Install](#install)) so it is always on without passing any flag.
 
 Do not do both in the same session - `--plugin-dir` plus an active install loads
@@ -191,7 +191,7 @@ bucket - add changelog bullets to that top section as you work.
 3. Commit (and push, if consumers install from git).
 
 Installed copies pick up the change when their owner runs
-`/plugin marketplace update d6tflow`. The version bump is the signal that there
+`/plugin marketplace update oryxflow`. The version bump is the signal that there
 is something new - skip it and the update may not register. (Git installs with
 no pinned version fall back to the commit SHA, so a new commit counts as new;
 but since we set an explicit version, it must be bumped.)
@@ -199,19 +199,19 @@ but since we set an explicit version, it must be bumped.)
 ## Contents
 
 ```
-d6tflow-claude-plugin/
+oryxflow-claude-plugin/
 |-- .claude-plugin/
 |   |-- plugin.json        # plugin manifest
 |   `-- marketplace.json   # lets this repo act as its own marketplace
 |-- commands/
-|   |-- init-project.md    # /d6tflow:init-project - scaffold a new project
-|   |-- init-gitlfs.md     # /d6tflow:init-gitlfs - put data/ under Git LFS
-|   |-- update-project.md  # /d6tflow:update-project - update an old project's floor
-|   `-- check-standards.md # /d6tflow:check-standards - check names, style, docstrings
+|   |-- init-project.md    # /oryxflow:init-project - scaffold a new project
+|   |-- init-gitlfs.md     # /oryxflow:init-gitlfs - put data/ under Git LFS
+|   |-- update-project.md  # /oryxflow:update-project - update an old project's floor
+|   `-- check-standards.md # /oryxflow:check-standards - check names, style, docstrings
 |-- resources/
 |   `-- template-minimal/  # the files init-project copies into a new project
 `-- skills/
-    `-- d6tflow/
+    `-- oryxflow/
         |-- SKILL.md       # skill entry point (loaded into context)
         |-- reference.md   # full library reference, loaded on demand
         |-- conventions.md # house conventions (layout, code-org, naming), on demand
@@ -220,12 +220,12 @@ d6tflow-claude-plugin/
 
 ## Resources
 
-Learn more about d6tflow itself (the underlying library this plugin helps you
+Learn more about oryxflow itself (the underlying library this plugin helps you
 work with):
 
-- d6tflow documentation: https://d6tflow.readthedocs.io/
-- d6tflow source: https://github.com/d6t/d6tflow
-- Maintainer: https://databolt.tech
+- oryxflow documentation: https://oryxflow.readthedocs.io/
+- oryxflow source: https://github.com/oryxintel/oryxflow
+- Maintainer: https://oryxintel.com
 
 This plugin's own repository and issue tracker:
-https://github.com/d6t/d6tflow-claude-plugin
+https://github.com/oryxintel/oryxflow-claude-plugin

@@ -1,4 +1,4 @@
-# Design notes - why the d6tflow skill is shaped this way
+# Design notes - why the oryxflow skill is shaped this way
 
 Rationale behind non-obvious decisions, so future edits do not undo them by
 accident. Update this when the *reasoning* changes, not just the text.
@@ -14,11 +14,11 @@ each activation. Resist moving reference material up into it.
 
 ### Why the on-demand depth is split three ways
 
-The depth is NOT one file. It is `reference.md` (the d6tflow LIBRARY: task types,
+The depth is NOT one file. It is `reference.md` (the oryxflow LIBRARY: task types,
 params, running/reset, advanced patterns, recipes, debugging, and the silent-
 data-error guards), `conventions.md` (the HOUSE STYLE: project-layout deep dive,
 code-organization-by-subject, and naming columns/tasks/variables), and
-`ml-patterns.md` (ML templates). The split is along a real seam - "how d6tflow
+`ml-patterns.md` (ML templates). The split is along a real seam - "how oryxflow
 works" vs "how we organize a project" are different questions asked at different
 moments. `reference.md` crossed ~1000 lines and a focused question ("where does
 this code go", "how do I name this column") had to page the whole file, diluting
@@ -60,16 +60,16 @@ always-loaded tier stays lean.
 
 ## The skill orients from code + a data doc, not by re-scanning
 
-A d6tflow project documents itself in two places, and the skill reads and trusts
+A oryxflow project documents itself in two places, and the skill reads and trusts
 them instead of re-deriving structure by scanning every file each session:
 
 - **The pipeline is in the code**: the `tasks.py` module docstring (goal), per-
-  task docstrings (what each does), `@d6tflow.requires(...)` decorators (the DAG;
+  task docstrings (what each does), `@oryxflow.requires(...)` decorators (the DAG;
   `flow.preview()` summarizes it), and parameter comments in `flow_params.py`.
-- **`docs/d6tflow-data.md`**: the data (sources, schema, quirks, rules) - the one
+- **`docs/oryxflow-data.md`**: the data (sources, schema, quirks, rules) - the one
   fact set with no code home. A larger project may split it into more
-  `docs/d6tflow-data*.md` files (the flat `d6tflow-` prefix was chosen over a
-  `docs/d6tflow/` subfolder to keep nesting shallow).
+  `docs/oryxflow-data*.md` files (the flat `oryxflow-` prefix was chosen over a
+  `docs/oryxflow/` subfolder to keep nesting shallow).
 
 Why in-code-first: per-task meaning belongs next to the code it describes (it
 cannot drift, and it is idiomatic Python). A separate pipeline doc would just
@@ -90,7 +90,7 @@ project) and then stops. It does NOT auto-inspect `data/`, read raw sources,
 write `eda/` scripts, or build the docs.
 
 Why: that exploration is expensive and is the user's call to start. It runs only
-on `/d6tflow explore` or a plain-language request to orient/explore/inspect. The
+on `/oryxflow explore` or a plain-language request to orient/explore/inspect. The
 trigger surface is documented in `SKILL.md` so it stays discoverable.
 
 ## Code organization scales by subject (eda / utils / viz)
@@ -135,7 +135,7 @@ The forks that were decided (each had a defensible alternative):
   write `data/`. Loading external data is just the loader-task pattern, so it is a
   source task BY DEFAULT (DAG + cache). Two cases stay a `utils/<dataset>.py`
   script instead: hand-curated data (not reproducible, so calling it a "task" is
-  misleading) and output a d6tflow task type cannot store (not a DataFrame or a
+  misleading) and output a oryxflow task type cannot store (not a DataFrame or a
   serializable object - a raw file asset / directory, where a task buys little).
   Surfaced by the real project, where in-place csv cleaners had no honest home as
   either probe or task.
@@ -197,12 +197,12 @@ The model itself, and the forks decided:
   inline in the orchestration task and could drift from the recorded set.
 - **Cache-safe move is load-bearing and was VERIFIED, not assumed.** The whole
   "split later" advice rests on moving a class between modules being free. A task's
-  identity is its class name: `d6tflow.core.Task.get_task_family` returns
+  identity is its class name: `oryxflow.core.Task.get_task_family` returns
   `cls.__name__` (no module path), confirmed empirically: the same class in two
   different modules resolves to the identical `data/<Class>/...` output path.
   RENAME still orphans the old cache (class name changed) - only MOVE is free; the
-  docs keep both notes. (This is d6tflow's OWN behavior - the task base class is
-  `d6tflow.core.Task`, not a luigi subclass - so it is unaffected by anything in
+  docs keep both notes. (This is oryxflow's OWN behavior - the task base class is
+  `oryxflow.core.Task`, not a luigi subclass - so it is unaffected by anything in
   luigi.)
 
 Where it lives (load tiers): conventions.md owns the LAYOUT progression (scaling
@@ -241,7 +241,7 @@ binary-ish and slow/risky to rewrite); `NotebookEdit` then edits the copy's cell
 The no-inline-Python rule routes probe code into `eda/` files. That is only half
 the point. A probe is run to ANSWER A QUESTION about the data ("does this column
 have nulls?", "which sheet holds the estimates?"), and the answer is a data
-finding - the same class of fact that `docs/d6tflow-data.md` exists to hold. So
+finding - the same class of fact that `docs/oryxflow-data.md` exists to hold. So
 the rule pairs with a documentation duty: each `eda/` script states its question
 (docstring) and makes its result legible (a clear print or a recorded comment),
 and material findings get promoted into the data doc.
@@ -259,7 +259,7 @@ writing up a finding a probe has ALREADY produced (part of finishing the work).
 The second is not a new decision to ask about - asking "shall I record this?"
 after a data-quality finding just adds a round-trip and invites the finding to
 evaporate when the user moves on. So material findings, data-quality ones
-especially, get written to `docs/d6tflow-data.md` without asking.
+especially, get written to `docs/oryxflow-data.md` without asking.
 
 ## One uniform PLACEHOLDER marker (code AND docs)
 
@@ -270,8 +270,8 @@ marker comment directly above it: `# PLACEHOLDER SCAFFOLD - ...`. The marker sit
 on the task/params, not above the imports, because the imports are real code.
 
 The marker carries over to the rest of the scaffold: the `tasks.py` module and
-task docstrings ship as placeholders, and `/d6tflow:init-project` ships
-`docs/d6tflow-data.md` as a short skeleton with a `PLACEHOLDER` HTML comment on
+task docstrings ship as placeholders, and `/oryxflow:init-project` ships
+`docs/oryxflow-data.md` as a short skeleton with a `PLACEHOLDER` HTML comment on
 line 1. Filling any of them means writing real content and deleting the marker.
 
 So there is ONE rule across the whole project: a `PLACEHOLDER` marker means "not
@@ -301,7 +301,7 @@ faithfully reporting what the scaffold contains.
 ## data/ holds two different things
 
 Raw source inputs are typically loose files directly under `data/` (`.csv`,
-`.xlsx`, etc.). d6tflow task OUTPUTS are parquet written into per-task subfolders
+`.xlsx`, etc.). oryxflow task OUTPUTS are parquet written into per-task subfolders
 (`data/GetData/*.parquet`). When hunting for inputs, ignore the parquet
 subfolders. The source path can be redirected via `cfg.py`.
 
@@ -309,19 +309,19 @@ subfolders. The source path can be redirected via `cfg.py`.
 
 Where each kind of information lives, and why:
 
-- **Generic d6tflow knowledge** (task types, patterns, ML recipes, conventions)
+- **Generic oryxflow knowledge** (task types, patterns, ML recipes, conventions)
   lives ONLY in the plugin: `SKILL.md` (essentials), `reference.md` (library
   depth), `conventions.md` (house style), `ml-patterns.md` (ML), the last three on
   demand. It is identical across projects, so it must
   not be copied into each one. Plugin-izing this is the whole point - it ends the
-  old habit of dumping a `claude-d6tflow.md` guide into every repo.
+  old habit of dumping a `claude-oryxflow.md` guide into every repo.
 - **Project-specific truth** lives with the thing it describes: pipeline meaning
-  in the code's docstrings, data findings in `docs/d6tflow-data.md`. Unique per
+  in the code's docstrings, data findings in `docs/oryxflow-data.md`. Unique per
   project, evolves with the code; this is what lets the skill skip re-scanning.
   In-code-first is deliberate - documentation that can sit next to its code
   should, so it cannot drift; a file is used only for what has no code home.
 - **The bootstrap/link** is the project's always-loaded `CLAUDE.md`. It declares
-  "this is a d6tflow project," points to the code + data doc, and restates the
+  "this is a oryxflow project," points to the code + data doc, and restates the
   conventions floor (ASCII, eda/ not inline python, no try/except, flow-file
   discipline, trust auto file mgmt) so they hold even with the plugin NOT
   installed. The plugin holds the depth; `CLAUDE.md` holds the wiring + floor.
@@ -352,25 +352,25 @@ cold-start case.
 
 ## Logging: two layers, log scalars / save artifacts
 
-Domain signal, not `print`, in two layers. d6tflow already logs the lifecycle
-(scheduling / completion / timing) via `d6tflow.enable_logging()` - the most useful
+Domain signal, not `print`, in two layers. oryxflow already logs the lifecycle
+(scheduling / completion / timing) via `oryxflow.enable_logging()` - the most useful
 execution log; bracketing `flow.run()` with hand-written start/done lines (an
-earlier scaffold `run.py` did this) just duplicates it. So lifecycle is d6tflow's;
+earlier scaffold `run.py` did this) just duplicates it. So lifecycle is oryxflow's;
 in-task logging covers what it does not show - shapes, drop rates, headline
 metrics, the branch taken.
 
 Use `self.logger`, NOT a raw `from loguru import logger`. This is the load-bearing
 correction (an earlier draft taught raw loguru, which is actively wrong here):
-`enable_logging()` adds a handler filtered to the `d6tflow` namespace AND removes
+`enable_logging()` adds a handler filtered to the `oryxflow` namespace AND removes
 loguru's default handler, so a raw `logger.info` from the task's own module is
 SILENTLY DROPPED - the examples would have produced no output. `self.logger`
-(the `Task.logger` property -> `TaskLogger`) emits from inside the d6tflow package
+(the `Task.logger` property -> `TaskLogger`) emits from inside the oryxflow package
 so it lands in that namespace and survives, and auto-tags `task_id`. Outside a task
-(`run.py`) there is no `self.logger` and no clean d6tflow-namespaced logger, so
-orchestration there uses `print` (verified against d6tflow source: `core.py`
+(`run.py`) there is no `self.logger` and no clean oryxflow-namespaced logger, so
+orchestration there uses `print` (verified against oryxflow source: `core.py`
 `Task.logger`, `log.py` `TaskLogger` + `enable_logging`).
 
-Knock-on simplification: because domain logs now share the ONE d6tflow sink,
+Knock-on simplification: because domain logs now share the ONE oryxflow sink,
 `enable_logging(colorize=False)` governs color for both lifecycle and domain at
 once - the earlier per-run `logger.add("run.log", colorize=False)` side-sink
 workaround is gone. (`enable_logging`'s `colorize` even auto-detects: colored on a
@@ -403,9 +403,9 @@ model example, the colorize switch) plus live log lines IN the `FeaturesTransfor
 
 ## The cache-reset gotcha is promoted to every tier (salience, not depth)
 
-d6tflow caches on task IDENTITY (class + params), not code, so a CODE/DATA change
+oryxflow caches on task IDENTITY (class + params), not code, so a CODE/DATA change
 needs `flow.reset(Task)` (cascades downstream); a plain run reuses stale output -
-the #1 d6tflow surprise. The depth already lived in `reference.md`, but that is
+the #1 oryxflow surprise. The depth already lived in `reference.md`, but that is
 on-demand, so in a live session the rule was not in context when needed and a real
 project's agent invented a `reset_downstream` helper instead of the built-in.
 
@@ -423,13 +423,13 @@ rewriting.
 
 ## Scaffolding: the init command and the template
 
-A new project is created by the `/d6tflow:init-project` slash command (commands
+A new project is created by the `/oryxflow:init-project` slash command (commands
 get a reliable `${CLAUDE_PLUGIN_ROOT}`; skills do not, so init is a command, not
 the skill). It copies the bundled template into the user's cwd with a SHELL copy
 (robocopy / cp -n), skip-existing / never-overwrite, and never reads+rewrites
 files via the LLM (which would be slow and could corrupt `viz-template.ipynb`).
 
-Git LFS setup is a SEPARATE command, `/d6tflow:init-gitlfs`, not folded into
+Git LFS setup is a SEPARATE command, `/oryxflow:init-gitlfs`, not folded into
 init-project: LFS is opt-in (most scaffolds never commit `data/`), it mutates git
 state (init, .gitignore, a commit) rather than just copying files, and it has its
 own machine prerequisite (the git-lfs binary + `git lfs install` filters). The
@@ -443,24 +443,24 @@ The template lives at `resources/template-minimal/`, edited directly here (this
 repo is canonical for it). It is kept unpacked (not zipped) so template changes
 are diffable in PRs and copying needs no archive tooling.
 
-## d6tflow is decoupled from luigi (do not assume otherwise)
+## oryxflow is decoupled from luigi (do not assume otherwise)
 
-d6tflow is NOT based on luigi. It once was a luigi wrapper (tasks subclassed
+oryxflow is NOT based on luigi. It once was a luigi wrapper (tasks subclassed
 luigi's; `get_task_family` lived in luigi), but is now decoupled: base class is
-`d6tflow.core.Task` (MRO `TaskPqPandas -> TaskData -> d6tflow.core.Task ->
-object`, no luigi), and `get_task_family` returns `cls.__name__` in d6tflow's own
+`oryxflow.core.Task` (MRO `TaskPqPandas -> TaskData -> oryxflow.core.Task ->
+object`, no luigi), and `get_task_family` returns `cls.__name__` in oryxflow's own
 code.
 
 Recorded because the "luigi wrapper" belief is a live trap: a stale-but-plausible
-prior (true of old d6tflow, repeated in older docs / training data) that gets
-recalled as fact, steering verification to read `luigi.*` to explain d6tflow -
+prior (true of old oryxflow, repeated in older docs / training data) that gets
+recalled as fact, steering verification to read `luigi.*` to explain oryxflow -
 and a leftover `import luigi` succeeding (transitive install) seems to confirm
 it. The MRO check that catches it is the one most likely skipped.
 
-Rule when reasoning about d6tflow internals (identity, caching, DAG): inspect the
+Rule when reasoning about oryxflow internals (identity, caching, DAG): inspect the
 installed class (`cls.__mro__`, then the method on the class that defines it),
 never `luigi.*`; `import luigi` working is not evidence. Treat any "luigi" in an
 older plan/doc as this slip. (The cache-safe-move guarantee under "Scaling a
-growing project" is d6tflow's own, verified directly - only the luigi attribution
+growing project" is oryxflow's own, verified directly - only the luigi attribution
 was wrong, not the fact.) More generally: distrust a library-internals claim
 sourced from memory, not from the installed code.

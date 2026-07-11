@@ -1,8 +1,8 @@
-# Plan: Experiment-management guidance for the d6tflow skill
+# Plan: Experiment-management guidance for the oryxflow skill
 
 ## Context
 
-A d6tflow data-science project today is documented well for the *single-run*
+A oryxflow data-science project today is documented well for the *single-run*
 and *prod* lifecycle, but the **experiment** lifecycle - exploring many
 parameter combinations, tracking what was tried, comparing results, and
 documenting outcomes - is essentially undocumented in the skill. Concretely:
@@ -16,7 +16,7 @@ documenting outcomes - is essentially undocumented in the skill. Concretely:
   polluting prod cache/data.
 
 This work fills that gap **in the skill docs** (the plugin's artifact), so an
-agent driving a real d6tflow project runs sweeps the house way: native d6tflow
+agent driving a real oryxflow project runs sweeps the house way: native oryxflow
 tooling, results captured as artifacts, outcomes written down.
 
 Decisions locked with the user:
@@ -25,25 +25,25 @@ Decisions locked with the user:
   `template-minimal` scaffold is **not** changed; experiments.md teaches by a
   complete inline worked example. (An opt-in reference-implementation example
   under `resources/` is noted as a possible follow-up, not built now.)
-- **Skip Weights & Biases entirely.** Native d6tflow only - no external
+- **Skip Weights & Biases entirely.** Native oryxflow only - no external
   dependency, no API-key auth in the default workflow. (A W&B MCP server exists
   and works with Claude Code; deliberately out of scope to keep the template
   dependency-free.)
 - **Code/data strategy: env-segregation by default, branches by scale** (see the
   recommendation in experiments.md content below).
 
-## What d6tflow already gives us (verified against the installed lib)
+## What oryxflow already gives us (verified against the installed lib)
 
-`d6tflow/__init__.py` and `d6tflow/utils.py` (installed at
-`d:\onedrive\dev\d6tlib\d6tflow\d6tflow`):
+`oryxflow/__init__.py` and `oryxflow/utils.py` (installed at
+`d:\onedrive\dev\oryxlib\oryxflow\oryxflow`):
 
-- `d6tflow.WorkflowMulti(task, params, path=None, env=None)` - many flows, one
+- `oryxflow.WorkflowMulti(task, params, path=None, env=None)` - many flows, one
   per param set. `params` accepts a dict-of-lists (auto cartesian), a list, or a
   dict-of-dicts (named flows).
 - `wm.run(flow=None)` runs ALL flows -> `{flow_key: RunResult}`; `flow=key` runs
   one. `wm.outputLoad(task, flow=None)` -> `{flow_key: output}`; `flow=key` ->
   single. `wm.reset(task, flow=key)`, `wm.preview(...)` mirror this.
-- `d6tflow.utils` generators, all returning `{key: params_dict}` for
+- `oryxflow.utils` generators, all returning `{key: params_dict}` for
   WorkflowMulti:
   - `params_generator_single(dict_, params_base=None)` - sweep ONE param.
   - `params_generator_dictlist(params_dict, params_base=None)` - full cartesian
@@ -57,7 +57,7 @@ Decisions locked with the user:
 
 ## Files to change
 
-### 1. NEW: `skills/d6tflow/experiments.md` (on-demand, ASCII, ~78-col wrap)
+### 1. NEW: `skills/oryxflow/experiments.md` (on-demand, ASCII, ~78-col wrap)
 
 The primary deliverable. Sections:
 
@@ -83,7 +83,7 @@ The primary deliverable. Sections:
    example each: `params_generator_single` (one axis), `params_generator_dictlist`
    (full grid), `params_generator_df` (hand-picked rows), `generate_exps_for_multi_param`
    (named flows). All feed WorkflowMulti; all merge a shared `params_base`.
-3. **Run + load across variants.** `wm = d6tflow.WorkflowMulti(FinalTask,
+3. **Run + load across variants.** `wm = oryxflow.WorkflowMulti(FinalTask,
    params=...)`; `wm.run()` -> dict of RunResult; `wm.outputLoad(Task)` ->
    dict keyed by flow; per-flow `flow=key`; per-flow `reset`.
 4. **Track metrics natively (no external tracker).** PREREQUISITE, state it
@@ -177,7 +177,7 @@ The primary deliverable. Sections:
      editing rf->xgb in place keeps the same `task_id`, so xgb OVERWRITES rf's
      cached artifact and rollback forces a reset+recompute.
    - **EDA before trying a model** ("where does all that code go?"): NOT here - it
-     goes in `eda/<subject>/*.py` probes (findings -> `docs/d6tflow-data.md`),
+     goes in `eda/<subject>/*.py` probes (findings -> `docs/oryxflow-data.md`),
      scratch in `data/.eda/`. Cross-link the existing SKILL.md EDA conventions.
      The boundary: a probe writes no pipeline artifact; a probe that proves out
      GRADUATES into a feature task, which then enters the sweep as a param.
@@ -190,7 +190,7 @@ The primary deliverable. Sections:
      so the merged winner stays toggleable. This case exercises 1b + 6 + 7
      together and is the doc's hardest worked example.
 
-### 2. `skills/d6tflow/reference.md` - API surface only
+### 2. `skills/oryxflow/reference.md` - API surface only
 
 Around the existing WorkflowMulti block (~lines 356-371): replace the single
 `params_generator_dictlist` example with a compact catalog of **all four**
@@ -199,13 +199,13 @@ semantics (`run`/`outputLoad`/`reset` return dicts keyed by flow; `flow=`
 selects one). Keep it terse - reference is the API catalog; the how-to-run-an-
 experiment narrative lives in experiments.md. End with a pointer to experiments.md.
 
-### 3. `skills/d6tflow/ml-patterns.md` - cross-link
+### 3. `skills/oryxflow/ml-patterns.md` - cross-link
 
 In "Productionizing: prod vs experiment" (~line 403): add one sentence pointing
 forward to experiments.md for the explore-many / sweep / compare front end, so
 the two halves of the lifecycle reference each other.
 
-### 4. `skills/d6tflow/SKILL.md` - lean pointers only (guard against bloat)
+### 4. `skills/oryxflow/SKILL.md` - lean pointers only (guard against bloat)
 
 - Depth-on-demand paragraph (lines 39-45): add `experiments.md` with a 6-8 word
   gloss ("running parameter sweeps, comparing + documenting experiment runs").
@@ -238,7 +238,7 @@ the two halves of the lifecycle reference each other.
 - No changes to `resources/template-minimal/` (scaffold stays as-is). A possible
   follow-up: an opt-in `resources/examples/` reference implementation the skill
   could point to - flagged, not built now.
-- No new d6tflow library code - we only document existing APIs.
+- No new oryxflow library code - we only document existing APIs.
 
 ## Verification
 
@@ -254,11 +254,11 @@ test suite:
    a suggestion. If a future lib change alters either fact, the wording changes.
 1. **API claims are real** (already spot-checked, re-confirm after drafting):
    from the repo, inspect the installed lib for each name used -
-   `python -c "import d6tflow, d6tflow.utils; print([n for n in
-   ('WorkflowMulti',) if hasattr(d6tflow,n)],
+   `python -c "import oryxflow, oryxflow.utils; print([n for n in
+   ('WorkflowMulti',) if hasattr(oryxflow,n)],
    [n for n in ('params_generator_single','params_generator_dictlist',
    'params_generator_df','generate_exps_for_multi_param') if
-   hasattr(d6tflow.utils,n)])"` and confirm `WorkflowMulti.outputLoad` /
+   hasattr(oryxflow.utils,n)])"` and confirm `WorkflowMulti.outputLoad` /
    `.run` signatures match what experiments.md shows. Every code block in
    experiments.md must use only verified names/signatures.
 2. **Plugin still valid**: `claude plugin validate .` (checks plugin.json +

@@ -1,6 +1,6 @@
-# CLAUDE.md - d6tflow data-science project
+# CLAUDE.md - oryxflow data-science project
 
-This is a d6tflow data-science pipeline (tasks, dependencies, parameters,
+This is a oryxflow data-science pipeline (tasks, dependencies, parameters,
 caching). Follow the established project structure - do NOT create
 ad-hoc scripts or inline commands for workflow operations.
 
@@ -10,14 +10,14 @@ This project documents itself in two places. Read them before re-exploring, and
 trust them as the source of truth:
 
 - **The pipeline is in the code**: the `tasks.py` module docstring (the goal),
-  a docstring on each task (what it does), the `@d6tflow.requires(...)` decorators
+  a docstring on each task (what it does), the `@oryxflow.requires(...)` decorators
   (the DAG; `flow.preview()` summarizes it), and parameter comments in
   `flow_params.py`. There is no separate pipeline doc - the code cannot drift.
-- `docs/d6tflow-data.md` - the data: sources, schema, quality issues, business
+- `docs/oryxflow-data.md` - the data: sources, schema, quality issues, business
   rules, quirks. (The one fact set with no code home.)
 
 A `PLACEHOLDER` marker (the `PLACEHOLDER SCAFFOLD` comment in `tasks.py`, or the
-comment on line 1 of `d6tflow-data.md`) means that part is not captured yet. That
+comment on line 1 of `oryxflow-data.md`) means that part is not captured yet. That
 is the signal to explore - but whether to GO exploring (inspecting data,
 profiling schema) is the USER's call, not automatic: ask first. Once a probe has
 surfaced a material finding, though, RECORDING it (docstrings, and especially
@@ -29,9 +29,9 @@ do not ask.
 - ASCII only. No emojis / unicode / smart quotes in code or output (Windows safety).
 - Log domain signal (shapes, drop rates, metrics, the branch taken) with
   `self.logger` INSIDE a task's `run()`, not `print`; call
-  `d6tflow.enable_logging()` once (in `run.py`) for task lifecycle. Use
+  `oryxflow.enable_logging()` once (in `run.py`) for task lifecycle. Use
   `self.logger`, NOT a raw `from loguru import logger`: after `enable_logging()`
-  only the `d6tflow` namespace survives the filter, and `self.logger` is in it
+  only the `oryxflow` namespace survives the filter, and `self.logger` is in it
   (and auto-tags `task_id`); a raw loguru call is silently dropped. Log SCALARS;
   SAVE frames / artifacts (`self.save()` / xlsx), never log them or log per-row.
   Messages ASCII. Outside a task (e.g. `run.py`) there is no `self.logger` - a
@@ -43,7 +43,7 @@ do not ask.
   script that imports the flow); `-m` puts the root on the path, so setting
   `PYTHONPATH` (`$env:PYTHONPATH=...`) or patching `sys.path` is unnecessary.
   Document each probe (its question + result); promote material data findings to
-  `docs/d6tflow-data.md`.
+  `docs/oryxflow-data.md`.
 - Organize supporting code by subject (a task, dataset, or concept, snake_case):
   `eda/<subject>/` (READ-ONLY probes), `utils/<subject>.py` (helpers),
   `viz/<subject>.py` (plots). A helper shared by 2+ subjects goes in a concept /
@@ -85,7 +85,7 @@ do not ask.
   `flow_params.py` (parameters), `flow.py` (which final task runs), `run.py`
   (execute). Run the workflow with `python run.py`.
 - After editing a task's CODE (or when its source data changed), RESET it before
-  running: `flow.reset(Task)` (cascades downstream). d6tflow caches on identity
+  running: `flow.reset(Task)` (cascades downstream). oryxflow caches on identity
   (class + params), NOT code, so a plain run reuses the stale output. A PARAMETER
   change makes a new identity and auto-reruns (no reset). Use the built-in
   `flow.reset` - never write a reset helper.
@@ -112,24 +112,24 @@ cfg.py            # global config           flow_params.py  # workflow parameter
 flow.py           # workflow instance       run.py          # execute the workflow
 visualize.py      # analysis script         viz-template.ipynb # report template
 data/             # raw inputs + per-task parquet outputs (gitignored)
-docs/             # d6tflow-data.md (data findings; pipeline docs live in code)
+docs/             # oryxflow-data.md (data findings; pipeline docs live in code)
 .creds.yaml       # secrets (gitignored; see .creds.yaml.example)
 ```
 
-## d6tflow plugin
+## oryxflow plugin
 
-This project is meant to be used WITH the d6tflow Claude Code plugin, whose
-`d6tflow` skill covers all of the above in depth (task types, patterns, ML
+This project is meant to be used WITH the oryxflow Claude Code plugin, whose
+`oryxflow` skill covers all of the above in depth (task types, patterns, ML
 recipes, debugging). Before real workflow work here - editing tasks.py /
-flow_params.py / flow.py, or running the pipeline - check that the `d6tflow`
+flow_params.py / flow.py, or running the pipeline - check that the `oryxflow`
 skill is available to you. If it is NOT, the plugin did not load: say so and ask
 the user to load it. Do not nag; but after finishing a substantial piece of work
 without it, occasionally remind the user they will get better results with the
-d6tflow Claude Code plugin active.
+oryxflow Claude Code plugin active.
 
 This file is the portable floor; the plugin is the depth.
 
-<!-- d6tflow-floor: 26.6.29 (plugin version of the last scaffold-floor change;
+<!-- oryxflow-floor: 26.6.29 (plugin version of the last scaffold-floor change;
      the skill compares this to detect a stale floor - do not edit by hand,
-     /d6tflow:update-project maintains it) -->
+     /oryxflow:update-project maintains it) -->
 

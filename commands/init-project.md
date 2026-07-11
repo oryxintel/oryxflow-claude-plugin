@@ -1,11 +1,11 @@
 ---
-description: Scaffold a new d6tflow project into the current directory from the bundled minimal template (skip-existing, never overwrite).
+description: Scaffold a new oryxflow project into the current directory from the bundled minimal template (skip-existing, never overwrite).
 disable-model-invocation: true
 ---
 
-# Scaffold a new d6tflow project
+# Scaffold a new oryxflow project
 
-Copy the bundled minimal d6tflow template into the user's project directory so they
+Copy the bundled minimal oryxflow template into the user's project directory so they
 have a runnable starting point.
 
 - Template source: `${CLAUDE_PLUGIN_ROOT}/resources/template-minimal/`
@@ -16,12 +16,12 @@ Follow these steps exactly.
 
 ## 1. Pre-flight - do not clobber an existing project
 
-Inspect the target directory. If it ALREADY looks like a d6tflow project - any of
+Inspect the target directory. If it ALREADY looks like a oryxflow project - any of
 `tasks.py`, `flow.py`, or `CLAUDE.md` exist - STOP. Do not copy anything yet.
 Report what you found and ask the user whether they want to (a) scaffold only the
 missing files, or (b) cancel. Proceed only on their answer.
 
-If the directory has no d6tflow files, continue.
+If the directory has no oryxflow files, continue.
 
 ## 2. Copy the template (skip-existing, never overwrite)
 
@@ -51,16 +51,16 @@ listings), not by reading file contents.
 
 The template contains the project wiring (`cfg.py`, `flow_params.py`, `flow.py`,
 `run.py`, `tasks.py`, `visualize.py`, `viz-template.ipynb`), `CLAUDE.md`,
-`.gitignore`, `.creds.yaml.example`, and `docs/d6tflow-data.md`. `tasks.py` and
+`.gitignore`, `.creds.yaml.example`, and `docs/oryxflow-data.md`. `tasks.py` and
 `flow_params.py` ship with a `PLACEHOLDER SCAFFOLD` marker (and `tasks.py`'s
-module + task docstrings are placeholders); `docs/d6tflow-data.md` ships with a
+module + task docstrings are placeholders); `docs/oryxflow-data.md` ships with a
 `PLACEHOLDER` marker on line 1. Those markers are intentional - leave them; they
 are replaced when the real pipeline and data findings are written. (Pipeline
 documentation lives in the code's docstrings, not a separate doc.)
 
 ## 3. Create the data directory
 
-Ensure an empty `data/` exists in the target (it is gitignored; d6tflow writes
+Ensure an empty `data/` exists in the target (it is gitignored; oryxflow writes
 per-task parquet outputs there).
 
 ## 4. Report
@@ -72,4 +72,4 @@ present). If `CLAUDE.md` was skipped, note the template version lives at
 Finish with the next steps: the scaffold runs as-is (`python run.py`) but does no
 real work yet; replace the `PLACEHOLDER SCAFFOLD` tasks in `tasks.py` with the real
 pipeline (documenting them via the module + task docstrings), and fill
-`docs/d6tflow-data.md` as data findings accumulate.
+`docs/oryxflow-data.md` as data findings accumulate.

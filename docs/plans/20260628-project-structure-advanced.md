@@ -2,8 +2,8 @@
 
 > SELF-CONTAINED PLAN for a fresh session. All findings, concrete code patterns,
 > file anchors, and rationale needed to implement are embedded below - you should
-> not need to re-explore the example projects. Repo root: the d6tflow plugin repo
-> (`skills/d6tflow/`, `docs/design/`, `resources/template-minimal/`). Read
+> not need to re-explore the example projects. Repo root: the oryxflow plugin repo
+> (`skills/oryxflow/`, `docs/design/`, `resources/template-minimal/`). Read
 > `docs/design/architecture.md` first (the repo map). ASCII-only, wrap prose at
 > ~78 cols (repo convention).
 
@@ -82,12 +82,12 @@ avoids cycles). Concrete:
 ```python
 # tasks.py (the spine, after splitting)
 """<Project goal: what the pipeline produces and why - top-level project doc.>"""
-import d6tflow
+import oryxflow
 import cfg
 import tasks_features, tasks_model, tasks_eval   # phase modules (the work)
 
-@d6tflow.requires(tasks_eval.ModelEval)
-class RunAll(d6tflow.tasks.TaskJson):
+@oryxflow.requires(tasks_eval.ModelEval)
+class RunAll(oryxflow.tasks.TaskJson):
     """Run the full pipeline; completion marker."""
     def run(self):
         self.save({'status': 'complete'})
@@ -95,12 +95,12 @@ class RunAll(d6tflow.tasks.TaskJson):
 ```python
 # tasks_model.py (a phase module - imports UPSTREAM phase only -> acyclic)
 """Model layer: train + in-sample performance."""
-import d6tflow
+import oryxflow
 import cfg
 import tasks_features
 
-@d6tflow.requires(tasks_features.FeaturesTransform)
-class ModelTrain(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(tasks_features.FeaturesTransform)
+class ModelTrain(oryxflow.tasks.TaskPqPandas):
     ...
 ```
 
@@ -139,15 +139,15 @@ params_prod = dict(
 # tasks.py spine - prod orchestration
 from flow_params import params_prod
 
-class RunAllModelPredictCurrentProd(d6tflow.tasks.TaskExcelPandas):
+class RunAllModelPredictCurrentProd(oryxflow.tasks.TaskExcelPandas):
     """Prod run: frozen params, all variants, fresh data, model stays cached."""
-    period_current = d6tflow.Parameter()
+    period_current = oryxflow.Parameter()
     def run(self):
         dfl = []
         for sector in cfg.sectors:
             params = {**params_prod, 'sector': sector,
                       'period_current': self.period_current}
-            flow = d6tflow.Workflow(tasks_predict.ModelPredictCurrent,
+            flow = oryxflow.Workflow(tasks_predict.ModelPredictCurrent,
                                     params=params, env='prod')
             flow.reset(tasks_features.DataSource)  # refresh data layer ONLY
             # do NOT reset ModelTrain -> frozen model
@@ -163,13 +163,13 @@ outputs - NEVER reads `data/` directly.
 ```python
 # app-streamlit.py  (project root; launch: streamlit run app-streamlit.py)
 import streamlit as st
-import d6tflow
+import oryxflow
 import cfg, cfg_app
 import tasks
 from flow_params import params_prod
 
 params = {**params_prod, 'portfolio': st.session_state.portfolio}
-flow = d6tflow.Workflow(tasks.Screen, params=params)
+flow = oryxflow.Workflow(tasks.Screen, params=params)
 flow.run()
 df = flow.outputLoad(tasks.Screen)   # load outputs; never read data/ directly
 ```
@@ -182,7 +182,7 @@ Nudge mid-edit; stay silent on plain orientation (keeps the existing
 
 ## Changes by file (load-tiered)
 
-### `skills/d6tflow/conventions.md` - layout / code-org home (items 1-4, 6)
+### `skills/oryxflow/conventions.md` - layout / code-org home (items 1-4, 6)
 - **Replace** the "Alternative Structures" section (currently the LAST section,
   the `large projects` / `tasks/` package + `flow_*`/`run_*` multi-workflow code
   blocks - locate by the `### Alternative Structures` heading near end of file)
@@ -199,7 +199,7 @@ Nudge mid-edit; stay silent on plain orientation (keeps the existing
   tasks. Cross-link it.
 - Keep `env=prod/dev` to a one-line mention here; depth -> ml-patterns.
 
-### `skills/d6tflow/ml-patterns.md` - ML-prod lifecycle (item 5) + notebook path
+### `skills/oryxflow/ml-patterns.md` - ML-prod lifecycle (item 5) + notebook path
 - Add a **"Productionizing: prod vs experiment"** section: `params_prod` (single
   source), `RunAll` / `RunAll...Prod` orchestration (import `params_prod`, loop
   variants, selective resets), `env=prod/dev`, periodic-refresh protocol. Use the
@@ -214,7 +214,7 @@ Nudge mid-edit; stay silent on plain orientation (keeps the existing
   (aggregates all steps).", near end of file) to point at the new section and
   mention the prod twin.
 
-### `skills/d6tflow/SKILL.md` - essentials only (keep every addition minimal)
+### `skills/oryxflow/SKILL.md` - essentials only (keep every addition minimal)
 - In the "Project File Organization" / "Code organization" area (the block around
   the file-tree + "group supporting code by SUBJECT" paragraph), add ONE line
   pointing to conventions.md "Scaling up" for when/how a project graduates
@@ -255,9 +255,9 @@ the plugin's "Scaling up" guidance. Scaffold-change version-bump rule is already
 satisfied by the bump above.
 
 ## Verify during implementation
-- **Cache-on-move claim**: confirm d6tflow/luigi keys identity on class name
+- **Cache-on-move claim**: confirm oryxflow/luigi keys identity on class name
   (`task_family`), NOT module path, so moving a class between `tasks_*.py`
-  preserves its `data/<Class>/` cache. Confirm (inspect d6tflow behavior or a
+  preserves its `data/<Class>/` cache. Confirm (inspect oryxflow behavior or a
   quick move test) BEFORE asserting it in the docs. The existing "Stale caches on
   rename" note stays - RENAME still orphans the old cache; only MOVE is safe.
 - ASCII-only + ~78-col wrap in every edited file.

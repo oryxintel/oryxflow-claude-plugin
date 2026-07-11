@@ -1,19 +1,19 @@
-# CLAUDE.md - working ON the d6tflow plugin
+# CLAUDE.md - working ON the oryxflow plugin
 
 This repo is the **source of a Claude Code plugin**. A session here is for
 *developing the plugin*, NOT for using it. You are editing skill source; do not
-try to run the d6tflow skill against this repo (there is no data pipeline here).
+try to run the oryxflow skill against this repo (there is no data pipeline here).
 
 **Read `docs/design/architecture.md` first.** It is the map of this repo - the
 component table, the control/data flows, the invariants, and a "to change X, edit
 Y" playbook. It exists so you can edit the right file without exploring.
 
-For the meaning of d6tflow itself (tasks, flows, the data-project conventions),
-read `skills/d6tflow/SKILL.md` - but treat it as the *artifact you maintain*, not
+For the meaning of oryxflow itself (tasks, flows, the data-project conventions),
+read `skills/oryxflow/SKILL.md` - but treat it as the *artifact you maintain*, not
 as instructions for this session.
 
-> **d6tflow is NOT based on luigi** (it once was; now decoupled - base class
-> `d6tflow.core.Task`). To explain d6tflow internals (identity, caching, DAG),
+> **oryxflow is NOT based on luigi** (it once was; now decoupled - base class
+> `oryxflow.core.Task`). To explain oryxflow internals (identity, caching, DAG),
 > inspect the installed class (`cls.__mro__`), never `luigi.*` - a leftover
 > `import luigi` proves nothing. Common stale-prior trap.
 
@@ -25,8 +25,8 @@ as instructions for this session.
 
 ## What this plugin is
 
-A single-skill Claude Code plugin. It ships the `d6tflow` skill, which activates
-when a user works in a d6tflow data-science project. This repo is also its own
+A single-skill Claude Code plugin. It ships the `oryxflow` skill, which activates
+when a user works in a oryxflow data-science project. This repo is also its own
 marketplace, so it can be installed directly from git or a local path.
 
 ## Layout
@@ -36,12 +36,12 @@ marketplace, so it can be installed directly from git or a local path.
   plugin.json        # manifest (name, version, description, author)
   marketplace.json   # makes this repo installable as its own marketplace
 commands/
-  init-project.md    # /d6tflow:init-project - scaffold a new project into cwd
-  init-gitlfs.md     # /d6tflow:init-gitlfs - put data/ under Git LFS
-  update-project.md  # /d6tflow:update-project - update old project floor to latest
-  check-standards.md # /d6tflow:check-standards - check names, style, docstrings
+  init-project.md    # /oryxflow:init-project - scaffold a new project into cwd
+  init-gitlfs.md     # /oryxflow:init-gitlfs - put data/ under Git LFS
+  update-project.md  # /oryxflow:update-project - update old project floor to latest
+  check-standards.md # /oryxflow:check-standards - check names, style, docstrings
 skills/
-  d6tflow/
+  oryxflow/
     SKILL.md         # skill entry point - ESSENTIALS only, always in context
     reference.md     # full reference - loaded ON DEMAND, not by default
     ml-patterns.md   # ML pipeline task templates - loaded ON DEMAND
@@ -78,7 +78,7 @@ README.md            # install + quickstart for plugin users
 ## Develop / test loop
 
 ```
-claude --plugin-dir D:\OneDrive\dev\d6tlib\d6tflow-claude-plugin   # load without installing
+claude --plugin-dir D:\OneDrive\dev\oryxlib\oryxflow-claude-plugin   # load without installing
 /reload-plugins                                              # after each edit
 /plugin validate .                                           # check both manifests
 git config core.hooksPath .githooks                          # ONE-TIME: enable repo hooks
@@ -109,7 +109,7 @@ step.
      with today's date (`YY.M.D`, no zero-padding; append `.N` for a second
      release the same day) and set the matching `version` in `plugin.json`.
 3. Commit. Consumers tracking this repo get it via
-   `/plugin marketplace update d6tflow`.
+   `/plugin marketplace update oryxflow`.
 
 The changelog's top version and `plugin.json` `version` must always match. If
 `version` is omitted, git installs pin to the commit SHA (every commit is a new
@@ -118,15 +118,15 @@ propagate cleanly.
 
 ## Source-of-truth notes
 
-The skill also still exists at `~/.claude/skills/d6tflow` (the pre-plugin copy).
+The skill also still exists at `~/.claude/skills/oryxflow` (the pre-plugin copy).
 This repo is becoming canonical. Avoid editing both - once the plugin is
-verified, delete the `~/.claude/skills/d6tflow` copy so they cannot drift.
+verified, delete the `~/.claude/skills/oryxflow` copy so they cannot drift.
 
 `resources/template-minimal/` is the project scaffold that `init-project` copies
 into a new project. Edit it directly here - this repo is canonical for it. It
 ships the project wiring (`tasks.py`, `flow.py`, `run.py`, `cfg.py`,
 `flow_params.py`, `visualize.py`, `viz-template.ipynb`), the project `CLAUDE.md`,
-`docs/d6tflow-data.md`, `.creds.yaml.example`, an `eda/` package root, and the
+`docs/oryxflow-data.md`, `.creds.yaml.example`, an `eda/` package root, and the
 `data/`, `reports/`, and `reports/render/` dirs. Those three dirs are kept by a
 `.gitkeep` that must be FORCE-added (`git add -f`): they match the `.gitignore`
 `.*` dotfile rule, so a plain `git add` skips them. `tasks.py` / `flow_params.py`

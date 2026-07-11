@@ -1,15 +1,15 @@
 ---
-name: d6tflow
+name: oryxflow
 description: >-
-  Build highly effective data science workflows with d6tflow (parameterized
+  Build highly effective data science workflows with oryxflow (parameterized
   tasks, dependencies, caching, reproducible pipelines). Use when working in a
-  d6tflow project - the tasks.py / flow.py / run.py / cfg.py / flow_params.py
+  oryxflow project - the tasks.py / flow.py / run.py / cfg.py / flow_params.py
   files, pipeline tasks, workflow runs, loading / cleaning / transforming /
   analyzing data, output analysis, or publishing/rendering a report notebook to
   HTML.
 when_to_use: >-
   Trigger on requests like: add a new task that depends on an existing one
-  (wired with @d6tflow.requires), create a task that loads a source, add a task
+  (wired with @oryxflow.requires), create a task that loads a source, add a task
   with multiple inputs, update / modify an existing task (incl. add / remove /
   rename an output column or save a new field on it), make one task depend on
   another, set the final task, or add / change a parameter; build a data-prep
@@ -25,9 +25,9 @@ allowed-tools: Read Edit Write Grep Glob Bash
 shell: powershell
 ---
 
-# Working with d6tflow Data Science Projects
+# Working with oryxflow Data Science Projects
 
-d6tflow is a Python library for building highly effective data science
+oryxflow is a Python library for building highly effective data science
 workflows: chain complex, parameterized data flows and execute them, caching
 intermediate results and rerunning intelligently after code or parameter changes
 - so you build better models faster.
@@ -48,19 +48,19 @@ below.
 
 ## Session Start: Orient from Code + Data Doc, Don't Re-Scan
 
-A d6tflow project documents itself in two places. Read these FIRST and trust
+A oryxflow project documents itself in two places. Read these FIRST and trust
 them - do NOT re-explore the whole project to rediscover what they say. Keeping
 them current is part of "done" for every change; skip it and the next session
 pays the scan cost again.
 
 - **Pipeline meaning -> in the code.** `tasks.py` has a module docstring (the
-  workflow goal) and a docstring per task; the DAG is the `@d6tflow.requires(...)`
+  workflow goal) and a docstring per task; the DAG is the `@oryxflow.requires(...)`
   decorators (`flow.preview()` summarizes complex graphs); parameter meaning is
   commented in `flow_params.py`. There is NO separate pipeline doc - the code is
   the source of truth, so it cannot drift. Write it well: see "Task docstrings".
-- **Data findings -> `docs/d6tflow-data.md`.** Sources, schema, quality issues,
+- **Data findings -> `docs/oryxflow-data.md`.** Sources, schema, quality issues,
   business rules, quirks - the one fact set with no code home. A big project may
-  split it into more `docs/d6tflow-data*.md` files. If absent, recreate it with
+  split it into more `docs/oryxflow-data*.md` files. If absent, recreate it with
   headings: sources / schema / quality issues / business rules / open questions.
 
 ### The PLACEHOLDER marker tells you what is real
@@ -75,28 +75,28 @@ along with the dummy logic.
 - **Content** (`tasks.py`, `flow_params.py`) - a `# PLACEHOLDER SCAFFOLD` comment
   above the dummy logic (and a placeholder module docstring) means nothing
   project-specific is built. REPLACE the marked block; don't read it to decide.
-- **Data doc** (`docs/d6tflow-data.md`) - a `PLACEHOLDER` on line 1 = not
+- **Data doc** (`docs/oryxflow-data.md`) - a `PLACEHOLDER` on line 1 = not
   captured yet.
 
 ### Default invocation is LIGHTWEIGHT - do not auto-explore
 
-(Invoked as `/d6tflow:d6tflow`; bare `/d6tflow` and `/d6tflow explore` are
+(Invoked as `/oryxflow:oryxflow`; bare `/oryxflow` and `/oryxflow explore` are
 shorthand. Usually it auto-activates and the user just talks to it.)
 
 On a plain load with no specific task, orient cheaply and STOP:
 
 0. No scaffold present (no `tasks.py` / `flow.py`) -> an empty or not-yet-
-   d6tflow directory, not a built project; don't hunt for pipeline files.
-   CONFIDENTLY recommend `/d6tflow:init-project`, leading with the payoff - a
+   oryxflow directory, not a built project; don't hunt for pipeline files.
+   CONFIDENTLY recommend `/oryxflow:init-project`, leading with the payoff - a
    runnable, reproducible pipeline: parameterized tasks, caching that skips
    unchanged steps and reruns intelligently after edits, a clean
    tasks/flow/run/cfg layout instead of ad-hoc scripts - then have the user run
    it. You CANNOT invoke it yourself (manual command; the skill also lacks the
    plugin root to scaffold inline) - so end with a clear call to action: "scaffold
-   one by typing `/d6tflow:init-project`." State it as the obvious next step, not
+   one by typing `/oryxflow:init-project`." State it as the obvious next step, not
    an apology, and don't offer a menu of alternatives. (After it runs, give the
    fresh-scaffold onboarding below.)
-1. Otherwise read the `tasks.py` docstrings and `docs/d6tflow-data.md`. If
+1. Otherwise read the `tasks.py` docstrings and `docs/oryxflow-data.md`. If
    markers are gone, trust them.
 2. `tasks.py` still carries `PLACEHOLDER SCAFFOLD` -> fresh scaffold; else ->
    built pipeline (data doc maybe just not written yet).
@@ -108,9 +108,9 @@ Do NOT, on a plain invocation: list/inspect `data/`, read raw sources, write or
 run `eda/` scripts, or build the docs - that is opt-in exploration (below).
 
 While orienting, read the floor stamp in the project's `CLAUDE.md`
-(`<!-- d6tflow-floor: VERSION -->`). If it is missing, or its VERSION is older
+(`<!-- oryxflow-floor: VERSION -->`). If it is missing, or its VERSION is older
 than the current floor baseline **26.6.29**, the scaffold floor predates the
-current template - suggest the user run `/d6tflow:update-project` to reconcile it
+current template - suggest the user run `/oryxflow:update-project` to reconcile it
 (one line; do not nag or auto-run it).
 
 When the user gives a concrete task: trust the docstrings + data doc and open
@@ -141,9 +141,9 @@ The scaffold's placeholder internals (dummy `DataFrame`, example range, the
 "doubles it" step) are throwaway wiring, NOT project facts - do NOT narrate them
 (it reads as if the project does real work). Instead, welcome and orient briefly:
 
-- This is a fresh d6tflow project - the scaffold runs but does no real work yet.
-- **Create tasks**: a task class in `tasks.py` (inherits a d6tflow task type,
-  `run()` ends in `self.save(...)`); wire deps with `@d6tflow.requires(...)`.
+- This is a fresh oryxflow project - the scaffold runs but does no real work yet.
+- **Create tasks**: a task class in `tasks.py` (inherits a oryxflow task type,
+  `run()` ends in `self.save(...)`); wire deps with `@oryxflow.requires(...)`.
   (See "Add a new task".)
 - **Load data**: drop raw files (`.csv`/`.xlsx`) into `data/` and read them in a
   task named for what it produces (`DataOEWS`, not `GetData` - see "Naming
@@ -152,21 +152,21 @@ The scaffold's placeholder internals (dummy `DataFrame`, example range, the
   preview first with `flow.preview()`.
 
 Surface the example invocations, then offer the two next steps and ask which:
-`/d6tflow explore` (if source data already in `data/`), or describe the goal +
+`/oryxflow explore` (if source data already in `data/`), or describe the goal +
 inputs and you replace the scaffold with real tasks. Keep it short and inviting.
 
 ### Deep exploration is opt-in
 
 Inspecting source data, profiling schema, and writing the docs run ONLY when the
-user asks: `/d6tflow explore`, or a plain-language "orient" / "explore" /
+user asks: `/oryxflow explore`, or a plain-language "orient" / "explore" /
 "inspect the data" / "scan the project". Until then, don't. When requested:
 
 - **Raw source data lives in `data/`** - loose files directly under it (`.csv`,
-  `.xlsx`, ...). Distinguish from task OUTPUT: d6tflow writes outputs as parquet
+  `.xlsx`, ...). Distinguish from task OUTPUT: oryxflow writes outputs as parquet
   into per-task subfolders (`data/GetData/*.parquet`) - generated, not inputs, so
   ignore them. The source path may point elsewhere via `cfg.py`.
 - Inspect schema with an `eda/` script (no-inline-Python rule), not ad hoc.
-- Capture what you learn - the payoff: data findings into `docs/d6tflow-data.md`
+- Capture what you learn - the payoff: data findings into `docs/oryxflow-data.md`
   (remove its `PLACEHOLDER`); pipeline meaning as `tasks.py` docstrings.
 
 ### Graduating a growing project (nudge proactively)
@@ -192,18 +192,18 @@ conventions.md "Scaling up", ml-patterns.md "Productionizing".
 
 ## Core Concepts (essentials)
 
-1. **Tasks** - Classes with a `run()` method that inherit a d6tflow task type
+1. **Tasks** - Classes with a `run()` method that inherit a oryxflow task type
    (`TaskPqPandas`, `TaskPickle`, ...). They save outputs via `self.save()`.
    Identified by class name + parameters.
-2. **Dependencies** - Declared with `@d6tflow.requires()`; d6tflow runs tasks in
+2. **Dependencies** - Declared with `@oryxflow.requires()`; oryxflow runs tasks in
    order. Load upstream data with `self.inputLoad()`.
 3. **Parameters** - Make tasks dynamic and reusable. They affect task identity
    (caching) and auto-inherit downstream. Use `significant=False` for params that
    should not affect identity.
-4. **Workflows** - `d6tflow.Workflow(FinalTask, params=params)`. One instance is
+4. **Workflows** - `oryxflow.Workflow(FinalTask, params=params)`. One instance is
    imported everywhere (`from flow import flow`). Caching skips completed tasks.
    To compare a fixed named set of params (models, dates, cohorts), use one
-   `d6tflow.WorkflowMulti(FinalTask, {'lgbm': {...}, 'xgboost': {...}})` keyed by
+   `oryxflow.WorkflowMulti(FinalTask, {'lgbm': {...}, 'xgboost': {...}})` keyed by
    name - still one importable object; `flow=name` selects a variant (reference.md).
 5. **Project-structure pattern** - Separation of concerns across config, task
    definition, execution, and analysis layers (below).
@@ -257,7 +257,7 @@ codes once at ingestion, never re-alias downstream (no code->display->code
 round-trips). Order tokens broad->narrow so families share a prefix
 (`yield_dividend`, `yield_earnings`; not `dividend_yield`); derive by suffix,
 operation last (`_yoy`, `_yoy_pp`, `_ma4`, `_lag1`); apply pretty Title-Case labels
-ONLY at the `viz/` layer. Record the raw->canonical map in `docs/d6tflow-data.md`.
+ONLY at the `viz/` layer. Record the raw->canonical map in `docs/oryxflow-data.md`.
 Same broad->narrow rule for TASK names (families share a leading token:
 `FundamentalsLeadLag`, not `LeadLagAnalysis`) and `df`/variable names
 (`df_returns_gross`). Full rules in conventions.md ("Naming").
@@ -268,7 +268,7 @@ Same broad->narrow rule for TASK names (families share a leading token:
 
 DO NOT create ad-hoc Python scripts or inline bash commands.
 
-NEVER: `python -c "import d6tflow; flow = d6tflow.Workflow(...); flow.run()"`
+NEVER: `python -c "import oryxflow; flow = oryxflow.Workflow(...); flow.run()"`
 
 ALWAYS:
 
@@ -316,7 +316,7 @@ the session's shell is in the root and stays there.)
   file under `data/`) than filtered after the fact.
 - *Silence is diagnosable.* Domain logs appear only if they go through
   `self.logger` (raw loguru is filtered out under `enable_logging`); lifecycle and
-  domain share the one d6tflow stream. "No metric line" usually means wrong logger,
+  domain share the one oryxflow stream. "No metric line" usually means wrong logger,
   not no signal (see "Log with `self.logger`").
 
 **Any project script in a SUBFOLDER imports project modules** (`from flow import
@@ -339,7 +339,7 @@ hits.
 **Document each probe** - the code is throwaway, the finding is not. One-line
 docstring stating the question; print the result legibly. A material finding
 (schema, quirks, DATA-QUALITY issues, business rules) gets RECORDED in
-`docs/d6tflow-data.md` as part of finishing - do it, do not ask permission.
+`docs/oryxflow-data.md` as part of finishing - do it, do not ask permission.
 (Deciding to go explore is opt-in; writing up a finding you already have is not -
 they are different moments.) An uncaptured result is a question you re-ask next
 session.
@@ -387,7 +387,7 @@ only for extracting chart IMAGES - see the visual-check note below.)
 Notebooks that import the pipeline live at the PROJECT ROOT, NOT in `reports/`.
 `nbconvert --execute` runs the kernel with cwd = the notebook's own folder, so a
 notebook in a subdirectory breaks both `from flow import flow` and the relative
-`data/` paths d6tflow reads/writes; at the root, cwd = the project root and
+`data/` paths oryxflow reads/writes; at the root, cwd = the project root and
 everything resolves. `reports/render/` holds the rendered HTML (gitignored -
 regenerated output). Run nbconvert from the root.
 
@@ -448,8 +448,8 @@ embedded outputs):
 **ASCII only.** No Unicode (emojis, checkmarks, special chars) in code or output -
 they break encoding on Windows. Keep log / print messages plain ASCII.
 
-**Log with `self.logger`, not `print`; let d6tflow log the lifecycle.** Call
-`d6tflow.enable_logging()` once (in `run.py`) for task scheduling / completion /
+**Log with `self.logger`, not `print`; let oryxflow log the lifecycle.** Call
+`oryxflow.enable_logging()` once (in `run.py`) for task scheduling / completion /
 timing - that is free, do NOT reinvent it with your own start/end brackets. Inside
 a task's `run()`, use `self.logger` (NOT a raw `from loguru import logger`) at the
 right LEVEL for the DOMAIN signal you would watch live or grep - shapes, drop
@@ -459,10 +459,10 @@ self.logger.info("loaded {} rows, {} cols", len(df), df.shape[1])
 self.logger.info("dropped {:.0f}% on dropna", 100*(1 - len(df_X)/len(df)))
 self.logger.warning("no SHAP for model {} -> zeros", self.model)
 ```
-WHY `self.logger`: `enable_logging()` filters to the `d6tflow` namespace (and
+WHY `self.logger`: `enable_logging()` filters to the `oryxflow` namespace (and
 drops loguru's default handler), so a raw `logger.info` from your task module is
 SILENTLY DROPPED. `self.logger` emits inside that namespace (and auto-tags
-`task_id`), so it survives - and shares the one d6tflow stream, so
+`task_id`), so it survives - and shares the one oryxflow stream, so
 `enable_logging(colorize=False)` governs both lifecycle and domain logs at once.
 Outside a task (e.g. `run.py`) there is no `self` - use `print` there.
 **Log scalars + lifecycle; SAVE rows + artifacts.** Frames, per-row predictions,
@@ -531,7 +531,7 @@ a throwaway "brief description". State:
 - any non-obvious decision/assumption/quirk, stated inline.
 
 Do NOT restate the code - explain intent and contract; the body shows how.
-Do NOT tack on cross-references like "see `docs/d6tflow-data.md`" - that doc is
+Do NOT tack on cross-references like "see `docs/oryxflow-data.md`" - that doc is
 the known data home by convention, so a pointer in every docstring is just noise.
 Include a short snippet only when it is the clearest way to state a contract
 (e.g. an output column list). Same rule for the `tasks.py` module docstring and
@@ -540,15 +540,15 @@ the data doc.
 ### Add a new task
 1. Define it in `tasks.py`, named for its output, with a real docstring:
 ```python
-@d6tflow.requires(DataOEWS)
-class OEWSWages(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(DataOEWS)
+class OEWSWages(oryxflow.tasks.TaskPqPandas):
     """Median hourly and annual wage per occupation x metro area.
 
     In:  OEWS MSA estimates (from DataOEWS).
     Out: one row per (occ_code, area); the wage-percentile columns. Null where
          BLS suppressed small cells.
     """
-    param1 = d6tflow.Parameter()
+    param1 = oryxflow.Parameter()
 
     def run(self):
         df = self.inputLoad()
@@ -563,9 +563,9 @@ class OEWSWages(d6tflow.tasks.TaskPqPandas):
 ### Modify an existing task (the common iterate loop)
 1. Edit the task's `run()` in `tasks.py`.
 2. RESET IT BEFORE RUNNING. A code edit does NOT change task identity (class +
-   parameters), so d6tflow treats it as complete and a plain `python run.py`
+   parameters), so oryxflow treats it as complete and a plain `python run.py`
    SKIPS it, reusing the stale output. `flow.reset(tasks.ModifiedTask)` first -
-   reset cascades downstream, recomputing dependents too. This is d6tflow's
+   reset cascades downstream, recomputing dependents too. This is oryxflow's
    built-in and the ONLY reset path: do NOT write a reset helper
    (`reset_if_code_changed`, a downstream-resetter) - `flow.reset` already
    cascades, so reaching for a helper means you missed it. (A PARAMETER
@@ -601,7 +601,7 @@ columns and ran it for `jobs='customer_service'`, the `support_broad` /
 recompute per setting with `reset=True`:
 ```python
 # code changed -> reset=True recomputes this variant instead of loading stale cache
-df = d6tflow.runLoad(tasks.EmploymentExposure, params={'jobs': jobs}, reset=True)
+df = oryxflow.runLoad(tasks.EmploymentExposure, params={'jobs': jobs}, reset=True)
 ```
 
 ### Change parameters
@@ -672,10 +672,10 @@ A task you edited showing under "complete ones were encountered" was skipped
 
 ## Additional Resources
 
-- [reference.md](reference.md) - comprehensive d6tflow patterns and reference.
+- [reference.md](reference.md) - comprehensive oryxflow patterns and reference.
 - [ml-patterns.md](ml-patterns.md) - ML pipeline task templates. Load on demand.
 - **When this skill doesn't cover an API**, confirm against the *installed*
   package first - `inspect.signature(cls.method)`, `cls.__mro__` - that is
   version-matched ground truth. Then the docs / GitHub below. On any conflict the
   installed code wins (the online docs can lag the luigi decoupling).
-- d6tflow docs: https://d6tflow.readthedocs.io/ | GitHub: https://github.com/d6t/d6tflow
+- oryxflow docs: https://oryxflow.readthedocs.io/ | GitHub: https://github.com/oryxintel/oryxflow

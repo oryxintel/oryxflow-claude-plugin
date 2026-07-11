@@ -1,16 +1,16 @@
 {
-  "name": "d6tflow",
-  "description": "Build highly effective data science workflows with d6tflow - chain parameterized tasks with dependencies, cache intermediate results, and rerun intelligently after code or parameter changes to build better models faster.",
+  "name": "oryxflow",
+  "description": "Build highly effective data science workflows with oryxflow - chain parameterized tasks with dependencies, cache intermediate results, and rerun intelligently after code or parameter changes to build better models faster.",
   "version": "26.7.3",
   "author": {
-    "name": "d6t",
-    "email": "dev@databolt.tech"
+    "name": "Oryx Intelligence LLC",
+    "email": "dev@oryxintel.com"
   },
-  "homepage": "https://databolt.tech",
-  "repository": "https://github.com/d6t/d6tflow-claude-plugin",
+  "homepage": "https://oryxintel.com",
+  "repository": "https://github.com/oryxintel/oryxflow-claude-plugin",
   "license": "MIT",
   "keywords": [
-    "d6tflow",
+    "oryxflow",
     "data-science",
     "pipeline",
     "workflow"

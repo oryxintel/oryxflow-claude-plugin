@@ -1,9 +1,9 @@
-# d6tflow Conventions: How We Organize a Project
+# oryxflow Conventions: How We Organize a Project
 
-House conventions loaded on demand by the `d6tflow` skill - the project layout,
+House conventions loaded on demand by the `oryxflow` skill - the project layout,
 how to group supporting code, and how to name things. This is the "house style"
 companion to [reference.md](reference.md) (the library API). The library tells
-you how d6tflow WORKS; this tells you how to ORGANIZE a project so it - and the
+you how oryxflow WORKS; this tells you how to ORGANIZE a project so it - and the
 AI agent working in it - stays accurate as it grows.
 
 ---
@@ -63,7 +63,7 @@ layers:
 - **Do not shadow a supplied series.** If the source already ships a derived series
   (e.g. an as-supplied YoY), use it; a cross-check derivation is named as a check
   and dropped once verified, not left to compete with the canonical column.
-- **Record the canonical set + the raw->canonical map in `docs/d6tflow-data.md`,**
+- **Record the canonical set + the raw->canonical map in `docs/oryxflow-data.md`,**
   and use canonical names in the task docstring's `Out:` contract - the one place
   that answers "what is this column." Keep the suffix vocabulary small and listed
   there (like concept-module names), so `_chg` and `_diff` do not both appear for
@@ -186,7 +186,7 @@ viz/
   of the task class). Code about a reference / source dataset, or a cross-cutting
   concept (geo, dates, io), groups under that name (`eda/msa50_map/`,
   `utils/msa50_map.py`, `utils/geo.py`). Keep the set of concept names small and
-  listed somewhere (e.g. in `docs/d6tflow-data.md`) so they are not reinvented
+  listed somewhere (e.g. in `docs/oryxflow-data.md`) so they are not reinvented
   (`geo`, not also `geography`).
 - **Shared helper -> a concept/dataset module (concept by default).** A helper
   used by 2+ subjects (tasks AND/OR eda probes) goes in a CONCEPT or dataset module
@@ -238,13 +238,13 @@ so they resolve ONLY as `python -m <pkg>.<...>` from the project root - bare
 - **Code that LOADS or builds a `data/` input.** Loading external data is the
   idiomatic loader-task pattern (`Data<Name>`, see "Task naming"), so an external,
   reproducible builder (geo maps / crosswalks from Census/OMB files) should be a
-  real d6tflow SOURCE TASK BY DEFAULT - in the DAG, cached, reset-able, and read
+  real oryxflow SOURCE TASK BY DEFAULT - in the DAG, cached, reset-able, and read
   downstream via `inputLoad()` instead of re-reading a csv. A plain `build_*.py`
   that fetches an external source and writes a `data/` csv is just a loader task
   that has not been written as one yet. Two exceptions keep it a loader/maintenance
   SCRIPT instead of a task: (1) HAND-CURATED data (dedupe/clean an author-built
   csv) - not reproducible from a source, so calling it a "task" is misleading; (2)
-  the output is not something a d6tflow task type stores well - not a DataFrame
+  the output is not something a oryxflow task type stores well - not a DataFrame
   (TaskPqPandas) or a serializable object (TaskPickle/TaskJson), e.g. a raw file
   asset or a directory of files - where a task buys little. Such a script lives
   under the dataset (`utils/<dataset>.py`, run via `python -m`, named for what it
@@ -278,14 +278,14 @@ untracked even in a project that LFS-tracks `data/`. It can never be committed b
 accident, and the dot keeps it visually distinct from task-output dirs.
 
 The decision before "where": a finding -> print it + record in
-`docs/d6tflow-data.md` (no file). A derived dataset worth reusing downstream -> a
+`docs/oryxflow-data.md` (no file). A derived dataset worth reusing downstream -> a
 TASK (`self.save`), not scratch. Genuinely throwaway intermediate -> `data/.eda/`.
 
 ---
 
 ## Project Structure (deep dive)
 
-d6tflow projects follow a standard file organization that separates concerns.
+oryxflow projects follow a standard file organization that separates concerns.
 
 ### Typical File Layout
 
@@ -322,20 +322,20 @@ and notebooks.
 #### `tasks.py` - Workflow Tasks
 
 ```python
-import d6tflow
+import oryxflow
 import pandas as pd
 import cfg
 
-class GetData(d6tflow.tasks.TaskPqPandas):
+class GetData(oryxflow.tasks.TaskPqPandas):
     """Load raw data"""
     def run(self):
         df = pd.DataFrame({'a': range(10)})
         self.save(df)
 
-@d6tflow.requires(GetData)
-class Process(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(GetData)
+class Process(oryxflow.tasks.TaskPqPandas):
     """Process the raw data"""
-    optional = d6tflow.BoolParameter(default=False)
+    optional = oryxflow.BoolParameter(default=False)
 
     def run(self):
         df = self.input().load()
@@ -396,7 +396,7 @@ variable. (Rationale under "How the Files Work Together".)
 #### `run.py` - Execute Workflow
 
 ```python
-import d6tflow
+import oryxflow
 import cfg, tasks
 
 from flow import flow
@@ -461,7 +461,7 @@ Using in tasks:
 ```python
 import cfg
 
-class DownloadData(d6tflow.tasks.TaskPqPandas):
+class DownloadData(oryxflow.tasks.TaskPqPandas):
     def run(self):
         api_key = cfg.cfg_yaml.get('api_key')
         # Use api_key to fetch data
@@ -544,12 +544,12 @@ projects use.
 ```python
 # tasks.py (the spine, after splitting)
 """<Project goal: what the pipeline produces and why - top-level project doc.>"""
-import d6tflow
+import oryxflow
 import cfg
 import tasks_features, tasks_model, tasks_eval   # phase modules (the work)
 
-@d6tflow.requires(tasks_eval.ModelEval)
-class RunAll(d6tflow.tasks.TaskJson):
+@oryxflow.requires(tasks_eval.ModelEval)
+class RunAll(oryxflow.tasks.TaskJson):
     """Run the full pipeline; completion marker."""
     def run(self):
         self.save({'status': 'complete'})
@@ -557,12 +557,12 @@ class RunAll(d6tflow.tasks.TaskJson):
 ```python
 # tasks_model.py (a phase module - imports the UPSTREAM phase only -> acyclic)
 """Model layer: train + in-sample performance."""
-import d6tflow
+import oryxflow
 import cfg
 import tasks_features
 
-@d6tflow.requires(tasks_features.FeaturesTransform)
-class ModelTrain(d6tflow.tasks.TaskPqPandas):
+@oryxflow.requires(tasks_features.FeaturesTransform)
+class ModelTrain(oryxflow.tasks.TaskPqPandas):
     ...
 ```
 
@@ -609,13 +609,13 @@ same trust-auto-file-management rule that governs everything else).
 ```python
 # app-streamlit.py  (project root; launch: streamlit run app-streamlit.py)
 import streamlit as st
-import d6tflow
+import oryxflow
 import cfg, cfg_app
 import tasks
 from flow_params import params_prod
 
 params = {**params_prod, 'portfolio': st.session_state.portfolio}
-flow = d6tflow.Workflow(tasks.Screen, params=params)
+flow = oryxflow.Workflow(tasks.Screen, params=params)
 flow.run()
 df = flow.outputLoad(tasks.Screen)   # load outputs; never read data/ directly
 ```

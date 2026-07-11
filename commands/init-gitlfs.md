@@ -1,11 +1,11 @@
 ---
-description: Initialize Git LFS in the current d6tflow project - check the binary is installed and hooked into git, ensure a git repo on main, un-ignore the data files, track data/** with LFS, and commit .gitattributes.
+description: Initialize Git LFS in the current oryxflow project - check the binary is installed and hooked into git, ensure a git repo on main, un-ignore the data files, track data/** with LFS, and commit .gitattributes.
 disable-model-invocation: true
 ---
 
-# Initialize Git LFS for a d6tflow project
+# Initialize Git LFS for a oryxflow project
 
-d6tflow writes large per-task outputs under `data/` (parquet, csv, json, ...).
+oryxflow writes large per-task outputs under `data/` (parquet, csv, json, ...).
 This command puts them under Git LFS so the project can be versioned without
 bloating git history. Target directory: `${CLAUDE_PROJECT_DIR}`.
 
