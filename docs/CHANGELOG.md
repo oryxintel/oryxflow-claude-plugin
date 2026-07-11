@@ -2,7 +2,17 @@
 
 All notable changes to the oryxflow plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions are
-date-based (`YY.M.D`, e.g. `26.5.30`).
+date-based (`YY.M.D`, e.g. `26.5.30`). The top `## [Unreleased]` section is the
+working bucket - it ships nothing until it is stamped with a version at release
+time (see the Release section in the repo `CLAUDE.md`).
+
+## [Unreleased]
+
+<!-- Add bullets here as you work (Added / Changed / Removed). They stay
+     UNPUBLISHED - plugin.json keeps the last released version, so consumers see
+     nothing - until you cut a release: rename this heading to the new
+     version + date, bump plugin.json to match, and add a fresh empty
+     [Unreleased] back on top. See CLAUDE.md "Release". -->
 
 ## [26.7.11] - 2026-07-11
 

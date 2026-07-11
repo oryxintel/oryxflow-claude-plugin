@@ -102,25 +102,46 @@ yours.
 
 ## Release
 
-There is no `[Unreleased]` bucket. The TOP section of `docs/CHANGELOG.md` is the
-current working version (heading `## [YY.M.D[.N]] - YYYY-MM-DD`), and its version
-string matches `.claude-plugin/plugin.json`. While iterating, just add bullets to
-that top section under `### Added` / `### Changed` / `### Removed` - no promotion
-step.
+Publishing is pull-based and VERSION-GATED. `.claude-plugin/plugin.json` sets an
+explicit `version`, so a consumer running `/plugin marketplace update oryxflow`
+only receives a change when that string CHANGES; same version + new commits =
+they keep the cached copy. The version bump IS the publish - there is no separate
+publish step, and commits between bumps are invisible to consumers. (Omitting
+`version` would instead make every commit SHA a new version - we do NOT want that
+churn, hence the explicit string.) So work in the open on `main`, and gate what
+consumers see behind the bump.
 
-1. Edit skill / docs, and add a bullet to the top changelog section as you go.
-2. Decide the version when you cut a release:
-   - Same day, not yet consumed: keep the current `YY.M.D[.N]` as-is.
-   - New day, or a clean cut you want consumers to pull: start a NEW top section
-     with today's date (`YY.M.D`, no zero-padding; append `.N` for a second
-     release the same day) and set the matching `version` in `plugin.json`.
-3. Commit. Consumers tracking this repo get it via
-   `/plugin marketplace update oryxflow`.
+### While iterating (unpublished)
 
-The changelog's top version and `plugin.json` `version` must always match. If
-`version` is omitted, git installs pin to the commit SHA (every commit is a new
-version). We set an explicit version, so it MUST be bumped for updates to
-propagate cleanly.
+Add bullets under the `## [Unreleased]` heading at the top of `docs/CHANGELOG.md`
+(`### Added` / `### Changed` / `### Removed`). Do NOT touch `plugin.json` - it
+stays at the last released version, so nothing ships while you work. Commit as
+often as you like; across as many days as you like. Nothing here reaches a
+consumer until you cut a release.
+
+### Cutting a release (publish)
+
+When you want consumers to pull the accumulated `[Unreleased]` changes:
+
+1. **Version + changelog.** Rename `## [Unreleased]` ->
+   `## [YY.M.D[.N]] - YYYY-MM-DD` with today's date (`YY.M.D`, no zero-padding;
+   append `.N` for a second release the same day). Set `plugin.json` `version` to
+   the SAME string. INVARIANT: the top DATED changelog heading and `plugin.json`
+   `version` must be equal. Then add a fresh empty `## [Unreleased]` back on top
+   for the next cycle.
+2. **Floor baseline - decide, then stamp (usually SKIP).** The floor baseline is a
+   SEPARATE number from the plugin version: it is the plugin version AS OF the last
+   MIGRATION-WORTHY scaffold change (currently `26.6.29`, below the plugin
+   version). Bump it ONLY if a change in this release alters the scaffold in a way
+   existing projects should adopt (`resources/template-minimal/**`, the project
+   `CLAUDE.md`, wiring an old project lacks). Skill / docs / reference-only changes
+   do NOT touch it. To bump: set BOTH homes to this release's version -
+   `resources/template-minimal/CLAUDE.md` (`<!-- oryxflow-floor: X -->`) and
+   `skills/oryxflow/SKILL.md` (the `floor baseline **X**` value). The
+   `.githooks/pre-commit` hook blocks the commit if the two disagree, but it
+   cannot know whether you SHOULD have bumped - that judgment is yours.
+3. **Validate + ship.** Run `/plugin validate .` if manifests changed, commit,
+   push. Consumers get it via `/plugin marketplace update oryxflow`.
 
 ## Source-of-truth notes
 
@@ -136,8 +157,9 @@ ships the project wiring (`tasks.py`, `flow.py`, `run.py`, `cfg.py`,
 `data/`, `reports/`, and `reports/render/` dirs. Those three dirs are kept by a
 `.gitkeep` that must be FORCE-added (`git add -f`): they match the `.gitignore`
 `.*` dotfile rule, so a plain `git add` skips them. `tasks.py` / `flow_params.py`
-ship the intentional `PLACEHOLDER SCAFFOLD` markers (leave them). Bump the plugin
-version after any scaffold change so installs pick it up.
+ship the intentional `PLACEHOLDER SCAFFOLD` markers (leave them). A scaffold change
+ships like any other at the next release bump (see "Release"); if it is one
+existing projects should adopt, also bump the floor baseline in that same release.
 
 ## Git
 
