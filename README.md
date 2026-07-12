@@ -18,6 +18,11 @@ Already installed? Two things to know:
 - Put `data/` under Git LFS: run `/oryxflow:init-gitlfs` in the project.
 - Update an old project to the latest scaffold: run `/oryxflow:update-project`.
 - Check code against the house standards: run `/oryxflow:check-standards`.
+- Restructure a messy project (notebooks / linear scripts) into a pipeline: run
+  `/oryxflow:migrate` (scaffold first with `/oryxflow:init-project` if needed).
+- Migrate an old `d6tflow` project to `oryxflow`: with the skill active, just ask
+  (e.g. "migrate from d6tflow to oryxflow using the plugin's d6tflow migration
+  instructions"). It is a guided rename, not a slash command.
 - Use it: just start working in a oryxflow project and the skill auto-activates,
   or invoke it manually with `/oryxflow:oryxflow`.
 
@@ -113,10 +118,11 @@ You can also invoke it explicitly any time with `/oryxflow:oryxflow`, or pass th
 deep-dive argument with `/oryxflow:oryxflow explore`.
 
 Scaffolding a new project, setting up Git LFS, updating an old project's floor,
-and checking code against the standards are separate, manually-triggered
-commands - `/oryxflow:init-project`, `/oryxflow:init-gitlfs`,
-`/oryxflow:update-project`, and `/oryxflow:check-standards` - they are not
-auto-invoked, since they write files, run git, or edit your code.
+checking code against the standards, and restructuring a messy project into a
+pipeline are separate, manually-triggered commands - `/oryxflow:init-project`,
+`/oryxflow:init-gitlfs`, `/oryxflow:update-project`, `/oryxflow:check-standards`,
+and `/oryxflow:migrate` - they are not auto-invoked, since they write files, run
+git, or edit your code.
 
 Things you can ask, in plain language:
 
@@ -144,6 +150,32 @@ Understand:
 - "explore the data" - opt-in deep dive that profiles `data/` and writes findings
 
 For more on oryxflow itself, see [Resources](#resources).
+
+## Best practices
+
+The conventions the skill applies are the same files it loads - one source, two
+readers (you and the coding agent):
+
+- [conventions.md](skills/oryxflow/conventions.md) - house layout, code
+  organization (grouping `eda/` / `utils/` / `viz/` by subject), and naming
+  columns / tasks / variables.
+- [ml-patterns.md](skills/oryxflow/ml-patterns.md) - ML pipeline task templates
+  (feature engineering, model training, SHAP, expanding-window backtests) and the
+  productionizing lifecycle.
+
+## What's new
+
+The [CHANGELOG](docs/CHANGELOG.md) is the human record of what changed in each
+release. Updates are pull-based - there is no push notification. You learn there
+is something new only by running:
+
+```
+/plugin marketplace update oryxflow
+```
+
+The `version` bump in `plugin.json` is the machine signal that a release is
+available; the changelog is the readable record of what it contains. Run the
+update periodically to pick up new releases.
 
 ## Developing the plugin
 
@@ -181,22 +213,29 @@ and the install for everywhere else.
 
 ### Releasing
 
-The top section of `docs/CHANGELOG.md` is the current working version, and its
-version string matches `.claude-plugin/plugin.json`. There is no "Unreleased"
-bucket - add changelog bullets to that top section as you work.
+Publishing is pull-based and version-gated: `.claude-plugin/plugin.json` sets an
+explicit `version`, and a consumer's `/plugin marketplace update oryxflow` only
+picks up a change when that string CHANGES. Commits between bumps are invisible to
+consumers, so you work in the open on `main` and gate what ships behind the bump.
 
-1. Add a changelog bullet for each change as you make it.
-2. To cut a release for consumers, set `version` in `.claude-plugin/plugin.json`
-   to the release date in `YY.M.D` format (e.g. `26.5.30`; append `.N` for
-   multiple releases in a day) and give the top changelog section the matching
-   heading.
-3. Commit (and push, if consumers install from git).
+While iterating, add changelog bullets under the top `## [Unreleased]` heading in
+`docs/CHANGELOG.md` (`### Added` / `### Changed` / `### Removed`) and leave
+`plugin.json` at the last released version - nothing ships while you work.
 
-Installed copies pick up the change when their owner runs
-`/plugin marketplace update oryxflow`. The version bump is the signal that there
-is something new - skip it and the update may not register. (Git installs with
-no pinned version fall back to the commit SHA, so a new commit counts as new;
-but since we set an explicit version, it must be bumped.)
+To cut a release:
+
+1. Rename `## [Unreleased]` to `## [YY.M.D] - YYYY-MM-DD` with today's date (no
+   zero-padding; append `.N` for a second release the same day), set `version` in
+   `.claude-plugin/plugin.json` to the SAME string, and add a fresh empty
+   `## [Unreleased]` back on top.
+2. Commit (and push, if consumers install from git).
+
+Installed copies pick up the release when their owner runs
+`/plugin marketplace update oryxflow`. The version bump is the signal that there is
+something new - skip it and the update may not register. (Git installs with no
+pinned version fall back to the commit SHA, so a new commit counts as new; but
+since we set an explicit version, it must be bumped.) See `CLAUDE.md` "Release" for
+the full procedure, including the separate scaffold floor baseline.
 
 ## Contents
 
@@ -209,7 +248,8 @@ oryxflow-claude-plugin/
 |   |-- init-project.md    # /oryxflow:init-project - scaffold a new project
 |   |-- init-gitlfs.md     # /oryxflow:init-gitlfs - put data/ under Git LFS
 |   |-- update-project.md  # /oryxflow:update-project - update an old project's floor
-|   `-- check-standards.md # /oryxflow:check-standards - check names, style, docstrings
+|   |-- check-standards.md # /oryxflow:check-standards - check names, style, docstrings
+|   `-- migrate.md         # /oryxflow:migrate - restructure a messy project into a pipeline
 |-- resources/
 |   `-- template-minimal/  # the files init-project copies into a new project
 `-- skills/

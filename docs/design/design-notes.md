@@ -29,6 +29,45 @@ cut at the load-bearing seam (library vs conventions) and no finer. Routing is i
 `SKILL.md`'s header pointer and the inline pointers ("full rules in
 conventions.md"); keep those accurate or the second file goes unfound.
 
+### Why d6tflow-migration.md is an on-demand doc, not a command
+
+The library rebrand from `d6tflow` to `oryxflow` left old projects needing a
+rename. That is a rare, one-time, one-way task, so it does NOT get a slash
+command (a permanent `/oryxflow:` palette entry earns its keep by being run
+repeatedly; this is run once per project, if ever) and it does NOT auto-trigger
+(nothing should start rewriting a user's pipeline on a plain skill load). It also
+is not general library depth, so it sits OUTSIDE the reference/conventions/ml
+"one split, not many" seam - it is a task playbook, discovered via a single
+`SKILL.md` pointer and invoked only when the user names it. The rename itself is
+mechanical (a whole-word token swap; the public API kept its shape across the
+rebrand), so the doc's real work is the guardrails: plan-then-apply, flag
+anything that does not map 1:1, and treat the `oryxflow` install/upgrade as a
+user decision rather than installing on their behalf. And because the swap is a
+quote-free ASCII token, the apply step is ONE word-boundary substitution scoped
+to the grep-matched files (`.ipynb`/`.html` included) - not dozens of hand `Edit`
+calls, which is what an agent defaults to and what makes the rename slow and
+lossy. That is also why the doc carves the sole exception to the
+no-hand-written-nbformat-JSON rule: that rule guards against corrupting cell JSON
+while AUTHORING, and a whole-word token swap can't. The word `migrate` is
+deliberately kept for a different feature - `/oryxflow:migrate`, which
+restructures a messy notebook/script project into a pipeline (see below) - so
+this rename does not claim it.
+
+### Why /oryxflow:migrate is a command, not an on-demand doc
+
+The counterpart decision to the one above. Restructuring an ad-hoc project into a
+pipeline is a REPEATED, generative operation (run on many projects; each run
+writes real code across `tasks.py` / `flow_params.py` / `cfg.py`), so unlike the
+one-time `d6tflow` rename it earns a permanent `/oryxflow:` palette entry. It is
+`disable-model-invocation: true` like the other write-commands - nothing should
+restructure a user's code on a plain skill load; it runs only when invoked. The
+command owns the MAPPING (messy anti-pattern -> oryxflow construct: linear chain
+-> DAG, magic constants -> params, hardcoded paths -> `save`/`inputLoad`) and the
+discipline (map-then-build, build up one task at a time so a break surfaces at its
+cause, never delete the source - it is the spec and the results oracle). It does
+NOT scaffold: it builds into an existing project and defers to
+`/oryxflow:init-project` when there is none, keeping each command single-purpose.
+
 ### Why a "silent data errors" section exists
 
 The library best-practices already cover validation/assertions, but the errors
@@ -350,6 +389,43 @@ source not yet in the pipeline (nothing to `outputLoad` yet). The distinction is
 carries the same wording for when the skill IS active; `CLAUDE.md` catches the
 cold-start case.
 
+## Changelogs are a diagnostic surface; a compat contract catches skew
+
+Two readers, one artifact - the same logic as the three-layer model, applied to
+change history. The agent does not browse a changelog; it CONSULTS one to diagnose
+a regression after a version bump (grep the failing symbol, read from the
+installed version forward, breaking-first). That only works if entries are
+machine-consumable, so `docs/CHANGELOG.md` carries three load-bearing tokens -
+`BREAKING:` (the grep target), a same-bullet `Migration:` clause, and backticked
+symbols/commands/paths - mirroring the library's changelog. Structure IS the
+machine-readability; there is no second machine format. The `.githooks/pre-commit`
+lint keeps the `BREAKING:`/`Migration:` pairing from rotting.
+
+The plugin has no API, so "breaking" is redefined: a change that makes an
+*already-scaffolded* project out of date (scaffold floor, commands, enforced
+conventions). Each break therefore ends in the migration action the plugin already
+ships - `/oryxflow:update-project` or `/oryxflow:check-standards` - not an abstract
+warning. This overlaps the floor-baseline mechanism: the migration-worthy scaffold
+change is exactly the one that bumps the floor.
+
+The **pointer must live in the skill**, not the changelog - the best changelog is
+invisible without it. But the pointer is a few lines (in `reference.md`, triggered
+from `SKILL.md`); changelog CONTENT is never inlined (it would re-pay context every
+activation for something needed twice a year). Cross-repo links use
+`raw.githubusercontent.com` (clean markdown the agent can fetch), not `blob` (HTML
+chrome).
+
+**Why a compatibility contract.** The skill instructs the agent based on LIBRARY
+behavior, so a version mismatch is dangerous: the agent cannot tell a real bug from
+"the skill has run ahead of the library." Stating a supported library floor (in
+`SKILL.md` for no-fetch access, and authoritatively in `docs/CHANGELOG.md`) lets
+the agent compare against `oryxflow.__version__` and REPORT skew instead of chasing
+a phantom. Authority is split and stated: the library `CHANGELOG.md` is the source
+of truth for API/behavior; when the two disagree about behavior, the library wins.
+The floor is phrased as a standalone assumption ("assumes `oryxflow >= X`"), not
+coupled to the plugin's own fast-moving version line, so a routine plugin release
+does not falsify the sentence - only adopting new library behavior bumps it.
+
 ## Logging: two layers, log scalars / save artifacts
 
 Domain signal, not `print`, in two layers. oryxflow already logs the lifecycle
@@ -420,6 +496,90 @@ defaults to `confirm=False` / no prompt, so it is safe in a non-interactive run 
 is; `confirm=True` opts INTO the prompt.) General lesson: when an agent misses a
 documented rule live, first ask whether it was in a loaded tier - promotion beats
 rewriting.
+
+## Code-aware invalidation (oryxflow >= 26.7.12): bump-first, two-tier, gated
+
+The engine shipped v4 code-invalidation (`code_version`, an advisory AST
+source-hash, `accept_code()`, `keep_versions`, an append-only event stream). The
+skill guidance was rewritten around it, with three non-obvious calls worth
+recording:
+
+1. **The primary idiom flipped from reset to BUMP for code changes.** Pre-26.7.12
+   the only remedy for a code edit was `flow.reset(Task)` before running (the
+   gotcha promoted above). v4 makes the `code_version` fingerprint part of
+   `TaskData.complete()`, so a bump is now authoritative - it invalidates the task
+   AND every parameter variant AND downstream in one move, which reset never did
+   (reset only recomputed the variant you named; sibling variants stayed stale -
+   the old `runLoad(reset=True)`-per-variant hazard, now retired). So the iterate
+   loop leads with bump; reset narrows to what the fingerprint cannot see (changed
+   input data, corrupt cache, delete) and the pre-26.7.12 fallback.
+
+2. **Two mechanisms, documented as distinct because an agent conflated them.** The
+   `code_version` fingerprint is AUTHORITATIVE (gates completeness -> forces
+   rerun); the AST source-hash is a warn-only ADVISORY (fires when code changed but
+   the version didn't). A source-inspecting agent read only base `Task.complete`
+   ("outputs exist") - which the skill itself tells agents to do ("installed code
+   wins") - and wrongly concluded a bump merely warns. Fix landed in BOTH tiers,
+   because they catch different readers: a library docstring pointer on
+   `Task.complete`/`_code_fingerprint` (the source of truth a deep agent trusts
+   over any doc) AND a crisp lead sentence in SKILL.md's invalidation section (for
+   the agent who doesn't dig). A plugin doc alone cannot fix this - the skill
+   routes agents to the installed code, so the code must carry the pointer.
+
+3. **The engine plan's verb "decision table" + FAQ were rendered as terse prose,
+   not tables.** SKILL.md is always-loaded; every row costs context on every
+   activation. The content (Parameter / bump / accept_code / reset; the seven trust
+   concerns) is covered inline in the iterate loop and the invalidation rules -
+   `accept_code` marked the one non-recomputing higher-bar exit, the loader-reset
+   ingestion-point subtlety, the "verify the invalidation took via `result.ran`"
+   check. A table would duplicate that at extra token cost. Prose was the
+   token-efficient choice, consistent with the two-tier-content principle.
+
+All of it is gated `oryxflow >= 26.7.12` with a pre-26.7.12 reset fallback stated
+where it applies; the supported floor stays 26.6.6 (the guidance degrades, it does
+not require the new library).
+
+One more honesty point, learned from a live project whose agent assumed a current
+library meant it was protected: the net is INERT until a task DECLARES
+`code_version` - `_code_fingerprint` is None everywhere on an un-adopted project,
+so the whole staleness layer is dormant and a code edit still rides on manual
+`reset`, no warning. Library version and per-task adoption are DIFFERENT gates;
+the guidance now says both plainly and pushes the edit-free adoption on-ramp. The
+adoption pass belongs to nobody automatic: it edits `tasks.py` (PROJECT bucket),
+so `/oryxflow:update-project` - which is scaffold-floor-only and never touches
+pipeline files - NOTES the gap and OFFERS the pass rather than performing it. That
+boundary keeps update-project's "never clobber the pipeline" contract intact while
+still surfacing the highest-value modernization an old project can make.
+
+The scaffold closes the loop from the OTHER end: the template `tasks.py` ships
+`code_version = 1` on its placeholder tasks and the "Add a new task" recipe makes
+declaring it standard, so a NEW project is armed from day one. This is the safest
+possible adoption point - a fresh scaffold has no prior output, so the first run
+stamps each baseline cleanly with nothing to grandfather (the first-add trap only
+exists when output already exists). It also removes the reset-vs-bump split-brain:
+new code is authored WITH `code_version`, so the iterate loop is bump-first from
+the start rather than a retrofit. Consequence for releases: the template
+`CLAUDE.md` convention flip (reset-before-run -> bump-first) is a scaffold-FLOOR
+change - update-project reconciles `CLAUDE.md` - so it is floor-baseline-bump
+worthy, unlike the `tasks.py` placeholder edit (PROJECT bucket, never reconciled).
+The changelog flags the floor bump for the release cut; the `tasks.py` change just
+rides the next release like any template edit.
+
+Precision the guidance now states (the design requires LESS than "every class",
+and an early draft over-rotated to blanket coverage): `code_version` is opt-in per
+task and defaults to None - a project with none behaves exactly as pre-feature.
+Propagation does NOT need blanket coverage, because `_code_fingerprint` folds
+dependency fingerprints: a versioned upstream bump reruns unversioned descendants
+transitively. The token is only required on a task to get the net (warning +
+forced rerun) for THAT task's OWN code. So the recommended pattern is coverage of
+key output tasks and expensive upstreams, not every class; the scaffold's
+default-on is convenience for fresh tasks (cheap, clean baseline), not a claim
+that omitting it is wrong. A task that opts out keeps the pre-feature discipline -
+`flow.reset` before running an edited task. The residual human cost - one ritual
+attribute per covered class, and the forget-to-bump failure mode - is the honest
+price of the net, softened (advisory hash warns on a forgotten bump) but not
+erased. Stated so agents neither treat the attribute as mandatory boilerplate nor
+assume propagation needs it everywhere.
 
 ## Scaffolding: the init command and the template
 

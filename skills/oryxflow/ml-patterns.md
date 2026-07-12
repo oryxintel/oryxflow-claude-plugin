@@ -6,6 +6,12 @@ is ML (feature engineering, model training, backtesting, predictions). For the
 general library reference see [reference.md](reference.md); for the essentials see
 [SKILL.md](SKILL.md).
 
+The task templates below omit `code_version` for brevity. It is opt-in per task
+(oryxflow >= 26.7.12): declare `code_version = 1` on the tasks whose own logic you
+want tracked (key outputs, expensive upstreams) and bump it on a logic change - a
+versioned upstream bump reruns unversioned downstream tasks too, so you need not
+put it on every class. See SKILL.md "Add a new task".
+
 ## ML pipeline architecture
 
 Standard pipeline structure:

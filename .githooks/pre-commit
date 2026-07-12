@@ -1,14 +1,16 @@
 #!/bin/sh
-# Enforce the one cross-file invariant the scaffold floor relies on:
-# the floor baseline must be IDENTICAL in the two places it is recorded -
-#   - the template stamp:  resources/template-minimal/CLAUDE.md  (<!-- oryxflow-floor: X -->)
-#   - the skill baseline:  skills/oryxflow/SKILL.md               (... floor baseline **X**)
-# The skill nudges a project "stale" when its stamp < the skill's baseline, so a
-# mismatch here silently breaks staleness detection. There is no CI, so this runs
-# at commit time. One-time install: git config core.hooksPath .githooks
+# Commit-time guards (there is no CI). One-time install: git config core.hooksPath .githooks
+# This hook enforces three things:
+#  1. Scaffold floor baseline IDENTICAL in its two homes -
+#       - the template stamp:  resources/template-minimal/CLAUDE.md  (<!-- oryxflow-floor: X -->)
+#       - the skill baseline:  skills/oryxflow/SKILL.md               (... floor baseline **X**)
+#     The skill nudges a project "stale" when its stamp < the skill's baseline, so
+#     a mismatch here silently breaks staleness detection.
+#  2. Compatibility floor IDENTICAL in its two homes (SKILL.md + docs/CHANGELOG.md).
+#  3. Changelog lint: every leading `BREAKING:` bullet carries a `Migration:` clause.
 #
-# NOTE: this guards only that the two values AGREE. It cannot know whether a given
-# floor edit OUGHT to bump the baseline - that judgment stays with the author.
+# NOTE: each agreement check guards only that the two values AGREE. It cannot know
+# whether a given edit OUGHT to bump a value - that judgment stays with the author.
 
 set -e
 root=$(git rev-parse --show-toplevel) || exit 0
@@ -33,6 +35,55 @@ if [ "$tmpl" != "$skill" ]; then
   echo "  These must be equal. Set both to the same version (see the" >&2
   echo "  'scaffold-FLOOR file' row in docs/design/architecture.md)." >&2
   exit 1
+fi
+
+# Compatibility floor must AGREE in its two homes (same idea as the scaffold
+# floor above): the supported `oryxflow >= X` value is stated in SKILL.md (so the
+# installed agent has it without a fetch) AND authoritatively in docs/CHANGELOG.md.
+# Only adopting new library behavior should move it - a routine release must not.
+# The hook guards only that the two AGREE; the value itself is the author's call.
+changelog="$root/docs/CHANGELOG.md"
+floor_re="oryxflow[[:space:]]*>=[[:space:]]*$ver"
+skill_floor=$(grep -oiE "$floor_re" "$skill_file" 2>/dev/null | head -1 | grep -oE "$ver")
+cl_floor=$(grep -oiE "$floor_re" "$changelog" 2>/dev/null | head -1 | grep -oE "$ver")
+if [ -z "$skill_floor" ] || [ -z "$cl_floor" ]; then
+  echo "pre-commit: could not read the compatibility floor (skill='$skill_floor' changelog='$cl_floor')." >&2
+  echo "  Expected an 'oryxflow >= X' line in $skill_file and $changelog." >&2
+  exit 1
+fi
+if [ "$skill_floor" != "$cl_floor" ]; then
+  echo "pre-commit: compatibility floor MISMATCH." >&2
+  echo "  SKILL.md (skills/oryxflow/SKILL.md):     $skill_floor" >&2
+  echo "  CHANGELOG (docs/CHANGELOG.md):           $cl_floor" >&2
+  echo "  These must be equal - set both to the same 'oryxflow >= X' value." >&2
+  exit 1
+fi
+
+# Changelog convention lint: every `BREAKING:` bullet must carry a `Migration:`
+# clause in the SAME bullet (the plugin ships the fix - update-project or
+# check-standards - so a break without the migration action is incomplete). A
+# bullet runs from a `- ` line until the next bullet / blank line / heading.
+if [ -f "$changelog" ]; then
+  # A real break LEADS its bullet with the token (`- BREAKING: ...`); a bullet
+  # that merely mentions `BREAKING:` in prose is not flagged.
+  bad=$(awk '
+    function flush() {
+      if (first ~ /^[[:space:]]*-[[:space:]]+BREAKING:/ && buf !~ /Migration:/)
+        print "  line " start ": " first
+      buf = ""; first = ""
+    }
+    /^[[:space:]]*-[[:space:]]/ { flush(); start = NR; first = $0; buf = $0; next }
+    /^[[:space:]]*$/ || /^#/    { flush(); next }
+    { buf = buf " " $0 }
+    END { flush() }
+  ' "$changelog")
+  if [ -n "$bad" ]; then
+    echo "pre-commit: BREAKING changelog bullet(s) missing a Migration: clause." >&2
+    echo "$bad" >&2
+    echo "  Add a same-bullet 'Migration:' clause naming the fix command" >&2
+    echo "  (/oryxflow:update-project or /oryxflow:check-standards)." >&2
+    exit 1
+  fi
 fi
 
 exit 0

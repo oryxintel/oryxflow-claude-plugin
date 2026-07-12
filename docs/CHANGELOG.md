@@ -1,10 +1,28 @@
 # Changelog
 
+> Compatibility: this plugin's skill guidance assumes `oryxflow >= 26.6.6` (the
+> supported library floor - bump this line when the skill starts depending on new
+> library behavior). The library `CHANGELOG.md` is the source of truth for
+> API/behavior; when the two disagree about library behavior, the library wins.
+
 All notable changes to the oryxflow plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions are
 date-based (`YY.M.D`, e.g. `26.5.30`). The top `## [Unreleased]` section is the
 working bucket - it ships nothing until it is stamped with a version at release
 time (see the Release section in the repo `CLAUDE.md`).
+
+**Entry conventions** (make entries machine-consumable, so an agent can grep the
+log to diagnose a regression). Three load-bearing tokens, matching the library's:
+
+- A bullet-leading `BREAKING:` token when a change makes an *already-scaffolded*
+  project out of date - it is the grep target. The plugin has no API, so its
+  breaking surface is the scaffold floor, the commands, and the enforced
+  conventions; a skill / docs / reference-only change is NOT breaking.
+- A same-bullet `Migration:` clause naming the fix the plugin already ships:
+  `/oryxflow:update-project` (scaffold-floor drift) or `/oryxflow:check-standards`
+  (convention drift).
+- Backticked symbols / command names / file paths (`` `/oryxflow:init-project` ``,
+  `` `run.py` ``, a scaffold path) - never prose like "reworked the scaffold".
 
 ## [Unreleased]
 
@@ -13,6 +31,115 @@ time (see the Release section in the repo `CLAUDE.md`).
      nothing - until you cut a release: rename this heading to the new
      version + date, bump plugin.json to match, and add a fresh empty
      [Unreleased] back on top. See CLAUDE.md "Release". -->
+
+## [26.7.12] - 2026-07-12
+
+### Added
+- Code-aware invalidation guidance for `oryxflow >= 26.7.12` (`SKILL.md` +
+  `reference.md`): bump `code_version` in the same edit as a logic change (the
+  new primary iterate loop - replaces reset-before-run, which stays documented
+  as the pre-26.7.12 fallback and the data-file/suspect-cache verb); the
+  first-time-add-plus-reset grandfathering rule; the three staleness-warning
+  exits ranked by risk (bump / reset / `accept_code` only-if-certain); verify
+  invalidations via `result.reasons` (`code change (1 -> 2)`); `keep_versions`
+  for side-by-side versions.
+- Event-stream guidance (`SKILL.md` "Code-aware invalidation & the event
+  stream"): session-start `oryxflow.events.print_status()` (prints the summary;
+  `events.status()` returns the same facts as a dict and prints nothing),
+  two-runs diff via
+  `oryxflow.events.runs(task_family=, last=2)`, `self.logger` scalars persisting
+  as `task_log` events, the `events.jsonl` / `events-YYYYMM.jsonl` head/offload
+  file convention, and `MultiRunResult` aggregate accessors
+  (`.ran`/`.reasons`/`.warnings`) instead of hand-rolled aggregation. The
+  compatibility note in `SKILL.md` gates all of it on `oryxflow >= 26.7.12`;
+  the supported floor stays `oryxflow >= 26.6.6`.
+- Clarified that the `code_version` fingerprint is authoritative (gates
+  `TaskData.complete()` -> forces rerun) while the AST source-hash is a separate
+  warn-only advisory - so a source-inspecting agent that reads only base
+  `Task.complete` does not conclude a bump merely warns (`SKILL.md` +
+  `reference.md`; paired with a library-side docstring pointer). Added the
+  reset-at-the-LOADER-task rule for changed input data (a downstream reset
+  reloads the cached old input).
+- Made explicit that the staleness net is INERT until a task declares
+  `code_version` - being on `oryxflow >= 26.7.12` does not arm it; a project with
+  none stays on manual `reset` with no warning (`SKILL.md` + `reference.md`, with
+  the edit-free adoption on-ramp). `/oryxflow:update-project` now NOTES an
+  un-adopted project and offers a separate opt-in `code_version` adoption pass
+  (kept out of the scaffold reconcile, which never touches pipeline files).
+- Scaffold now ARMS the staleness net from day one: the template `tasks.py`
+  placeholder tasks ship `code_version = 1`, and the "Add a new task" recipe
+  (`SKILL.md`) plus the `reference.md` / `ml-patterns.md` notes recommend
+  `code_version = 1` on new tasks whose logic you want tracked (a fresh task has no
+  prior output, so the baseline stamps cleanly - no grandfathering risk). Made the
+  scope precise: `code_version` is OPT-IN per task, not a per-class ritual - the
+  fingerprint folds dependencies, so an unversioned downstream task still reruns
+  when a versioned upstream bumps; cover key outputs and expensive upstreams and
+  let propagation do the rest. A task without `code_version` keeps the documented
+  `flow.reset`-before-run discipline. All gated `oryxflow >= 26.7.12`; pre-26.7.12
+  scaffolds omit `code_version` and keep reset-before-run. (The template
+  `CLAUDE.md` convention change that goes with this is the `BREAKING:` bullet under
+  Changed below.)
+- `/oryxflow:migrate` (`commands/migrate.md`) - restructures a messy data-science
+  project (monolithic notebooks / linear scripts, hardcoded paths, magic
+  constants, no caching) into a scalable oryxflow pipeline: maps the implicit
+  linear flow to output-named, parameterized, cached tasks wired with
+  `@oryxflow.requires`, then builds them up one task at a time. Map-then-build,
+  `disable-model-invocation: true` (writes code), never deletes the source (it is
+  the spec and the results oracle), offers to commit the result on verify (current
+  or a new branch, the user's choice), and defers to `/oryxflow:init-project` when
+  there is no scaffold to build into. Discoverable via `SKILL.md` step 0 when a
+  directory holds ad-hoc DS work but no oryxflow wiring. (This is the reserved
+  `migrate` feature - distinct from the `d6tflow` -> `oryxflow` rename doc.)
+- `skills/oryxflow/d6tflow-migration.md` - an on-demand playbook for migrating a
+  `d6tflow`-era project to `oryxflow` (a whole-word `d6tflow` -> `oryxflow` rename
+  across `*.py`, deps files, the data doc, and any `*.ipynb`/`*.html`, applied as
+  ONE word-boundary substitution scoped to the grep-matched files - not per-file
+  hand `Edit` calls; plan-then-apply; checks the installed `oryxflow` version
+  against the compat floor and leaves the `pip install`/upgrade as an explicit
+  user decision). Carves the one exception to the no-hand-written-nbformat-JSON
+  rule (a token swap can't corrupt cell JSON the way authoring can), and offers to
+  commit the rename on completion (current or a new branch, the user's choice).
+  Invoked by
+  the user naming it - NOT a slash command and NOT auto-triggering; discoverable
+  via a pointer in `SKILL.md` "Additional Resources". (Distinct from the
+  `/oryxflow:migrate` command above, which restructures a messy project.)
+- A `Compatibility:` contract stating the supported library floor
+  (`oryxflow >= 26.6.6`) in two homes - `SKILL.md` (so the installed agent has it
+  without a fetch) and authoritatively at the top of `docs/CHANGELOG.md`. The
+  skill compares it against `oryxflow.__version__` and REPORTS skew instead of
+  debugging a phantom when the running library is older than the skill assumes;
+  authority is split (library `CHANGELOG.md` wins on API/behavior). The floor moves
+  only when the skill starts depending on new library behavior, not per release.
+- A "Diagnosing a regression / version bump" pointer block in `reference.md`
+  (triggered from `SKILL.md` "Additional Resources"): on an unexpected
+  `AttributeError` / `ImportError` / `TypeError` or right after a version bump,
+  confirm `oryxflow.__version__`, then grep the changelog for the failing symbol
+  from the installed version forward, `BREAKING:` first. Links the library and
+  plugin changelogs via `raw.githubusercontent.com` (clean markdown to fetch). No
+  changelog content is inlined into the skill - just the pointer.
+- Changelog entry conventions header in `docs/CHANGELOG.md` documenting the three
+  load-bearing tokens (`BREAKING:` grep target, same-bullet `Migration:` clause,
+  backticked symbols/commands/paths), mirroring the library's changelog so an agent
+  can grep the log to diagnose a regression.
+- `README.md` "Best practices" and "What's new" sections that LINK (do not
+  duplicate) `conventions.md`, `ml-patterns.md`, and `docs/CHANGELOG.md`, and state
+  the pull-based update reality (`/plugin marketplace update oryxflow`).
+- `.githooks/pre-commit` now also guards that the compatibility floor AGREES across
+  `SKILL.md` and `docs/CHANGELOG.md`, and lints that every leading `BREAKING:`
+  changelog bullet carries a `Migration:` clause.
+
+### Changed
+- BREAKING: the template `CLAUDE.md` scaffold-floor convention flipped from
+  reset-before-run to bump-first for code changes - it now says to declare and
+  bump `code_version` on a logic edit, with `reset` narrowed to changed source
+  DATA (at the loader task), a corrupt cache, or deleting outputs. A project
+  scaffolded before this still carries the old reset-centric convention.
+  Migration: run `/oryxflow:update-project` to reconcile its `CLAUDE.md`. Floor
+  baseline bumped `26.6.29` -> `26.7.12` so the skill nudges older projects to it.
+- Swept `docs/CHANGELOG.md`: the `26.6.29` scaffold floor-stamp entry is now a
+  `BREAKING:` bullet with a `Migration:` clause (`/oryxflow:update-project`), since
+  a project scaffolded before it lacks the stamp and never sees the staleness
+  nudge. Other existing entries are additive and left as-is.
 
 ## [26.7.11] - 2026-07-11
 
@@ -179,7 +306,7 @@ time (see the Release section in the repo `CLAUDE.md`).
   then build on the library and validate against it).
 
 ### Changed
-- The scaffold floor `CLAUDE.md` now carries a floor-version stamp
+- BREAKING: the scaffold floor `CLAUDE.md` now carries a floor-version stamp
   (`<!-- oryxflow-floor: VERSION -->`), set to the plugin version of the last
   floor change. The `oryxflow` skill reads it on orientation and nudges (once, no
   nagging) toward `/oryxflow:update-project` when the stamp is missing or older
@@ -187,6 +314,9 @@ time (see the Release section in the repo `CLAUDE.md`).
   without the user having to know it exists. The baseline tracks *floor* changes,
   not every release, so floor-unrelated version bumps do not trigger false
   "stale" nudges. `/oryxflow:update-project` rewrites the stamp when it migrates.
+  A project scaffolded before this release has no stamp and never sees the
+  staleness nudge. Migration: run `/oryxflow:update-project` to add the stamp and
+  reconcile the floor `CLAUDE.md`.
 
 ## [26.6.28] - 2026-06-28
 

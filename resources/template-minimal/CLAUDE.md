@@ -84,11 +84,22 @@ do not ask.
 - Edit the flow files, do not improvise: `tasks.py` (task classes),
   `flow_params.py` (parameters), `flow.py` (which final task runs), `run.py`
   (execute). Run the workflow with `python run.py`.
-- After editing a task's CODE (or when its source data changed), RESET it before
-  running: `flow.reset(Task)` (cascades downstream). oryxflow caches on identity
-  (class + params), NOT code, so a plain run reuses the stale output. A PARAMETER
-  change makes a new identity and auto-reruns (no reset). Use the built-in
-  `flow.reset` - never write a reset helper.
+- Track code changes with `code_version` (an int/str class attribute; the
+  scaffold ships `code_version = 1`) and BUMP it in the SAME edit whenever you
+  change that task's logic - its `run()` or a helper it imports. oryxflow caches
+  on identity (class + params), NOT code, so without the bump a plain run reuses
+  the stale output; the bump makes the task and everything downstream rerun. It is
+  opt-in per task, NOT required on every class: the fingerprint folds deps, so an
+  unversioned downstream task still reruns when a versioned upstream bumps -
+  declare it on the tasks whose own logic you want tracked (key outputs, expensive
+  upstreams). A PARAMETER change makes a new identity and auto-reruns (no bump).
+  For a task WITHOUT `code_version`, a code edit still needs `flow.reset(Task)`
+  before running (the old discipline). RESET (`flow.reset(Task)`, cascades
+  downstream) is otherwise for what the bump cannot see: changed source DATA
+  (reset the LOADER task that ingests it, not a downstream one), a suspect/corrupt
+  cache, or deleting outputs. Use the built-in `flow.reset` - never write a reset
+  helper. (`code_version` needs `oryxflow >= 26.7.12`; on older libraries drop it
+  and reset before running an edited task.)
 - Trust auto file management. If `flow.run()` finishes without error, the outputs
   exist - load them with `flow.outputLoad(...)`; do not stat the filesystem. For a
   task's data, `flow.outputLoad(Task)` (or `self.inputLoad()` in a task) is the
@@ -129,7 +140,7 @@ oryxflow Claude Code plugin active.
 
 This file is the portable floor; the plugin is the depth.
 
-<!-- oryxflow-floor: 26.6.29 (plugin version of the last scaffold-floor change;
+<!-- oryxflow-floor: 26.7.12 (plugin version of the last scaffold-floor change;
      the skill compares this to detect a stale floor - do not edit by hand,
      /oryxflow:update-project maintains it) -->
 

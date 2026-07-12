@@ -102,3 +102,13 @@ deliberate project customization, and any PROJECT-bucket structural differences
 you noted but did not touch. State the floor stamp the project now carries. If
 `CLAUDE.md` gained the skill-availability check, point out that future sessions
 will now remind the user to load the plugin.
+
+Also NOTE (do not act) whether the project has adopted `code_version`: if
+`oryxflow >= 26.7.12` but no task declares it (grep `tasks.py` / the pipeline),
+the staleness safety net is INERT - a code edit still rides on manual `reset`
+with no warning. This is NOT part of the scaffold reconcile (adopting
+`code_version` edits PROJECT-bucket pipeline files, which this command never
+touches), so surface it as a recommendation and OFFER a separate, opt-in adoption
+pass: add `code_version` to the key output tasks and their upstreams in an
+edit-free change (grandfathering then blesses each task's current output). Only
+do that pass if the user asks for it.

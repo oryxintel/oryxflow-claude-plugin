@@ -41,7 +41,11 @@ outputs automatically, uniquely identified by class name + parameters.
 generic names like `GetData` / `LoadData` / `Process`; order tokens broad ->
 narrow so a family clusters (`FundamentalsLeadLag`, not `LeadLagAnalysis`). Full
 rules in [conventions.md](conventions.md) ("Task naming"). Some examples below use
-older verb-style names for brevity; prefer output names in real code.
+older verb-style names for brevity; prefer output names in real code. The class
+examples also omit `code_version`: it is opt-in per task (oryxflow >= 26.7.12) -
+declare `code_version = 1` on the tasks whose own logic you want tracked and bump
+it on a logic change; propagation covers unversioned downstream tasks (see "Code
+edits vs parameter changes" below).
 
 ```python
 import oryxflow
@@ -316,29 +320,68 @@ df_train = flow.outputLoad(SplitData, keys='train')  # Specific output by name
 meta = flow.metaLoad(TrainModel)          # Metadata
 ```
 
-**When to reset**: Source data changed, task code changed, or you want fresh
-results. `flow.reset(TaskName)` cascades to downstream tasks, so resetting the
-one task you changed is enough.
+**When to reset**: source DATA changed (invisible to the code hash), you suspect
+a corrupt cache, or you want outputs deleted. `flow.reset(TaskName)` cascades to
+downstream tasks. When it is changed input data, reset at the LOADER task that
+ingests it, not a downstream task - a downstream reset re-loads the cached old
+input, so the change never propagates. For CODE changes, bump `code_version`
+instead (below).
 
 **Code edits vs parameter changes (the iterate gotcha)**: oryxflow caches by task
 identity = class + parameters. A PARAMETER change creates a new identity, so it
 is auto-detected and reruns on the next `flow.run()` with no reset. A CODE edit
-(changing a task's `run()` body) does NOT change identity - oryxflow still treats
-the task as complete and SKIPS it, reusing the stale output. So after editing a
-task's code you MUST `flow.reset(thatTask)` before running, or the edit silently
-has no effect. This is the most common oryxflow surprise when iterating.
-`flow.reset` already cascades downstream, so it IS the whole workflow - never write
-a reset helper (`reset_if_code_changed`, a downstream-resetter); reaching for one
-means the built-in was missed. (If a PARAMETER change is not auto-rerunning, the
-fix is to define / inherit the parameter correctly, not to reset by hand.)
+(changing a task's `run()` body or a helper it imports) does NOT change identity
+- so bump the task's `code_version` class attribute in the same edit
+(oryxflow >= 26.7.12): the task and everything downstream recompute on the next
+run, overwriting in place. Downstream tasks need no `code_version` of their own for
+this - the fingerprint folds dependency fingerprints, so a versioned upstream bump
+propagates through unversioned descendants. So `code_version` is opt-in per task,
+not a per-class ritual: declare it on the tasks whose OWN logic you want tracked
+(key outputs and expensive upstreams), and let propagation cover the rest.
+Without the bump, oryxflow treats the task as complete
+and SKIPS it, reusing the stale output - though it WARNS (a `StalenessWarning`
+naming the changed file) because it hashes the task's module and its
+project-local imports (AST-normalized: comment/docstring edits never warn).
+This warning - and the whole staleness layer - is INERT for a task that does not
+declare `code_version`: a project that has adopted none gets no net at all and
+relies entirely on manual `reset` (the pre-26.7.12 discipline), even on a current
+library. Adopt `code_version` (ideally in an edit-free change) to arm it. Once
+adopted, answer every warning with one of its exits: bump (output differs),
+`oryxflow.accept_code(TaskX)` (certain the output is equivalent; when unsure,
+bump), or reset. Never write a reset helper (`reset_if_code_changed`, a
+downstream-resetter) - the bump already propagates. First time ADDING
+`code_version` to a task right after editing it: also reset once
+(grandfathering treats existing output as current). On pre-26.7.12: the manual
+`flow.reset(thatTask)` before running is the whole discipline. (If a PARAMETER
+change is not auto-rerunning, the fix is to define / inherit the parameter
+correctly, not to reset by hand.)
+
+**Keeping versions side by side**: string version + `keep_versions = True` on
+the class puts outputs under `data/Task/v<version>/`, so old versions survive
+bumps - the compare-two-versions workflow. Turning `keep_versions` on relocates
+the task's output path, so it recomputes once.
 
 **Changing a task's output columns** is just such a code edit: adding, removing,
-or renaming a column needs a reset (cascades downstream) and a matching update to
-the docstring's output contract. Removing or renaming a column breaks downstream
-tasks that read it - the cascade re-runs them, so the break surfaces as an error
-you fix in the same change. Subtler: changing what an EXISTING column MEANS
-(recomputed values, new units) WITHOUT renaming it does not error downstream -
-dependents silently consume the new semantics, so reset and re-verify them.
+or renaming a column needs a `code_version` bump (propagates downstream) and a
+matching update to the docstring's output contract. Removing or renaming a
+column breaks downstream tasks that read it - the propagated rerun surfaces the
+break as an error you fix in the same change. Subtler: changing what an EXISTING
+column MEANS (recomputed values, new units) WITHOUT renaming it does not error
+downstream - dependents recompute on the bump, but re-verify their semantics.
+
+**Provenance / history (oryxflow >= 26.7.12)**: every run appends events to
+`.oryxflow/events.jsonl` (plain JSONL; earlier months offload to
+`events-YYYYMM.jsonl`, all history = glob `events*.jsonl`).
+`oryxflow.events.print_status()` = session-start orientation, printed (pending
+code warnings, last run per family, recent failures) - the default first call;
+`oryxflow.events.status()` = the same facts as a dict for filtering (returns,
+prints nothing - a bare call in a script shows nothing);
+`oryxflow.events.runs(task_family='X',
+last=2)` = diff the last two runs' params / code_version / source_hashes;
+`task_ran` events carry the rerun reason (`output missing` /
+`code change (1 -> 2)` / `upstream rerun`), git SHA, duration. `self.logger`
+lines are captured as `task_log` events, so logged scalars persist across
+sessions.
 
 ### Important: Trust Auto File Management
 
@@ -704,6 +747,36 @@ class TrainModel(oryxflow.tasks.TaskPqPandas):
 - **Parameters not affecting task**: Check `significant=False` or parameter type
 - **Cannot load multiple outputs**: Mismatch between `persists` list and `save()` count
 - **Metadata not loading**: Not saved, or loading from wrong task (use `metaLoad(key=0)` for first dependency)
+
+---
+
+## Diagnosing a regression / version bump
+
+On an unexpected `AttributeError` / `ImportError` / `TypeError` from the workflow
+library, or right after a version bump, *before assuming a code bug*: confirm the
+running library version with `oryxflow.__version__`, then grep the changelog for
+the failing symbol and read entries from the installed version forward,
+prioritizing `BREAKING:` entries.
+
+- Library (source of truth for API/behavior) - changelog:
+  `https://raw.githubusercontent.com/oryxintel/oryxflow/main/CHANGELOG.md`
+  (rendered: https://oryxflow.readthedocs.io/en/stable/changelog.html). In an
+  editable checkout, `git log --oneline <old>..<new>` in the library repo is the
+  live equivalent.
+- Plugin (skill/guidance + compat contract) - changelog:
+  `https://raw.githubusercontent.com/oryxintel/oryxflow-claude-plugin/main/docs/CHANGELOG.md`.
+- **Authority: when the two disagree about library behavior, the library wins.** If
+  the plugin's `Compatibility:` floor and `oryxflow.__version__` are violated (the
+  running library is OLDER than the floor the skill assumes), say so - do not debug
+  a phantom.
+- After any library version change in a project, re-run `python run.py` as a cheap
+  regression smoke test (this scaffold has no version pin and imports oryxflow
+  across several files, so a library switch silently changes behavior).
+
+Fetch the raw URLs (files are never auto-in-context); the raw URL returns clean
+markdown, a `blob` URL returns HTML chrome. For the installed plugin you have the
+skill on disk (no fetch); the fetch that matters is the LIBRARY changelog read
+from inside a user's project.
 
 ---
 

@@ -40,6 +40,7 @@ commands/
   init-gitlfs.md     # /oryxflow:init-gitlfs - put data/ under Git LFS
   update-project.md  # /oryxflow:update-project - update old project floor to latest
   check-standards.md # /oryxflow:check-standards - check names, style, docstrings
+  migrate.md         # /oryxflow:migrate - restructure a messy project into a pipeline
 skills/
   oryxflow/
     SKILL.md         # skill entry point - ESSENTIALS only, always in context
@@ -94,11 +95,13 @@ git config core.hooksPath .githooks                          # ONE-TIME: enable 
 `marketplace.json`. Run it before committing manifest changes.
 
 `git config core.hooksPath .githooks` (one-time per clone) enables the versioned
-pre-commit hook in `.githooks/`, which enforces that the scaffold floor baseline
-matches in its two homes (the template stamp and `SKILL.md`) - see the Release
-section and the architecture playbook. The hook only guards that the two AGREE;
-deciding a floor change is migration-worthy (and bumping the baseline) is still
-yours.
+pre-commit hook in `.githooks/`. It enforces three things: (1) the scaffold floor
+baseline matches in its two homes (the template stamp and `SKILL.md`); (2) the
+compatibility floor (`oryxflow >= X`) matches across `SKILL.md` and
+`docs/CHANGELOG.md`; (3) every leading `BREAKING:` changelog bullet carries a
+`Migration:` clause - see the Release section and the architecture playbook. Each
+agreement check only guards that the two values AGREE; deciding a floor change is
+migration-worthy (and bumping the value) is still yours.
 
 ## Release
 

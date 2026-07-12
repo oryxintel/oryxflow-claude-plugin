@@ -3,6 +3,7 @@
 !.gitignore
 !.gitattributes
 !.creds.yaml.example
+.oryxflow/
 
 # git add -f .env.yaml
 

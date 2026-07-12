@@ -11,6 +11,7 @@ import cfg
 # PLACEHOLDER SCAFFOLD - replace the tasks below with the real pipeline.
 class GetData(oryxflow.tasks.TaskPqPandas):
     """PLACEHOLDER - load this project's raw data and save it for downstream tasks."""
+    code_version = 1  # BUMP when you change this task's logic -> it + downstream rerun
 
     def run(self):
         df = pd.DataFrame({'a':range(10)})
@@ -19,6 +20,7 @@ class GetData(oryxflow.tasks.TaskPqPandas):
 @oryxflow.requires(GetData)
 class Process(oryxflow.tasks.TaskPqPandas):
     """PLACEHOLDER - transform GetData's output into the pipeline's result."""
+    code_version = 1  # BUMP when you change this task's logic -> it + downstream rerun
     optional = oryxflow.BoolParameter(default=False)
 
     def run(self):

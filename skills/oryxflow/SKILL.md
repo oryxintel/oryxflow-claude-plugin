@@ -32,6 +32,16 @@ workflows: chain complex, parameterized data flows and execute them, caching
 intermediate results and rerunning intelligently after code or parameter changes
 - so you build better models faster.
 
+**Compatibility**: this skill's guidance assumes `oryxflow >= 26.6.6` (the floor;
+`docs/CHANGELOG.md` carries the authoritative value). Code-aware invalidation
+(`code_version`, `accept_code`, `oryxflow.events`) needs `oryxflow >= 26.7.12`; on
+older versions fall back to the reset-before-run loop noted where it applies. The
+library `CHANGELOG.md` is the source of truth for API/behavior; when the two
+disagree about library behavior, the library wins. If the running
+`oryxflow.__version__` is OLDER than the floor, the skill has run ahead of the
+library - say so instead of debugging a phantom (see reference.md "Diagnosing a
+regression / version bump").
+
 **Key Principle**: Follow the established project structure. DO NOT create
 ad-hoc scripts or inline commands for workflow operations - use the existing
 project files.
@@ -95,7 +105,10 @@ On a plain load with no specific task, orient cheaply and STOP:
    plugin root to scaffold inline) - so end with a clear call to action: "scaffold
    one by typing `/oryxflow:init-project`." State it as the obvious next step, not
    an apology, and don't offer a menu of alternatives. (After it runs, give the
-   fresh-scaffold onboarding below.)
+   fresh-scaffold onboarding below.) EXCEPTION: if the directory already holds
+   real but ad-hoc data-science work - notebooks / linear scripts, not an empty
+   dir - name `/oryxflow:migrate` as the fitting path: init-project first, then
+   migrate restructures that work into the pipeline.
 1. Otherwise read the `tasks.py` docstrings and `docs/oryxflow-data.md`. If
    markers are gone, trust them.
 2. `tasks.py` still carries `PLACEHOLDER SCAFFOLD` -> fresh scaffold; else ->
@@ -109,7 +122,7 @@ run `eda/` scripts, or build the docs - that is opt-in exploration (below).
 
 While orienting, read the floor stamp in the project's `CLAUDE.md`
 (`<!-- oryxflow-floor: VERSION -->`). If it is missing, or its VERSION is older
-than the current floor baseline **26.6.29**, the scaffold floor predates the
+than the current floor baseline **26.7.12**, the scaffold floor predates the
 current template - suggest the user run `/oryxflow:update-project` to reconcile it
 (one line; do not nag or auto-run it).
 
@@ -275,10 +288,10 @@ ALWAYS:
 - **Modify logic** - Edit `tasks.py` (task classes), `flow_params.py`
   (parameters), or `flow.py` (which final task runs).
 - **Run** - Edit `run.py` if needed, then `python run.py`. If a task's CODE was
-  just edited, reset it first (`flow.reset(tasks.X)`) - a plain run skips
-  edited-but-unreset tasks. Keep `flow.reset(...)` lines in `run.py` as
-  commented-out toggles (uncomment to reset, re-comment after); don't delete
-  them. See "Modify an existing task".
+  just edited, bump its `code_version` in the same edit - the task and its
+  downstream recompute on the run (see "Modify an existing task"). Reach for
+  `flow.reset(tasks.X)` only when no code token moved (a data file changed,
+  suspect cache) or on oryxflow < 26.7.12.
 - **Analyze outputs** - Edit `visualize.py` then `python visualize.py`, or work in
   a `viz-<topic>.ipynb` report notebook (copied from `viz-template.ipynb`).
 - **Publish a report** - Keep notebooks that import the flow at the project root
@@ -548,6 +561,7 @@ class OEWSWages(oryxflow.tasks.TaskPqPandas):
     Out: one row per (occ_code, area); the wage-percentile columns. Null where
          BLS suppressed small cells.
     """
+    code_version = 1   # ALWAYS declare on a new task; bump on any logic change
     param1 = oryxflow.Parameter()
 
     def run(self):
@@ -555,6 +569,12 @@ class OEWSWages(oryxflow.tasks.TaskPqPandas):
         # ... transform ...
         self.save(df_out)
 ```
+   Give a new task `code_version = 1` (int or str): a clean baseline on a fresh
+   task (nothing to grandfather), so later logic edits are a one-line bump. It is
+   NOT required on every class - the fingerprint folds deps, so an unversioned
+   downstream task still reruns when a versioned upstream bumps - but it is cheap
+   insurance on a key output or expensive task, which is why the scaffold ships it.
+   On `oryxflow < 26.7.12` omit it (unsupported) and reset before running instead.
 2. Add parameters to `flow_params.py`: `params['param1'] = 'value'` (comment what
    it means).
 3. If it is the new final task, set `task = tasks.OEWSWages` in `flow.py`.
@@ -562,45 +582,53 @@ class OEWSWages(oryxflow.tasks.TaskPqPandas):
 
 ### Modify an existing task (the common iterate loop)
 1. Edit the task's `run()` in `tasks.py`.
-2. RESET IT BEFORE RUNNING. A code edit does NOT change task identity (class +
-   parameters), so oryxflow treats it as complete and a plain `python run.py`
-   SKIPS it, reusing the stale output. `flow.reset(tasks.ModifiedTask)` first -
-   reset cascades downstream, recomputing dependents too. This is oryxflow's
-   built-in and the ONLY reset path: do NOT write a reset helper
-   (`reset_if_code_changed`, a downstream-resetter) - `flow.reset` already
-   cascades, so reaching for a helper means you missed it. (A PARAMETER
-   change, by contrast, makes a new identity and auto-reruns - no reset; if a param
-   change is NOT auto-rerunning, the parameter is not defined / inherited correctly,
-   not a reason to reset by hand.)
-3. Run: add/uncomment `flow.reset(tasks.ModifiedTask)` in `run.py`, run
-   `python run.py`, then re-comment the reset line. Keep reset calls as
-   commented-out toggles in `run.py` (one task per line; uncomment several at
-   once to reset multiple) rather than deleting them - the standing list of
-   reset-ables is the intended pattern.
+2. BUMP `code_version` IN THE SAME EDIT. A code edit does NOT change task
+   identity (class + parameters), so without the bump a plain `python run.py`
+   SKIPS it, reusing the stale output. Declare/bump the class attribute
+   (`code_version = 2`, or a string `'v2-log-features'`) - the bump propagates
+   downstream automatically, so do NOT hand-chain `flow.reset(...)` calls for
+   code changes and do NOT write a reset helper. (A PARAMETER change, by
+   contrast, makes a new identity and auto-reruns - no bump, no reset; if a param
+   change is NOT auto-rerunning, the parameter is not defined / inherited
+   correctly.)
+   - FIRST TIME adding `code_version` to a task: if you're adding it because you
+     just changed the code, also `flow.reset(tasks.ModifiedTask)` once -
+     grandfathering treats the existing output as current. Safest adoption: add
+     `code_version` in a change that edits nothing else.
+   - On oryxflow < 26.7.12 (no `code_version`): fall back to reset-before-run -
+     `flow.reset(tasks.ModifiedTask)` (cascades downstream), kept as a
+     commented-out toggle line in `run.py`.
+3. Run `python run.py` and verify the invalidation took: the result must show
+   the task in `result.ran` with reason `code change (1 -> 2)`
+   (`result.reasons`). `ran=0` after an intended bump means it didn't reach the
+   cache - a bug, not a convenient skip; `ran=0` on an untouched pipeline is the
+   healthy "cache is trusted" signal.
 4. Keep the docstring accurate.
 
 **Add / remove / rename an output column** is this same loop: edit `run()`, update
-the docstring's `Out:` column list to match, then reset + re-run. Adding is safe;
-REMOVING or renaming a column breaks any downstream task that read it - the reset
-cascade re-runs them and surfaces the break, so fix those readers in the same edit.
+the docstring's `Out:` column list to match, then bump + re-run. Adding is safe;
+REMOVING or renaming a column breaks any downstream task that read it - the bump's
+downstream propagation re-runs them and surfaces the break, so fix those readers in
+the same edit.
 When you write `.agg(name=...)`, `.rename(columns=...)`, or an output column list,
 name each column suffix-style (operation / unit / stat is a TRAILING suffix, never
 a leading prefix: `position_value_avg`, not `avg_position_value`) and check it
 against the Don't/Do table in conventions.md before you save.
 
 **Iterate-then-run rule**: if a task's code was edited this session and you are
-then asked to "run the flow", do reset-then-run for that task - do NOT just
-`python run.py`, or the edit silently does nothing.
+then asked to "run the flow", make sure its `code_version` was bumped in that edit
+(bump it now if not) - do NOT just `python run.py`, or the edit silently does
+nothing. (Pre-26.7.12: reset-then-run instead.)
 
-**Across parameter variants**: a code edit invalidates EVERY cached instance of
-that task (one per parameter value), but `flow.reset(...)` / the run only
-recompute the variant(s) you actually run. If you edited `EmploymentExposure`'s
-columns and ran it for `jobs='customer_service'`, the `support_broad` /
-`backoffice` outputs are STILL stale - loading one later yields the old schema
-(e.g. `KeyError: 'jobs_pct_AIadj'`). When iterating over variants, force a
+**Across parameter variants**: a `code_version` bump invalidates EVERY cached
+instance of that task (one per parameter value) - each variant recomputes on its
+next run, and loading a not-yet-recomputed variant fails loudly ("task not
+complete") instead of serving the old schema. The stale-sibling-variant trap is
+handled; `runLoad(..., params=...)` per variant re-runs what's stale. On
+pre-26.7.12 versions (manual resets only recompute the variant you ran), force a
 recompute per setting with `reset=True`:
 ```python
-# code changed -> reset=True recomputes this variant instead of loading stale cache
+# pre-26.7.12: reset=True recomputes this variant instead of loading stale cache
 df = oryxflow.runLoad(tasks.EmploymentExposure, params={'jobs': jobs}, reset=True)
 ```
 
@@ -635,13 +663,21 @@ the reliable way to confirm a reset took (more than "the run did not error"):
 ```python
 result = flow.run()
 print(result.summary())            # one glance: N ran / N cache-hit / N failed (result.success = verdict)
-result.did_run(tasks.ModelTrain)   # True if it recomputed (confirms the reset took)
+result.did_run(tasks.ModelTrain)   # True if it recomputed (confirms the bump/reset took)
 result.ran          # tasks actually recomputed   result.complete  # cache hits (skipped)
+result.reasons      # {task_id: 'output missing' | 'code change (1 -> 2)' | 'upstream rerun'}
+result.warnings     # unacknowledged code-change warnings (answer them - see below)
 # To inspect a FAILURE without re-running, capture it instead of raising:
 result = flow.run(abort=False)     # default abort=True raises (no result returned)
 if not result.success:
     print(result.failed[0].traceback)   # full traceback; .failure_of(tasks.X) targets one
 ```
+`WorkflowMulti` runs return the same aggregates across flows
+(`result.ran`/`.complete`/`.failed`/`.reasons`/`.warnings`) - NEVER hand-roll
+`sum(len(r.ran) for r in result.values())`. And never add print helpers for the
+verdict: each build's counts are already logged durably as `run_finished` events
+(below), so capture the result for in-process assertions and check
+`oryxflow.events.status()` after the fact.
 The same shows in words in the logged Execution Summary (when `enable_logging` is
 on; luigi-compatible wording):
 ```
@@ -652,7 +688,67 @@ Scheduled 3 tasks of which:
     - EmploymentExposure(jobs=support_broad)
 ```
 A task you edited showing under "complete ones were encountered" was skipped
-(stale cache) - reset it and re-run.
+(stale cache) - its `code_version` wasn't bumped; bump it and re-run.
+
+---
+
+## Code-aware invalidation & the event stream (oryxflow >= 26.7.12)
+
+oryxflow records what ran, when, and why. Two distinct mechanisms - keep them
+straight (a code-inspecting agent that reads only base `Task.complete` will miss
+this): a `code_version` bump is AUTHORITATIVE - it changes the task's code
+fingerprint, which `TaskData.complete()` gates on, so the task and everything
+downstream rerun. The AST source-hash is a warn-only ADVISORY - it fires when you
+edit code but forget to bump, and NEVER forces a rerun by itself. Both are INERT
+until a task declares `code_version`: a project with none (the common starting
+state) has the whole layer dormant - no warning fires and a code edit still rides
+on manual `reset` - for an unversioned task, `flow.reset(Task)` before running
+(the method documented under "Modify an existing task") is the whole discipline.
+Do NOT assume being on oryxflow >= 26.7.12 arms the net; check that tasks actually
+declare `code_version`. You do NOT need it on every class: the fingerprint folds
+dependencies, so a downstream task WITHOUT `code_version` still reruns when a
+versioned upstream bumps - declare it only on tasks whose OWN logic you want the
+net for. Arm it by adopting `code_version` on your key output tasks and their
+expensive upstreams (ideally in an edit-free change, so grandfathering blesses
+each task's real current output). The rules, in the order they come up:
+
+1. **Session start / after `/clear`**: call `oryxflow.events.print_status()` -
+   pending code warnings, last run per task family, recent failures - before
+   assuming anything about cache state. Use `events.status()` when you want the
+   same facts as a dict to filter; it RETURNS and prints nothing (a bare call in
+   a script shows nothing). No-Python fallback: `tail -30 .oryxflow/events.jsonl`.
+2. **Changed a task's logic** (its `run()` or a helper module it uses): bump that
+   task's `code_version` in the SAME edit; the bump propagates downstream (see
+   "Modify an existing task").
+3. **First time adding `code_version`** after an edit: also reset once
+   (grandfathering otherwise blesses the stale output). Safest: adopt in an
+   edit-free change.
+4. **Answer every staleness warning with one of its three exits** - they are not
+   equal in risk: bump (semantic change - safe, recomputes), reset (recompute
+   regardless - safe), or `oryxflow.accept_code(tasks.X)` (output-equivalent
+   refactor - the ONE non-recomputing exit; only if certain, when unsure bump;
+   `accept_code()` bulk-accepts everything warned). Never leave a warning firing
+   across runs. Blind spots are honest: the hash can't see data files, external
+   APIs, or dynamic dispatch - for those, `reset()` is the verb, and reset the
+   LOADER task that ingests the changed input, not a downstream task (a
+   downstream reset just reloads the cached old input).
+5. **After a run, read the returned result** - `result.reasons` /
+   `result.warnings`; verify intended invalidations show up in `result.ran` with
+   the matching reason (see "See what ACTUALLY ran").
+6. **"The numbers changed and I don't know why"**: compare the last two runs -
+   `oryxflow.events.runs(task_family='TaskX', last=2)` - and diff `params`,
+   `code_version`, `source_hashes`.
+7. **Log decision-relevant scalars** inside `run()` via `self.logger.info(...)` -
+   they're captured as `task_log` events and become next session's memory.
+8. **Experiments side by side**: string version (`code_version =
+   'v2-log-features'`) plus `keep_versions = True` - old versions stay at
+   readable paths (`data/Task/v1-baseline/...`).
+9. **Raw stream convention**: current = `.oryxflow/events.jsonl` (stable head);
+   offloaded months = `.oryxflow/events-YYYYMM.jsonl`; all history = glob
+   `events*.jsonl`. Plain JSONL - `tail`/`grep`/`jq` work; prefer
+   `events.runs()`/`status()` when Python is available. `.oryxflow/` stays
+   gitignored. The per-data-dir record file (`data/.oryxflow-code-status.json`)
+   travels WITH the data dir - move/restore the dir whole.
 
 ---
 
@@ -674,6 +770,14 @@ A task you edited showing under "complete ones were encountered" was skipped
 
 - [reference.md](reference.md) - comprehensive oryxflow patterns and reference.
 - [ml-patterns.md](ml-patterns.md) - ML pipeline task templates. Load on demand.
+- [d6tflow-migration.md](d6tflow-migration.md) - migrating a d6tflow-era project
+  to oryxflow (the `d6tflow` -> `oryxflow` rename). Load on demand when the user
+  asks; it does not auto-trigger.
+- **Regression after a library/version bump** (unexpected `AttributeError` /
+  `ImportError` / `TypeError`, or a fresh upgrade): confirm `oryxflow.__version__`,
+  then grep the changelog for the failing symbol from the installed version
+  forward, `BREAKING:` first. Steps + changelog URLs: reference.md "Diagnosing a
+  regression / version bump".
 - **When this skill doesn't cover an API**, confirm against the *installed*
   package first - `inspect.signature(cls.method)`, `cls.__mro__` - that is
   version-matched ground truth. Then the docs / GitHub below. On any conflict the
