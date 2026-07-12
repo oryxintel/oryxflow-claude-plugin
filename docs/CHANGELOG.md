@@ -32,6 +32,18 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
      version + date, bump plugin.json to match, and add a fresh empty
      [Unreleased] back on top. See CLAUDE.md "Release". -->
 
+### Added
+- Run tiers by lifecycle (`conventions.md` "Scaling up"): name graduated run
+  files by LIFECYCLE, not topic - `run.py` (experiment, one active param set),
+  `run_prod.py` (frozen, kept, selective reset), `run_eda.py <topic>` (compare
+  many variants). Lifecycle is a closed ~3-file set; topics multiply as
+  `run_eda.py` registry ENTRIES, not new files. New `resources/template-prod/`
+  ships `run_prod.py` + `run_eda.py` as graduated add-ons (NOT copied by
+  `/oryxflow:init-project` - the minimal scaffold stays `run.py`-only). Prod
+  builds its Workflow INLINE (`flow.py`'s singleton is bound to the experiment
+  tier at import); selective reset generalized to cost+authority (refresh the
+  cheap local layer, freeze the expensive/external pulls).
+
 ## [26.7.12] - 2026-07-12
 
 ### Added

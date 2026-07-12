@@ -48,6 +48,7 @@ skills/
     ml-patterns.md   # ML pipeline task templates - loaded ON DEMAND
 resources/
   template-minimal/  # the project scaffold init-project copies into a new project
+  template-prod/     # graduated run-tier add-ons (run_prod.py, run_eda.py); copied by hand, NOT by init
 docs/
   CHANGELOG.md       # user-facing change history
   design/
@@ -163,6 +164,14 @@ ships the project wiring (`tasks.py`, `flow.py`, `run.py`, `cfg.py`,
 ship the intentional `PLACEHOLDER SCAFFOLD` markers (leave them). A scaffold change
 ships like any other at the next release bump (see "Release"); if it is one
 existing projects should adopt, also bump the floor baseline in that same release.
+
+`resources/template-prod/` is a SEPARATE, graduated add-on scaffold - `run_prod.py`
+(prod tier) and `run_eda.py` (comparison tier). It is NOT part of `init-project`:
+a project copies these by hand once a distinct run lifecycle appears (the "Run
+tiers by lifecycle" guidance in `conventions.md`). Canonical here; edit directly.
+It is NOT a floor file (nothing auto-reconciles it), so a change ships with just a
+changelog bullet - no floor-baseline bump. These files name project-specific tasks
+they cannot resolve, so they carry `PLACEHOLDER SCAFFOLD` markers (leave them).
 
 ## Git
 

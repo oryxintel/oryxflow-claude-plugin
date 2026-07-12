@@ -47,6 +47,7 @@ Keep these straight - changes go to different places:
 | `commands/update-project.md` | `/oryxflow:update-project`; reconcile old project floor to latest scaffold; manual | on invoke |
 | `commands/check-standards.md` | `/oryxflow:check-standards`; check code against the house standards (naming, style, docstrings); manual. Points AT `conventions.md`/`SKILL.md` for the rules (does not restate them) | on invoke |
 | `resources/template-minimal/` | project scaffold (edited directly here) | copied by init |
+| `resources/template-prod/` | graduated run-tier add-ons (`run_prod.py`, `run_eda.py`); NOT copied by init - copied by hand when a project needs prod / comparison tiers | on graduation |
 | `docs/design/architecture.md` | this map | dev-time |
 | `docs/design/design-notes.md` | rationale (WHY) | dev-time |
 | `docs/CHANGELOG.md` | change history | dev-time |
@@ -129,6 +130,7 @@ data doc) is opt-in (`/oryxflow:oryxflow explore` or a plain-language request).
 | ML pipeline templates | `skills/oryxflow/ml-patterns.md` | - |
 | PROD lifecycle (`params_prod`, `RunAll...Prod`, selective resets, notebook->pipeline) | `skills/oryxflow/ml-patterns.md` "Productionizing" | - |
 | Any scaffold/template file (wiring, `CLAUDE.md`, data doc, `.gitignore`) | `resources/template-minimal/` directly | bump version + floor stamp (next row) |
+| A graduated run-tier file (`run_prod.py`, `run_eda.py`) | `resources/template-prod/` directly + guidance in `conventions.md` "Run tiers by lifecycle" | NOT copied by init / not a floor file; changelog bullet only |
 | A reconcile-by-default FLOOR file (`CLAUDE.md`, `viz-template.ipynb`) | the template file, AND bump the floor baseline to the new version in BOTH the template `CLAUDE.md` `<!-- oryxflow-floor: VERSION -->` stamp and `SKILL.md`'s comparison value | the two must stay equal (the `.githooks/pre-commit` check blocks a commit if they differ) - the skill nudges a project stale when its stamp < SKILL's value |
 | A low-churn floor file (`.gitignore` - owned by `init-gitlfs` - or `.creds.yaml.example`) | the template file only | `update-project` treats these as additive / on-demand; a baseline bump is optional (low staleness value) |
 | Scaffold copy behavior / pre-flight | `commands/init-project.md` | - |

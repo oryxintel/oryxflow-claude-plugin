@@ -454,6 +454,13 @@ can share. Pick what the project needs; don't assume prod/dev is universal.
 then run the `RunAll...Prod` task. The selective reset re-pulls the data layers
 for the new period while the trained model is reused as-is.
 
+The prod run gets its own ENTRYPOINT file, `run_prod.py` (kept separate from the
+experiment `run.py`) - it builds the prod Workflow inline and can either run the
+`RunAll...Prod` task or inline the orchestration. This is the general "Run tiers
+by lifecycle" pattern in [conventions.md](conventions.md) (copy it from the
+plugin's `resources/template-prod/`); the freeze-the-model / refresh-the-data
+selective reset here is that pattern's cost+authority rule in the ML case.
+
 ### Productionize a research project / notebook
 
 Research often starts as a messy notebook - cells that load, munge, fit, and

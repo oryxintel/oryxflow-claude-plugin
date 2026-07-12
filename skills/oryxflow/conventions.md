@@ -597,6 +597,50 @@ imports `params_prod`. That lifecycle - the prod task, selective resets to keep
 a model frozen while refreshing data, the periodic-refresh protocol - lives in
 [ml-patterns.md](ml-patterns.md) ("Productionizing: prod vs experiment").
 
+### Run tiers by lifecycle (not by topic)
+
+The default project has ONE entrypoint, `run.py` - keep it that way until a
+distinct RUN LIFECYCLE appears, then add a sibling named for the lifecycle. Name
+by lifecycle, never by topic: lifecycle is a CLOSED set (~3 files); topic is
+open and multiplies as registry ENTRIES inside a file, not as new files. That is
+what keeps you at ~3 run files instead of 20.
+
+- `run.py` - **experiment** tier (the default, unchanged): the fast inner loop
+  on ONE active param set (`params`), edit-and-rerun. Uses `flow.py`'s singleton.
+- `run_prod.py` - **prod** tier: frozen `params_prod`, kept outputs, selective
+  reset. Runs the frozen deliverable on fresh data.
+- `run_eda.py <topic>` - **comparison** tier: run MANY variants at once (heavy
+  experiments / A-B) via `WorkflowMulti`; the topic arg selects a registry
+  entry. Distinct from `run.py` (one param set, tight loop) - reach here only to
+  COMPARE.
+
+`run_prod.py` and `run_eda.py` are GRADUATED add-ons, not part of the minimal
+scaffold - copy them from the plugin's `resources/template-prod/` when the
+lifecycle appears (the same "defer until it strains" discipline as splitting
+`tasks.py`). The ~80% research-only projects never need them.
+
+Two load-bearing points, both general (not ML-specific):
+
+- **Prod builds its Workflow INLINE.** `flow.py` builds a module-level `flow`
+  singleton at import, bound to the experiment tier (`cfg.env`, `params`) and
+  shared by everything that does `from flow import flow`. It cannot serve two
+  tiers at once, so `run_prod.py` constructs its own
+  `oryxflow.WorkflowMulti(FinalTask, variants, env='prod')` - the same move
+  `RunAll...Prod` makes inside the DAG. (Since `params_prod` is one frozen dict,
+  build the named `variants` from it + the prod axis; a single frozen run can use
+  plain `oryxflow.Workflow`.)
+- **Selective reset by COST + AUTHORITY.** In `run_prod.py`, reset ONLY the
+  cheap, fast-moving LOCAL source so a new period picks up fresh inputs; NEVER
+  reset the expensive / external pulls - those are the frozen "trusted" baseline
+  that must persist across prod runs. (The ML case in
+  [ml-patterns.md](ml-patterns.md) is the same principle with the model frozen
+  and the data refreshed.)
+
+A prod run that should itself be a CACHED, reproducible DAG node (aggregated
+output saved, `code_version`-pinnable) stays a `RunAll...Prod` TASK; `run_prod.py`
+is then just its thin entrypoint. Inline the orchestration in the run file only
+for the simple case.
+
 ### Adding an app / reporting subsystem
 
 An app (Streamlit, a report generator) goes at the project ROOT by default - the
