@@ -35,6 +35,19 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
 ## [26.7.12] - 2026-07-12
 
 ### Added
+- Expensive-recompute guard guidance (`SKILL.md` + `reference.md`): an auto task
+  whose last run exceeded `settings.code_version_auto_expensive_s` (default 600s)
+  stays cached on a code change and warns with the exits (reset / `accept_code` /
+  lock) instead of silently recomputing; the lock rationale (a) narrows to "manage
+  by deliberate bumps even below the guard threshold". The scaffold `cfg.py` now
+  ships the auto knobs as commented lines (`code_version_auto`,
+  `code_version_auto_expensive_s`) so opting out is a visible, conscious choice.
+- Lock-toggle semantics (`SKILL.md` + `reference.md`): adding or removing
+  `code_version` on unchanged code never recomputes and never ripples downstream
+  (records store both the token and the source hashes); an edit masked while
+  locked-unbumped reruns when the lock comes off. `accept_code` never triggers
+  downstream recomputes (the bare class form's caveat is "misses other tasks the
+  same helper edit touched").
 - Code-aware invalidation guidance for `oryxflow >= 26.7.12` (`SKILL.md` +
   `reference.md`), reframed around AUTO invalidation (on by default,
   `settings.code_version_auto = True`): editing a task's `run()` or a helper it
@@ -74,9 +87,10 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
   `tasks.py` placeholder tasks carry NO `code_version` (auto tracks their source
   from the first run; shipping one would LOCK them), and the "Add a new task"
   recipe (`SKILL.md`) says to add `code_version` only to lock an expensive or
-  hash-blind task. `/oryxflow:update-project` now NOTES only whether a project has
-  DISABLED auto (`settings.code_version_auto = False`), instead of the old
-  inert-net adoption pass. All gated `oryxflow >= 26.7.12`; pre-26.7.12 scaffolds
+  hash-blind task. `/oryxflow:update-project` dropped the old inert-net adoption
+  pass entirely (auto needs no adoption); it just reports the reset-before-run ->
+  auto convention flip when the normal `CLAUDE.md` floor reconcile produces it.
+  All gated `oryxflow >= 26.7.12`; pre-26.7.12 scaffolds
   have no auto and keep reset-before-run. (The template `CLAUDE.md` convention
   change is the `BREAKING:` bullet under Changed below.)
 - `/oryxflow:migrate` (`commands/migrate.md`) - restructures a messy data-science

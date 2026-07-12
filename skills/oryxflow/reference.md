@@ -342,15 +342,23 @@ in `result.ran` with reason `code change (auto: <files>)`. If it did not
 file, an installed package, dynamic dispatch, a notebook-defined task): `reset`
 it, or LOCK it with `code_version`.
 
+Expensive tasks are guarded by default: an auto task whose last materialization
+exceeded `settings.code_version_auto_expensive_s` (default 600s) stays cached on
+a code change and WARNS with the exits (reset / `accept_code` / lock) instead of
+silently recomputing.
+
 `code_version` is now an opt-in LOCK, not a per-task ritual. Declaring it on a
 task tells auto to STOP watching that task's source: the task reruns only on an
 explicit bump, and a code edit without a bump WARNS (`StalenessWarning` naming
 the changed file) instead of rerunning. Lock a task for (a) an EXPENSIVE
-computation where an accidental refactor-driven recompute is costly - auto
-deletes and overwrites the old output, so pin a slow API pull or long backtest
-and recompute only on a deliberate bump; (b) logic auto cannot see. A locked task
-still reruns when an AUTO upstream changes - the fingerprint folds dependency
-fingerprints, so the lock pins only its OWN logic. Answer a lock's warning with
+computation you want managed by deliberate bumps even below the guard threshold
+(auto deletes and overwrites the old output on rerun); (b) logic auto cannot
+see. Locks toggle
+FREELY: adding or removing `code_version` on unchanged code never recomputes and
+never ripples downstream (records store both the token and the source hashes);
+an edit masked while locked-unbumped reruns the moment the lock comes off. A
+locked task still reruns when an AUTO upstream rematerializes - the lock pins
+only its OWN logic. Answer a lock's warning with
 one of its exits: bump (output differs - recomputes and propagates downstream),
 `oryxflow.accept_code(TaskX)` (certain the output is equivalent; when unsure,
 bump), or reset. Never write a reset helper (`reset_if_code_changed`, a
@@ -358,7 +366,11 @@ downstream-resetter). Global escape hatch: `settings.code_version_auto = False`
 reverts to pure opt-in (only explicit `code_version` / `flow.reset` rerun) - for
 projects where auto is too fickle across many long-running tasks. On pre-26.7.12
 (no auto, no `code_version`) the manual `flow.reset(thatTask)` before running is
-the whole discipline.
+the whole discipline. For the deeper model - auto's file-level COARSENESS (editing
+one function in a shared `utils.py` recomputes every task importing it; `preview()`
+the pending band first), the import-graph-vs-dependency-graph nuance of a pin's
+warning, and the `reset_upstream(..., only=Family)` scopes - see the library's
+"Managing workflows" docs (the `code-versioning` section).
 
 **Keeping versions side by side**: on a LOCKED task, a string version +
 `keep_versions = True` puts outputs under `data/Task/v<version>/`, so old

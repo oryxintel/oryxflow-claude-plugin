@@ -528,20 +528,35 @@ intermediate bump-first framing.
    not a convenient cache hit. The plentiful run/event logging exists to make the
    check cheap.
 
-2. **`code_version` is the opt-out LOCK, justified by two costs auto imposes.**
-   Declaring it tells auto to stop watching a task's source: the task reruns only
-   on an explicit bump, and an unbumped edit warns instead. Lock a task when auto's
-   default is wrong for it: (a) EXPENSIVE tasks - auto DELETES and overwrites the
-   old output on every rerun, so a refactor that touches a slow API pull or a long
-   backtest would silently discard hours of compute; pinning it makes recompute a
-   deliberate act. (b) Logic auto cannot hash (dynamic dispatch, data-driven
-   behavior) - the lock plus a manual bump is the robustness path. A locked task
-   still reruns when an AUTO upstream changes (the fingerprint folds dependency
-   fingerprints), so the lock pins only its OWN logic. Global escape
-   `settings.code_version_auto = False` reverts the whole project to pure opt-in,
-   for teams where auto fires too often across many long-running tasks.
+2. **The destructive-recompute risk is handled in the LIBRARY, not left to the
+   agent.** Auto deletes and overwrites the old output on every rerun, so an
+   output-equivalent refactor touching a slow API pull or a long backtest would
+   otherwise silently discard hours of compute. The engine's answer (shipped after
+   this exact concern was raised) is the expensive-recompute guard: an auto task
+   whose LAST run exceeded `settings.code_version_auto_expensive_s` (default 600s)
+   does not silently recompute on a code change - it stays complete and WARNS with
+   the exits, so burning a long run is a decision. This is the right layer for it:
+   a plugin doc telling the agent "remember to pin expensive tasks first" would be
+   another memory-dependent guardrail, the very failure mode auto exists to kill;
+   the guard needs no foresight. The scaffold `cfg.py` surfaces the knob
+   (`code_version_auto`, `code_version_auto_expensive_s`) as commented lines so the
+   opt-out is a visible choice, not a buried setting.
 
-3. **Two mechanisms, still documented as distinct because an agent conflated them.**
+3. **`code_version` is the opt-out LOCK.** Declaring it tells auto to stop watching
+   a task's source: the task reruns only on an explicit bump, an unbumped edit warns
+   instead. With the guard covering the big destructive case automatically, the lock
+   is for finer or explicit control: (a) a task you want managed by deliberate bumps
+   even BELOW the guard threshold; (b) logic auto cannot hash (dynamic dispatch,
+   data-driven behavior) - lock plus manual bump is the robustness path; (c) a key
+   task whose cache decision you want DIFFABLE in review / `git log` (an auto rerun
+   leaves no trace - the reason agent-run projects often pin headline tasks even
+   though auto needs nothing). Locks toggle freely (records store token AND source
+   hashes, so adding/removing on unchanged code is a no-op that never ripples). A
+   locked task still reruns when an AUTO upstream changes (the fingerprint folds
+   dependency fingerprints), so the lock pins only its OWN logic. Global escape
+   `settings.code_version_auto = False` reverts the whole project to pure opt-in.
+
+4. **Two mechanisms, still documented as distinct because an agent conflated them.**
    Under auto the AUTHORITY that gates completeness is the code fingerprint
    (explicit `code_version` OR the auto hash); the warn-only path now fires only for
    a LOCKED task edited without a bump. A source-inspecting agent that read only
@@ -549,12 +564,13 @@ intermediate bump-first framing.
    do ("installed code wins") - once wrongly concluded a code change merely warns.
    The fix stays two-tier: a library docstring pointer on
    `Task.complete`/`_code_fingerprint` (the ground truth a deep agent trusts over
-   any doc) AND crisp SKILL.md prose for the agent who does not dig. NOTE: the
-   library-side docstrings must describe the auto authority, not the wave-one
-   advisory-only framing - a stale "the hash never gates completeness" pointer is
-   now wrong and is the one cross-repo item to reconcile in the engine repo.
+   any doc) AND crisp SKILL.md prose for the agent who does not dig. The engine
+   docstrings now draw the line precisely: the code FINGERPRINT (explicit
+   `code_version` or, under auto, the AST hash) gates completeness and is
+   authoritative; the separate advisory source-hash is warn-only and never gates.
+   An agent must not collapse those two into "the hash merely warns".
 
-4. **Rendered as terse prose, not tables.** SKILL.md is always-loaded; every row
+5. **Rendered as terse prose, not tables.** SKILL.md is always-loaded; every row
    costs context on every activation. The verbs (auto rerun / verify / lock+bump /
    accept_code / reset) live inline in the iterate loop and the invalidation rules.
    A table would duplicate that at extra token cost - prose is the token-efficient
@@ -566,9 +582,12 @@ not require the new library). A live project's agent once assumed a current libr
 meant it was protected - under wave one that was false (the net was inert until a
 task declared `code_version`). Wave two makes it TRUE by default, which is the
 whole point of auto: correctness must not depend on memory OR on per-class
-ceremony. So `/oryxflow:update-project` no longer offers an adoption pass; it only
-NOTES whether a project has DISABLED auto (a wiring setting, not pipeline logic, so
-it stays inside update-project's "never clobber the pipeline" contract).
+ceremony. So `/oryxflow:update-project` dropped the adoption pass entirely (there
+is nothing to adopt); the only invalidation-related thing it does is report the
+reset-before-run -> auto convention flip when its normal `CLAUDE.md` floor reconcile
+produces it. An earlier draft had it flag a project that DISABLED auto, but that
+inverted the point (auto is on by default; a project only has it off deliberately),
+so it was cut.
 
 The scaffold matches the default from day one, from the OTHER direction than wave
 one did: the template `tasks.py` ships NO `code_version` (auto tracks the

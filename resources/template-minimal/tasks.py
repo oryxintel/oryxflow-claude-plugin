@@ -20,9 +20,8 @@ class GetData(oryxflow.tasks.TaskPqPandas):
 class Process(oryxflow.tasks.TaskPqPandas):
     """PLACEHOLDER - transform GetData's output into the pipeline's result.
 
-    No code_version: auto invalidation reruns this task when you edit its logic.
-    Add code_version only to LOCK an expensive task (recompute on a deliberate
-    bump). See the project CLAUDE.md and the oryxflow skill.
+    (No code_version: editing logic reruns this automatically. Adding code_version
+    LOCKS a task off auto - reserve it for an expensive one. See CLAUDE.md.)
     """
     optional = oryxflow.BoolParameter(default=False)
 

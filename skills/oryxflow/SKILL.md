@@ -703,16 +703,28 @@ so editing a task's `run()` OR any helper it imports makes that task and
 everything downstream rerun on the next run, no ceremony. The default iterate loop
 is therefore edit -> run -> VERIFY it reran; there is no attribute to remember.
 
+Expensive tasks are guarded by default: an auto task whose LAST run took longer
+than `settings.code_version_auto_expensive_s` (600s) does NOT silently recompute
+on a code change - it stays cached and warns with the exits (reset to recompute /
+`accept_code` / lock), so burning a long run is a decision, not a refactor side
+effect. Cheap tasks just rerun.
+
 `code_version` flips to an opt-in LOCK, not the primary mechanism. Declaring it on
 a task PINS that task's own logic: auto stops watching its source, so a code edit
 no longer reruns it - only an explicit bump does, and an edit without a bump fires
 the advisory warning instead. Lock a task when auto's default is wrong for it:
-(a) an EXPENSIVE task where an accidental refactor-triggered recompute is costly
-(a slow API pull, a long backtest) - auto DELETES and overwrites the old output on
-rerun, so pin it and recompute only on a deliberate bump; (b) logic auto cannot
-see (dynamic dispatch, data-driven behavior). Remove the attribute -> auto resumes
-for that task. A locked task still reruns when an AUTO upstream changes (the
-fingerprint folds dependencies) - the lock pins only its OWN logic. Global escape:
+(a) an EXPENSIVE task you want managed by deliberate bumps even below the guard
+threshold (auto DELETES and overwrites the old output on rerun); (b) logic auto
+cannot see (dynamic dispatch, data-driven behavior); (c) a KEY output task where you want
+the cache decision to be REVIEWABLE - a bump is a diffable line in the commit /
+`git log`, whereas an auto-rerun leaves no trace, which is why agent-run projects
+often pin their headline tasks even though auto needs nothing. Locks toggle FREELY:
+records store both the token and the source hashes, so adding or removing
+`code_version` on unchanged code never recomputes and never ripples downstream -
+while an edit masked during a locked-unbumped window reruns the moment the lock
+comes off, and locking in the same edit as a logic change reruns instead of
+blessing stale output. A locked task still reruns when an AUTO upstream
+rematerializes - the lock pins only its OWN logic. Global escape:
 `settings.code_version_auto = False` reverts to pure opt-in (only an explicit
 `code_version` or `flow.reset` drives reruns) - reach for it when auto is too
 fickle across many long-running tasks. The rules, in the order they come up:
@@ -738,8 +750,9 @@ fickle across many long-running tasks. The rules, in the order they come up:
    / `oryxflow.accept_code(tasks.Anchor)` re-stamps the code state without
    rerunning (only when you are CERTAIN the output is unchanged; when unsure, let
    it rerun). Call the INSTANCE / `flow` form on your final task - it walks the
-   whole upstream band; the bare class form only re-stamps one task and can leave
-   dep-folded mismatches behind. Preview the pending band first with
+   whole upstream band; the bare class form re-stamps one family and misses other
+   tasks the same helper edit touched (they just rerun - safe direction).
+   Accepting never triggers downstream recomputes. Preview the pending band first with
    `flow.preview()` (or `preview()` after a shared-helper edit) so a wide recompute
    is a choice, not a surprise. A locked task instead uses its three warning exits:
    bump (output differs - recomputes), reset (recompute regardless), or
