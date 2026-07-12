@@ -42,10 +42,10 @@ generic names like `GetData` / `LoadData` / `Process`; order tokens broad ->
 narrow so a family clusters (`FundamentalsLeadLag`, not `LeadLagAnalysis`). Full
 rules in [conventions.md](conventions.md) ("Task naming"). Some examples below use
 older verb-style names for brevity; prefer output names in real code. The class
-examples also omit `code_version`: it is opt-in per task (oryxflow >= 26.7.12) -
-declare `code_version = 1` on the tasks whose own logic you want tracked and bump
-it on a logic change; propagation covers unversioned downstream tasks (see "Code
-edits vs parameter changes" below).
+examples omit `code_version` by design: auto invalidation (oryxflow >= 26.7.12,
+on by default) reruns an edited task on its own, so `code_version` is an opt-in
+LOCK you add only to pin an expensive or hash-blind task (see "Code edits vs
+parameter changes" below).
 
 ```python
 import oryxflow
@@ -320,54 +320,59 @@ df_train = flow.outputLoad(SplitData, keys='train')  # Specific output by name
 meta = flow.metaLoad(TrainModel)          # Metadata
 ```
 
-**When to reset**: source DATA changed (invisible to the code hash), you suspect
-a corrupt cache, or you want outputs deleted. `flow.reset(TaskName)` cascades to
-downstream tasks. When it is changed input data, reset at the LOADER task that
-ingests it, not a downstream task - a downstream reset re-loads the cached old
-input, so the change never propagates. For CODE changes, bump `code_version`
-instead (below).
+**When to reset**: auto could not SEE the change (source DATA changed, dynamic
+dispatch, a notebook-defined task), you suspect a corrupt cache, or you want
+outputs deleted. `flow.reset(TaskName)` cascades to downstream tasks. When it is
+changed input data, reset at the LOADER task that ingests it, not a downstream
+task - a downstream reset re-loads the cached old input, so the change never
+propagates. For ordinary CODE edits you do NOT reset - auto reruns them (below).
 
-**Code edits vs parameter changes (the iterate gotcha)**: oryxflow caches by task
-identity = class + parameters. A PARAMETER change creates a new identity, so it
-is auto-detected and reruns on the next `flow.run()` with no reset. A CODE edit
-(changing a task's `run()` body or a helper it imports) does NOT change identity
-- so bump the task's `code_version` class attribute in the same edit
-(oryxflow >= 26.7.12): the task and everything downstream recompute on the next
-run, overwriting in place. Downstream tasks need no `code_version` of their own for
-this - the fingerprint folds dependency fingerprints, so a versioned upstream bump
-propagates through unversioned descendants. So `code_version` is opt-in per task,
-not a per-class ritual: declare it on the tasks whose OWN logic you want tracked
-(key outputs and expensive upstreams), and let propagation cover the rest.
-Without the bump, oryxflow treats the task as complete
-and SKIPS it, reusing the stale output - though it WARNS (a `StalenessWarning`
-naming the changed file) because it hashes the task's module and its
-project-local imports (AST-normalized: comment/docstring edits never warn).
-This warning - and the whole staleness layer - is INERT for a task that does not
-declare `code_version`: a project that has adopted none gets no net at all and
-relies entirely on manual `reset` (the pre-26.7.12 discipline), even on a current
-library. Adopt `code_version` (ideally in an edit-free change) to arm it. Once
-adopted, answer every warning with one of its exits: bump (output differs),
+**Code edits vs parameter changes (the iterate gotcha, mostly gone)**: oryxflow
+caches by task identity = class + parameters. A PARAMETER change creates a new
+identity, so it reruns on the next `flow.run()`. A CODE edit (a task's `run()`
+body or a helper it imports) does NOT change identity - but auto invalidation
+(oryxflow >= 26.7.12, `settings.code_version_auto = True` by default) hashes the
+task's module and its transitively imported project-local files
+(AST-normalized: comment / docstring / formatting edits never count), so the
+edited task and everything downstream rerun on the next run anyway, overwriting
+in place. So the old "reset before running an edited task" ritual is gone; the
+new discipline is to VERIFY the rerun landed - after an edit the task must appear
+in `result.ran` with reason `code change (auto: <files>)`. If it did not
+(`ran=0` for a task you edited), auto has a blind spot for that change (a data
+file, an installed package, dynamic dispatch, a notebook-defined task): `reset`
+it, or LOCK it with `code_version`.
+
+`code_version` is now an opt-in LOCK, not a per-task ritual. Declaring it on a
+task tells auto to STOP watching that task's source: the task reruns only on an
+explicit bump, and a code edit without a bump WARNS (`StalenessWarning` naming
+the changed file) instead of rerunning. Lock a task for (a) an EXPENSIVE
+computation where an accidental refactor-driven recompute is costly - auto
+deletes and overwrites the old output, so pin a slow API pull or long backtest
+and recompute only on a deliberate bump; (b) logic auto cannot see. A locked task
+still reruns when an AUTO upstream changes - the fingerprint folds dependency
+fingerprints, so the lock pins only its OWN logic. Answer a lock's warning with
+one of its exits: bump (output differs - recomputes and propagates downstream),
 `oryxflow.accept_code(TaskX)` (certain the output is equivalent; when unsure,
 bump), or reset. Never write a reset helper (`reset_if_code_changed`, a
-downstream-resetter) - the bump already propagates. First time ADDING
-`code_version` to a task right after editing it: also reset once
-(grandfathering treats existing output as current). On pre-26.7.12: the manual
-`flow.reset(thatTask)` before running is the whole discipline. (If a PARAMETER
-change is not auto-rerunning, the fix is to define / inherit the parameter
-correctly, not to reset by hand.)
+downstream-resetter). Global escape hatch: `settings.code_version_auto = False`
+reverts to pure opt-in (only explicit `code_version` / `flow.reset` rerun) - for
+projects where auto is too fickle across many long-running tasks. On pre-26.7.12
+(no auto, no `code_version`) the manual `flow.reset(thatTask)` before running is
+the whole discipline.
 
-**Keeping versions side by side**: string version + `keep_versions = True` on
-the class puts outputs under `data/Task/v<version>/`, so old versions survive
-bumps - the compare-two-versions workflow. Turning `keep_versions` on relocates
-the task's output path, so it recomputes once.
+**Keeping versions side by side**: on a LOCKED task, a string version +
+`keep_versions = True` puts outputs under `data/Task/v<version>/`, so old
+versions survive bumps - the compare-two-versions workflow. `keep_versions` keys
+off explicit `code_version`, so auto tasks overwrite in place. Turning
+`keep_versions` on relocates the task's output path, so it recomputes once.
 
 **Changing a task's output columns** is just such a code edit: adding, removing,
-or renaming a column needs a `code_version` bump (propagates downstream) and a
-matching update to the docstring's output contract. Removing or renaming a
-column breaks downstream tasks that read it - the propagated rerun surfaces the
-break as an error you fix in the same change. Subtler: changing what an EXISTING
-column MEANS (recomputed values, new units) WITHOUT renaming it does not error
-downstream - dependents recompute on the bump, but re-verify their semantics.
+or renaming a column reruns the task under auto (bump it if the task is locked)
+plus a matching update to the docstring's output contract. Removing or renaming a
+column breaks downstream tasks that read it - the rerun propagates and surfaces
+the break as an error you fix in the same change. Subtler: changing what an
+EXISTING column MEANS (recomputed values, new units) WITHOUT renaming it does not
+error downstream - dependents recompute, but re-verify their semantics.
 
 **Provenance / history (oryxflow >= 26.7.12)**: every run appends events to
 `.oryxflow/events.jsonl` (plain JSONL; earlier months offload to
@@ -379,7 +384,8 @@ prints nothing - a bare call in a script shows nothing);
 `oryxflow.events.runs(task_family='X',
 last=2)` = diff the last two runs' params / code_version / source_hashes;
 `task_ran` events carry the rerun reason (`output missing` /
-`code change (1 -> 2)` / `upstream rerun`), git SHA, duration. `self.logger`
+`code change (auto: <files>)` / `code change (1 -> 2)` / `upstream rerun`), git
+SHA, duration. `self.logger`
 lines are captured as `task_log` events, so logged scalars persist across
 sessions.
 

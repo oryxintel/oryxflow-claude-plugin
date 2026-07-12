@@ -497,89 +497,91 @@ is; `confirm=True` opts INTO the prompt.) General lesson: when an agent misses a
 documented rule live, first ask whether it was in a loaded tier - promotion beats
 rewriting.
 
-## Code-aware invalidation (oryxflow >= 26.7.12): bump-first, two-tier, gated
+## Code-aware invalidation (oryxflow >= 26.7.12): AUTO by default, lock to opt out
 
-The engine shipped v4 code-invalidation (`code_version`, an advisory AST
-source-hash, `accept_code()`, `keep_versions`, an append-only event stream). The
-skill guidance was rewritten around it, with three non-obvious calls worth
-recording:
+The engine's code-invalidation feature folded into `26.7.12` in two waves, and the
+final shape is what the guidance targets. Wave one shipped the machinery
+(`code_version`, an AST source-hash, `accept_code()`, `keep_versions`, the event
+stream) with the hash ADVISORY-only, so correctness rode on the author remembering
+to declare and bump `code_version` per tracked task. Wave two (same version)
+promoted the hash to the DEFAULT AUTHORITY: `settings.code_version_auto = True`, so
+a task without `code_version` derives its code identity from the AST hash of its
+module + transitively imported repo-local files, and a logic edit reruns the task
+and everything downstream automatically. `code_version` flipped from the primary
+mechanism to an opt-in LOCK. The plugin guidance was first written for wave one
+(bump-first) and then rewritten for wave two; this note records the final design
+and why, so a reader who greps the changelog history is not confused by the
+intermediate bump-first framing.
 
-1. **The primary idiom flipped from reset to BUMP for code changes.** Pre-26.7.12
-   the only remedy for a code edit was `flow.reset(Task)` before running (the
-   gotcha promoted above). v4 makes the `code_version` fingerprint part of
-   `TaskData.complete()`, so a bump is now authoritative - it invalidates the task
-   AND every parameter variant AND downstream in one move, which reset never did
-   (reset only recomputed the variant you named; sibling variants stayed stale -
-   the old `runLoad(reset=True)`-per-variant hazard, now retired). So the iterate
-   loop leads with bump; reset narrows to what the fingerprint cannot see (changed
-   input data, corrupt cache, delete) and the pre-26.7.12 fallback.
+1. **The primary idiom is AUTO: edit -> run -> VERIFY.** No attribute to declare or
+   remember; editing a task's `run()` or any helper it imports reruns the affected
+   band (all parameter variants and downstream included - the old
+   `runLoad(reset=True)`-per-variant sibling-staleness hazard stays retired).
+   Comment/docstring/formatting edits are AST-normalized to nothing, so they never
+   rerun. What auto trades the attribute-ritual for is a VERIFY-ritual, and that is
+   deliberate, not incidental: auto has honest blind spots (data files, installed
+   packages, dynamic dispatch, notebook-defined tasks), so the discipline the
+   guidance leads with is "after an edit, confirm the edited band shows in
+   `result.ran` with reason `code change (auto: <files>)`; a `ran=0` means auto did
+   not see the change -> reset or lock." This is the user's core requirement - an
+   agent that just edited code and sees it NOT rerun must treat that as a signal,
+   not a convenient cache hit. The plentiful run/event logging exists to make the
+   check cheap.
 
-2. **Two mechanisms, documented as distinct because an agent conflated them.** The
-   `code_version` fingerprint is AUTHORITATIVE (gates completeness -> forces
-   rerun); the AST source-hash is a warn-only ADVISORY (fires when code changed but
-   the version didn't). A source-inspecting agent read only base `Task.complete`
-   ("outputs exist") - which the skill itself tells agents to do ("installed code
-   wins") - and wrongly concluded a bump merely warns. Fix landed in BOTH tiers,
-   because they catch different readers: a library docstring pointer on
-   `Task.complete`/`_code_fingerprint` (the source of truth a deep agent trusts
-   over any doc) AND a crisp lead sentence in SKILL.md's invalidation section (for
-   the agent who doesn't dig). A plugin doc alone cannot fix this - the skill
-   routes agents to the installed code, so the code must carry the pointer.
+2. **`code_version` is the opt-out LOCK, justified by two costs auto imposes.**
+   Declaring it tells auto to stop watching a task's source: the task reruns only
+   on an explicit bump, and an unbumped edit warns instead. Lock a task when auto's
+   default is wrong for it: (a) EXPENSIVE tasks - auto DELETES and overwrites the
+   old output on every rerun, so a refactor that touches a slow API pull or a long
+   backtest would silently discard hours of compute; pinning it makes recompute a
+   deliberate act. (b) Logic auto cannot hash (dynamic dispatch, data-driven
+   behavior) - the lock plus a manual bump is the robustness path. A locked task
+   still reruns when an AUTO upstream changes (the fingerprint folds dependency
+   fingerprints), so the lock pins only its OWN logic. Global escape
+   `settings.code_version_auto = False` reverts the whole project to pure opt-in,
+   for teams where auto fires too often across many long-running tasks.
 
-3. **The engine plan's verb "decision table" + FAQ were rendered as terse prose,
-   not tables.** SKILL.md is always-loaded; every row costs context on every
-   activation. The content (Parameter / bump / accept_code / reset; the seven trust
-   concerns) is covered inline in the iterate loop and the invalidation rules -
-   `accept_code` marked the one non-recomputing higher-bar exit, the loader-reset
-   ingestion-point subtlety, the "verify the invalidation took via `result.ran`"
-   check. A table would duplicate that at extra token cost. Prose was the
-   token-efficient choice, consistent with the two-tier-content principle.
+3. **Two mechanisms, still documented as distinct because an agent conflated them.**
+   Under auto the AUTHORITY that gates completeness is the code fingerprint
+   (explicit `code_version` OR the auto hash); the warn-only path now fires only for
+   a LOCKED task edited without a bump. A source-inspecting agent that read only
+   base `Task.complete` ("outputs exist") - which the skill itself tells agents to
+   do ("installed code wins") - once wrongly concluded a code change merely warns.
+   The fix stays two-tier: a library docstring pointer on
+   `Task.complete`/`_code_fingerprint` (the ground truth a deep agent trusts over
+   any doc) AND crisp SKILL.md prose for the agent who does not dig. NOTE: the
+   library-side docstrings must describe the auto authority, not the wave-one
+   advisory-only framing - a stale "the hash never gates completeness" pointer is
+   now wrong and is the one cross-repo item to reconcile in the engine repo.
+
+4. **Rendered as terse prose, not tables.** SKILL.md is always-loaded; every row
+   costs context on every activation. The verbs (auto rerun / verify / lock+bump /
+   accept_code / reset) live inline in the iterate loop and the invalidation rules.
+   A table would duplicate that at extra token cost - prose is the token-efficient
+   choice, consistent with the two-tier-content principle.
 
 All of it is gated `oryxflow >= 26.7.12` with a pre-26.7.12 reset fallback stated
 where it applies; the supported floor stays 26.6.6 (the guidance degrades, it does
-not require the new library).
+not require the new library). A live project's agent once assumed a current library
+meant it was protected - under wave one that was false (the net was inert until a
+task declared `code_version`). Wave two makes it TRUE by default, which is the
+whole point of auto: correctness must not depend on memory OR on per-class
+ceremony. So `/oryxflow:update-project` no longer offers an adoption pass; it only
+NOTES whether a project has DISABLED auto (a wiring setting, not pipeline logic, so
+it stays inside update-project's "never clobber the pipeline" contract).
 
-One more honesty point, learned from a live project whose agent assumed a current
-library meant it was protected: the net is INERT until a task DECLARES
-`code_version` - `_code_fingerprint` is None everywhere on an un-adopted project,
-so the whole staleness layer is dormant and a code edit still rides on manual
-`reset`, no warning. Library version and per-task adoption are DIFFERENT gates;
-the guidance now says both plainly and pushes the edit-free adoption on-ramp. The
-adoption pass belongs to nobody automatic: it edits `tasks.py` (PROJECT bucket),
-so `/oryxflow:update-project` - which is scaffold-floor-only and never touches
-pipeline files - NOTES the gap and OFFERS the pass rather than performing it. That
-boundary keeps update-project's "never clobber the pipeline" contract intact while
-still surfacing the highest-value modernization an old project can make.
-
-The scaffold closes the loop from the OTHER end: the template `tasks.py` ships
-`code_version = 1` on its placeholder tasks and the "Add a new task" recipe makes
-declaring it standard, so a NEW project is armed from day one. This is the safest
-possible adoption point - a fresh scaffold has no prior output, so the first run
-stamps each baseline cleanly with nothing to grandfather (the first-add trap only
-exists when output already exists). It also removes the reset-vs-bump split-brain:
-new code is authored WITH `code_version`, so the iterate loop is bump-first from
-the start rather than a retrofit. Consequence for releases: the template
-`CLAUDE.md` convention flip (reset-before-run -> bump-first) is a scaffold-FLOOR
-change - update-project reconciles `CLAUDE.md` - so it is floor-baseline-bump
-worthy, unlike the `tasks.py` placeholder edit (PROJECT bucket, never reconciled).
-The changelog flags the floor bump for the release cut; the `tasks.py` change just
-rides the next release like any template edit.
-
-Precision the guidance now states (the design requires LESS than "every class",
-and an early draft over-rotated to blanket coverage): `code_version` is opt-in per
-task and defaults to None - a project with none behaves exactly as pre-feature.
-Propagation does NOT need blanket coverage, because `_code_fingerprint` folds
-dependency fingerprints: a versioned upstream bump reruns unversioned descendants
-transitively. The token is only required on a task to get the net (warning +
-forced rerun) for THAT task's OWN code. So the recommended pattern is coverage of
-key output tasks and expensive upstreams, not every class; the scaffold's
-default-on is convenience for fresh tasks (cheap, clean baseline), not a claim
-that omitting it is wrong. A task that opts out keeps the pre-feature discipline -
-`flow.reset` before running an edited task. The residual human cost - one ritual
-attribute per covered class, and the forget-to-bump failure mode - is the honest
-price of the net, softened (advisory hash warns on a forgotten bump) but not
-erased. Stated so agents neither treat the attribute as mandatory boilerplate nor
-assume propagation needs it everywhere.
+The scaffold matches the default from day one, from the OTHER direction than wave
+one did: the template `tasks.py` ships NO `code_version` (auto tracks the
+placeholders' source; shipping one would LOCK them - the opposite of intent), and
+the "Add a new task" recipe says to add the attribute only to lock an expensive or
+hash-blind task. Consequence for releases: the template `CLAUDE.md` convention flip
+(reset-before-run -> auto) is a scaffold-FLOOR change - update-project reconciles
+`CLAUDE.md` - so it is floor-baseline-bump worthy (`26.6.29` -> `26.7.12`), unlike
+the `tasks.py` placeholder edit (PROJECT bucket, never reconciled), which just
+rides the release like any template change. The design requires LESS ceremony than
+even wave one asked: the residual human cost is a per-task lock only where auto's
+default is genuinely wrong, plus the verify habit - stated so agents neither treat
+`code_version` as mandatory boilerplate nor trust an edit reran without checking.
 
 ## Scaffolding: the init command and the template
 

@@ -103,12 +103,12 @@ you noted but did not touch. State the floor stamp the project now carries. If
 `CLAUDE.md` gained the skill-availability check, point out that future sessions
 will now remind the user to load the plugin.
 
-Also NOTE (do not act) whether the project has adopted `code_version`: if
-`oryxflow >= 26.7.12` but no task declares it (grep `tasks.py` / the pipeline),
-the staleness safety net is INERT - a code edit still rides on manual `reset`
-with no warning. This is NOT part of the scaffold reconcile (adopting
-`code_version` edits PROJECT-bucket pipeline files, which this command never
-touches), so surface it as a recommendation and OFFER a separate, opt-in adoption
-pass: add `code_version` to the key output tasks and their upstreams in an
-edit-free change (grandfathering then blesses each task's current output). Only
-do that pass if the user asks for it.
+Also NOTE (do not act) whether the project has DISABLED auto invalidation: on
+`oryxflow >= 26.7.12` code-edit reruns are automatic by default, so an ordinary
+project is protected with no per-task work. But if `settings.code_version_auto =
+False` is set (grep `cfg.py` / the run wiring), the project is on the pre-auto
+opt-in discipline - a code edit rides on manual `reset` or an explicit
+`code_version` - so flag it as a recommendation to either re-enable auto or keep
+locking tasks deliberately. This is NOT part of the scaffold reconcile (it touches
+PROJECT-bucket wiring, which this command never edits), so surface it only; do not
+change it unless the user asks.

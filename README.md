@@ -133,15 +133,15 @@ Build the pipeline:
 - "create a task `<Name>` that loads `<source>`" - a root task (no dependency)
 - "add a task `<Name>` that depends on `<A>` and `<B>`" - multiple inputs
 - "save `<field>` in `<Task>`" / "add (or drop) a column in `<Task>`" - edits the
-  task; reset cascades downstream on re-run (removing a column, fix its readers)
+  task; auto invalidation reruns it and its downstream (removing a column, fix its readers)
 - "make `<Task>` depend on `<Other>`" / "set `<Task>` as the final task"
 - "add a parameter `<name>` to `<Task>`" / "change `<param>` to `<value>`"
 
 Run and inspect:
 - "run the flow" - runs `python run.py`
 - "preview the flow" / "what will run?" - shows `flow.preview()`
-- "update `<Task>` to ..." then "run the flow" - after a code edit the skill
-  resets the task before running (an unreset edit is silently skipped)
+- "update `<Task>` to ..." then "run the flow" - after a code edit auto
+  invalidation reruns the task; the skill verifies it actually reran
 - "re-run `<Task>`" / "reset `<Task>`" - recompute it; reset cascades downstream
 - "load the output of `<Task>`" / "plot the results"
 

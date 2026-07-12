@@ -36,13 +36,19 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
 
 ### Added
 - Code-aware invalidation guidance for `oryxflow >= 26.7.12` (`SKILL.md` +
-  `reference.md`): bump `code_version` in the same edit as a logic change (the
-  new primary iterate loop - replaces reset-before-run, which stays documented
-  as the pre-26.7.12 fallback and the data-file/suspect-cache verb); the
-  first-time-add-plus-reset grandfathering rule; the three staleness-warning
-  exits ranked by risk (bump / reset / `accept_code` only-if-certain); verify
-  invalidations via `result.reasons` (`code change (1 -> 2)`); `keep_versions`
-  for side-by-side versions.
+  `reference.md`), reframed around AUTO invalidation (on by default,
+  `settings.code_version_auto = True`): editing a task's `run()` or a helper it
+  imports reruns that task and everything downstream automatically
+  (comment/docstring/formatting edits never count), so the new iterate loop is
+  edit -> run -> VERIFY it reran (the edited band shows in `result.ran` with
+  reason `code change (auto: <files>)`); a `ran=0` after an edit means an auto
+  blind spot (data file, installed package, dynamic dispatch, notebook-defined
+  task) -> `reset` or lock the task. `reset` stays for what auto cannot see
+  (changed source DATA at the loader task, corrupt cache, deleting outputs) and as
+  the pre-26.7.12 fallback. `code_version` is now an opt-in LOCK (below), not the
+  primary loop; `accept_code` (instance/`flow` form walks the upstream band) for
+  an output-equivalent refactor; `keep_versions` for side-by-side versions of a
+  locked task.
 - Event-stream guidance (`SKILL.md` "Code-aware invalidation & the event
   stream"): session-start `oryxflow.events.print_status()` (prints the summary;
   `events.status()` returns the same facts as a dict and prints nothing),
@@ -53,32 +59,26 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
   (`.ran`/`.reasons`/`.warnings`) instead of hand-rolled aggregation. The
   compatibility note in `SKILL.md` gates all of it on `oryxflow >= 26.7.12`;
   the supported floor stays `oryxflow >= 26.6.6`.
-- Clarified that the `code_version` fingerprint is authoritative (gates
-  `TaskData.complete()` -> forces rerun) while the AST source-hash is a separate
-  warn-only advisory - so a source-inspecting agent that reads only base
-  `Task.complete` does not conclude a bump merely warns (`SKILL.md` +
-  `reference.md`; paired with a library-side docstring pointer). Added the
-  reset-at-the-LOADER-task rule for changed input data (a downstream reset
-  reloads the cached old input).
-- Made explicit that the staleness net is INERT until a task declares
-  `code_version` - being on `oryxflow >= 26.7.12` does not arm it; a project with
-  none stays on manual `reset` with no warning (`SKILL.md` + `reference.md`, with
-  the edit-free adoption on-ramp). `/oryxflow:update-project` now NOTES an
-  un-adopted project and offers a separate opt-in `code_version` adoption pass
-  (kept out of the scaffold reconcile, which never touches pipeline files).
-- Scaffold now ARMS the staleness net from day one: the template `tasks.py`
-  placeholder tasks ship `code_version = 1`, and the "Add a new task" recipe
-  (`SKILL.md`) plus the `reference.md` / `ml-patterns.md` notes recommend
-  `code_version = 1` on new tasks whose logic you want tracked (a fresh task has no
-  prior output, so the baseline stamps cleanly - no grandfathering risk). Made the
-  scope precise: `code_version` is OPT-IN per task, not a per-class ritual - the
-  fingerprint folds dependencies, so an unversioned downstream task still reruns
-  when a versioned upstream bumps; cover key outputs and expensive upstreams and
-  let propagation do the rest. A task without `code_version` keeps the documented
-  `flow.reset`-before-run discipline. All gated `oryxflow >= 26.7.12`; pre-26.7.12
-  scaffolds omit `code_version` and keep reset-before-run. (The template
-  `CLAUDE.md` convention change that goes with this is the `BREAKING:` bullet under
-  Changed below.)
+- Documented `code_version` as an opt-in LOCK, not a per-task ritual (`SKILL.md` +
+  `reference.md` + `ml-patterns.md`): declaring it tells auto to STOP watching a
+  task's source, so the task reruns only on an explicit BUMP and an unbumped edit
+  merely warns. Lock a task for (a) an EXPENSIVE computation where an accidental
+  refactor-driven recompute is costly - auto deletes and overwrites the old
+  output, so pin a slow API pull or long backtest; (b) logic auto cannot see
+  (dynamic dispatch, data-driven behavior). A locked task still reruns when an
+  auto upstream changes (the fingerprint folds dependencies); a locked task's
+  warning has the three risk-ranked exits (bump / reset / `accept_code`
+  only-if-certain). Global escape hatch `settings.code_version_auto = False`
+  reverts to pure opt-in for projects where auto is too fickle.
+- Scaffold now relies on auto instead of arming a manual net: the template
+  `tasks.py` placeholder tasks carry NO `code_version` (auto tracks their source
+  from the first run; shipping one would LOCK them), and the "Add a new task"
+  recipe (`SKILL.md`) says to add `code_version` only to lock an expensive or
+  hash-blind task. `/oryxflow:update-project` now NOTES only whether a project has
+  DISABLED auto (`settings.code_version_auto = False`), instead of the old
+  inert-net adoption pass. All gated `oryxflow >= 26.7.12`; pre-26.7.12 scaffolds
+  have no auto and keep reset-before-run. (The template `CLAUDE.md` convention
+  change is the `BREAKING:` bullet under Changed below.)
 - `/oryxflow:migrate` (`commands/migrate.md`) - restructures a messy data-science
   project (monolithic notebooks / linear scripts, hardcoded paths, magic
   constants, no caching) into a scalable oryxflow pipeline: maps the implicit
@@ -130,12 +130,13 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
 
 ### Changed
 - BREAKING: the template `CLAUDE.md` scaffold-floor convention flipped from
-  reset-before-run to bump-first for code changes - it now says to declare and
-  bump `code_version` on a logic edit, with `reset` narrowed to changed source
-  DATA (at the loader task), a corrupt cache, or deleting outputs. A project
-  scaffolded before this still carries the old reset-centric convention.
-  Migration: run `/oryxflow:update-project` to reconcile its `CLAUDE.md`. Floor
-  baseline bumped `26.6.29` -> `26.7.12` so the skill nudges older projects to it.
+  reset-before-run to AUTO for code changes - it now says an edited task reruns
+  automatically (just verify it did), with `code_version` as an opt-in lock for
+  expensive/hash-blind tasks and `reset` narrowed to changed source DATA (at the
+  loader task), a corrupt cache, or deleting outputs. A project scaffolded before
+  this still carries the old reset-centric convention. Migration: run
+  `/oryxflow:update-project` to reconcile its `CLAUDE.md`. Floor baseline bumped
+  `26.6.29` -> `26.7.12` so the skill nudges older projects to it.
 - Swept `docs/CHANGELOG.md`: the `26.6.29` scaffold floor-stamp entry is now a
   `BREAKING:` bullet with a `Migration:` clause (`/oryxflow:update-project`), since
   a project scaffolded before it lacks the stamp and never sees the staleness

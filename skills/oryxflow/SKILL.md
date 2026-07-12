@@ -15,8 +15,8 @@ when_to_use: >-
   another, set the final task, or add / change a parameter; build a data-prep
   task or load / clean / transform / analyze the data (each becomes a task); run
   the flow, preview
-  it (flow.preview), check what is cached, or re-run / reset a task (reset before
-  re-running an edited task); load or plot a task's output; explore or inspect
+  it (flow.preview), check what is cached, or re-run / reset a task (an edited
+  task reruns automatically - verify it did); load or plot a task's output; explore or inspect
   the data (the opt-in deep dive); summarize what the pipeline does; or
   publish / render / export a report notebook to HTML (jupyter nbconvert), or
   re-execute a notebook to refresh its outputs.
@@ -33,9 +33,10 @@ intermediate results and rerunning intelligently after code or parameter changes
 - so you build better models faster.
 
 **Compatibility**: this skill's guidance assumes `oryxflow >= 26.6.6` (the floor;
-`docs/CHANGELOG.md` carries the authoritative value). Code-aware invalidation
-(`code_version`, `accept_code`, `oryxflow.events`) needs `oryxflow >= 26.7.12`; on
-older versions fall back to the reset-before-run loop noted where it applies. The
+`docs/CHANGELOG.md` carries the authoritative value). Auto code invalidation (on
+by default), `code_version`, `accept_code`, and `oryxflow.events` need
+`oryxflow >= 26.7.12`; on older versions fall back to the reset-before-run loop
+noted where it applies. The
 library `CHANGELOG.md` is the source of truth for API/behavior; when the two
 disagree about library behavior, the library wins. If the running
 `oryxflow.__version__` is OLDER than the floor, the skill has run ahead of the
@@ -288,10 +289,11 @@ ALWAYS:
 - **Modify logic** - Edit `tasks.py` (task classes), `flow_params.py`
   (parameters), or `flow.py` (which final task runs).
 - **Run** - Edit `run.py` if needed, then `python run.py`. If a task's CODE was
-  just edited, bump its `code_version` in the same edit - the task and its
-  downstream recompute on the run (see "Modify an existing task"). Reach for
-  `flow.reset(tasks.X)` only when no code token moved (a data file changed,
-  suspect cache) or on oryxflow < 26.7.12.
+  just edited, auto invalidation reruns it and its downstream on the run - just
+  VERIFY the edited band shows in `result.ran` (see "Modify an existing task").
+  Reach for `flow.reset(tasks.X)` only when auto can't see the change (a data file
+  changed, dynamic dispatch), for a task you locked with `code_version`, or on
+  oryxflow < 26.7.12.
 - **Analyze outputs** - Edit `visualize.py` then `python visualize.py`, or work in
   a `viz-<topic>.ipynb` report notebook (copied from `viz-template.ipynb`).
 - **Publish a report** - Keep notebooks that import the flow at the project root
@@ -561,7 +563,6 @@ class OEWSWages(oryxflow.tasks.TaskPqPandas):
     Out: one row per (occ_code, area); the wage-percentile columns. Null where
          BLS suppressed small cells.
     """
-    code_version = 1   # ALWAYS declare on a new task; bump on any logic change
     param1 = oryxflow.Parameter()
 
     def run(self):
@@ -569,64 +570,62 @@ class OEWSWages(oryxflow.tasks.TaskPqPandas):
         # ... transform ...
         self.save(df_out)
 ```
-   Give a new task `code_version = 1` (int or str): a clean baseline on a fresh
-   task (nothing to grandfather), so later logic edits are a one-line bump. It is
-   NOT required on every class - the fingerprint folds deps, so an unversioned
-   downstream task still reruns when a versioned upstream bumps - but it is cheap
-   insurance on a key output or expensive task, which is why the scaffold ships it.
-   On `oryxflow < 26.7.12` omit it (unsupported) and reset before running instead.
+   Do NOT add `code_version` by default: auto invalidation tracks a new task's
+   source from the first run, so later logic edits rerun on their own. Add
+   `code_version` (int or str) only to LOCK a task where auto's default is wrong -
+   an expensive task you want to recompute only on a deliberate bump, or logic auto
+   cannot see (see "Code-aware invalidation"). On `oryxflow < 26.7.12` there is no
+   auto: reset before running an edited task instead.
 2. Add parameters to `flow_params.py`: `params['param1'] = 'value'` (comment what
    it means).
 3. If it is the new final task, set `task = tasks.OEWSWages` in `flow.py`.
 4. Keep the docstring accurate; update the module docstring if the goal changed.
 
 ### Modify an existing task (the common iterate loop)
-1. Edit the task's `run()` in `tasks.py`.
-2. BUMP `code_version` IN THE SAME EDIT. A code edit does NOT change task
-   identity (class + parameters), so without the bump a plain `python run.py`
-   SKIPS it, reusing the stale output. Declare/bump the class attribute
-   (`code_version = 2`, or a string `'v2-log-features'`) - the bump propagates
-   downstream automatically, so do NOT hand-chain `flow.reset(...)` calls for
-   code changes and do NOT write a reset helper. (A PARAMETER change, by
-   contrast, makes a new identity and auto-reruns - no bump, no reset; if a param
-   change is NOT auto-rerunning, the parameter is not defined / inherited
-   correctly.)
-   - FIRST TIME adding `code_version` to a task: if you're adding it because you
-     just changed the code, also `flow.reset(tasks.ModifiedTask)` once -
-     grandfathering treats the existing output as current. Safest adoption: add
-     `code_version` in a change that edits nothing else.
-   - On oryxflow < 26.7.12 (no `code_version`): fall back to reset-before-run -
-     `flow.reset(tasks.ModifiedTask)` (cascades downstream), kept as a
-     commented-out toggle line in `run.py`.
-3. Run `python run.py` and verify the invalidation took: the result must show
-   the task in `result.ran` with reason `code change (1 -> 2)`
-   (`result.reasons`). `ran=0` after an intended bump means it didn't reach the
-   cache - a bug, not a convenient skip; `ran=0` on an untouched pipeline is the
-   healthy "cache is trusted" signal.
+1. Edit the task's `run()` in `tasks.py` (or a helper it imports).
+2. Run `python run.py`. Auto invalidation reruns the edited task and everything
+   downstream on its own - a code edit does NOT change task identity (class +
+   parameters), but auto hashes the source, so it does not ride on the stale
+   cache. No attribute to bump, no `flow.reset` to chain, no reset helper. (A
+   PARAMETER change reruns the same way, via a new identity; if a param change is
+   NOT auto-rerunning, the parameter is not defined / inherited correctly.)
+   EXCEPTION: if you have LOCKED this task with `code_version`, auto ignores its
+   source - bump the attribute in the same edit (`code_version = 2`, or a string
+   `'v2-log-features'`) or it keeps the stale output and only warns.
+3. VERIFY it reran (do not skip - this is the discipline auto trades for the
+   attribute): the result must show the task in `result.ran` with reason
+   `code change (auto: <files>)` (`result.reasons`). `ran=0` for a task you just
+   edited means auto did not see the change - a blind spot (data file, installed
+   package, dynamic dispatch, notebook-defined task), NOT a convenient skip:
+   `flow.reset` that task or lock it with `code_version`. `ran=0` on an untouched
+   pipeline is the healthy "cache is trusted" signal.
 4. Keep the docstring accurate.
+   - On oryxflow < 26.7.12 (no auto, no `code_version`): fall back to
+     reset-before-run - `flow.reset(tasks.ModifiedTask)` (cascades downstream),
+     kept as a commented-out toggle line in `run.py`.
 
 **Add / remove / rename an output column** is this same loop: edit `run()`, update
-the docstring's `Out:` column list to match, then bump + re-run. Adding is safe;
-REMOVING or renaming a column breaks any downstream task that read it - the bump's
-downstream propagation re-runs them and surfaces the break, so fix those readers in
-the same edit.
+the docstring's `Out:` column list to match, then re-run and verify. Adding is
+safe; REMOVING or renaming a column breaks any downstream task that read it - auto
+re-runs them and surfaces the break, so fix those readers in the same edit.
 When you write `.agg(name=...)`, `.rename(columns=...)`, or an output column list,
 name each column suffix-style (operation / unit / stat is a TRAILING suffix, never
 a leading prefix: `position_value_avg`, not `avg_position_value`) and check it
 against the Don't/Do table in conventions.md before you save.
 
 **Iterate-then-run rule**: if a task's code was edited this session and you are
-then asked to "run the flow", make sure its `code_version` was bumped in that edit
-(bump it now if not) - do NOT just `python run.py`, or the edit silently does
-nothing. (Pre-26.7.12: reset-then-run instead.)
+then asked to "run the flow", just `python run.py` and CONFIRM the edited band
+shows in `result.ran` - auto handles the invalidation, but a blind spot (or a
+task you locked and forgot to bump) can silently skip it, so verify rather than
+assume. (Pre-26.7.12: reset-then-run instead.)
 
-**Across parameter variants**: a `code_version` bump invalidates EVERY cached
-instance of that task (one per parameter value) - each variant recomputes on its
-next run, and loading a not-yet-recomputed variant fails loudly ("task not
-complete") instead of serving the old schema. The stale-sibling-variant trap is
-handled; `runLoad(..., params=...)` per variant re-runs what's stale. On
-pre-26.7.12 versions (manual resets only recompute the variant you ran), force a
-recompute per setting with `reset=True`:
+**Across parameter variants**: an auto rerun (or a `code_version` bump on a locked
+task) invalidates EVERY cached instance of that task (one per parameter value) -
+each variant recomputes on its next run, and loading a not-yet-recomputed variant
+fails loudly ("task not complete") instead of serving the old schema. The
+stale-sibling-variant trap is handled; `runLoad(..., params=...)` per variant
+re-runs what's stale. On pre-26.7.12 versions (manual resets only recompute the
+variant you ran), force a recompute per setting with `reset=True`:
 ```python
 # pre-26.7.12: reset=True recomputes this variant instead of loading stale cache
 df = oryxflow.runLoad(tasks.EmploymentExposure, params={'jobs': jobs}, reset=True)
@@ -663,9 +662,9 @@ the reliable way to confirm a reset took (more than "the run did not error"):
 ```python
 result = flow.run()
 print(result.summary())            # one glance: N ran / N cache-hit / N failed (result.success = verdict)
-result.did_run(tasks.ModelTrain)   # True if it recomputed (confirms the bump/reset took)
+result.did_run(tasks.ModelTrain)   # True if it recomputed (confirms auto/bump/reset took)
 result.ran          # tasks actually recomputed   result.complete  # cache hits (skipped)
-result.reasons      # {task_id: 'output missing' | 'code change (1 -> 2)' | 'upstream rerun'}
+result.reasons      # {task_id: 'output missing' | 'code change (auto: tasks.py)' | 'code change (1 -> 2)' | 'upstream rerun'}
 result.warnings     # unacknowledged code-change warnings (answer them - see below)
 # To inspect a FAILURE without re-running, capture it instead of raising:
 result = flow.run(abort=False)     # default abort=True raises (no result returned)
@@ -687,51 +686,64 @@ Scheduled 3 tasks of which:
 * 1 ran successfully:                  <- actually recomputed
     - EmploymentExposure(jobs=support_broad)
 ```
-A task you edited showing under "complete ones were encountered" was skipped
-(stale cache) - its `code_version` wasn't bumped; bump it and re-run.
+A task you edited showing under "complete ones were encountered" was skipped -
+auto did not see the change (a blind spot: data file, installed package, dynamic
+dispatch), or the task is locked with `code_version` and wasn't bumped. Reset it
+(or bump, if locked) and re-run.
 
 ---
 
 ## Code-aware invalidation & the event stream (oryxflow >= 26.7.12)
 
-oryxflow records what ran, when, and why. Two distinct mechanisms - keep them
-straight (a code-inspecting agent that reads only base `Task.complete` will miss
-this): a `code_version` bump is AUTHORITATIVE - it changes the task's code
-fingerprint, which `TaskData.complete()` gates on, so the task and everything
-downstream rerun. The AST source-hash is a warn-only ADVISORY - it fires when you
-edit code but forget to bump, and NEVER forces a rerun by itself. Both are INERT
-until a task declares `code_version`: a project with none (the common starting
-state) has the whole layer dormant - no warning fires and a code edit still rides
-on manual `reset` - for an unversioned task, `flow.reset(Task)` before running
-(the method documented under "Modify an existing task") is the whole discipline.
-Do NOT assume being on oryxflow >= 26.7.12 arms the net; check that tasks actually
-declare `code_version`. You do NOT need it on every class: the fingerprint folds
-dependencies, so a downstream task WITHOUT `code_version` still reruns when a
-versioned upstream bumps - declare it only on tasks whose OWN logic you want the
-net for. Arm it by adopting `code_version` on your key output tasks and their
-expensive upstreams (ideally in an edit-free change, so grandfathering blesses
-each task's real current output). The rules, in the order they come up:
+oryxflow records what ran, when, and why, and by DEFAULT reruns edited code for
+you. Auto invalidation is ON out of the box (`settings.code_version_auto = True`):
+each run hashes every task's module and the repo-local files it transitively
+imports (AST-normalized - comment / docstring / formatting edits are invisible),
+so editing a task's `run()` OR any helper it imports makes that task and
+everything downstream rerun on the next run, no ceremony. The default iterate loop
+is therefore edit -> run -> VERIFY it reran; there is no attribute to remember.
+
+`code_version` flips to an opt-in LOCK, not the primary mechanism. Declaring it on
+a task PINS that task's own logic: auto stops watching its source, so a code edit
+no longer reruns it - only an explicit bump does, and an edit without a bump fires
+the advisory warning instead. Lock a task when auto's default is wrong for it:
+(a) an EXPENSIVE task where an accidental refactor-triggered recompute is costly
+(a slow API pull, a long backtest) - auto DELETES and overwrites the old output on
+rerun, so pin it and recompute only on a deliberate bump; (b) logic auto cannot
+see (dynamic dispatch, data-driven behavior). Remove the attribute -> auto resumes
+for that task. A locked task still reruns when an AUTO upstream changes (the
+fingerprint folds dependencies) - the lock pins only its OWN logic. Global escape:
+`settings.code_version_auto = False` reverts to pure opt-in (only an explicit
+`code_version` or `flow.reset` drives reruns) - reach for it when auto is too
+fickle across many long-running tasks. The rules, in the order they come up:
 
 1. **Session start / after `/clear`**: call `oryxflow.events.print_status()` -
    pending code warnings, last run per task family, recent failures - before
    assuming anything about cache state. Use `events.status()` when you want the
    same facts as a dict to filter; it RETURNS and prints nothing (a bare call in
    a script shows nothing). No-Python fallback: `tail -30 .oryxflow/events.jsonl`.
-2. **Changed a task's logic** (its `run()` or a helper module it uses): bump that
-   task's `code_version` in the SAME edit; the bump propagates downstream (see
-   "Modify an existing task").
-3. **First time adding `code_version`** after an edit: also reset once
-   (grandfathering otherwise blesses the stale output). Safest: adopt in an
-   edit-free change.
-4. **Answer every staleness warning with one of its three exits** - they are not
-   equal in risk: bump (semantic change - safe, recomputes), reset (recompute
-   regardless - safe), or `oryxflow.accept_code(tasks.X)` (output-equivalent
-   refactor - the ONE non-recomputing exit; only if certain, when unsure bump;
-   `accept_code()` bulk-accepts everything warned). Never leave a warning firing
-   across runs. Blind spots are honest: the hash can't see data files, external
-   APIs, or dynamic dispatch - for those, `reset()` is the verb, and reset the
-   LOADER task that ingests the changed input, not a downstream task (a
-   downstream reset just reloads the cached old input).
+2. **Changed a task's logic** (its `run()` or a helper module it uses): just run -
+   auto reruns the affected band. Then VERIFY (rule 3). Bump `code_version` only
+   on a task you have LOCKED (it declares the attribute).
+3. **VERIFY the rerun happened** - the load-bearing habit under auto. After an
+   edit, the next run MUST show the edited task in `result.ran` / `events.runs()`
+   with reason `code change (auto: <files>)`. If it did NOT rerun (`ran=0` for a
+   task you just edited), auto did not SEE your change - a blind spot: the change
+   lives in a data file, an installed package, dynamic dispatch, or a
+   notebook-defined task. "I just edited this, why didn't it run?" -> `flow.reset`
+   that task (reset the LOADER for changed DATA, not a downstream task - a
+   downstream reset reloads the cached old input) or add an explicit `code_version`
+   to pin it.
+4. **Output-equivalent refactor you do NOT want to recompute**: `flow.accept_code()`
+   / `oryxflow.accept_code(tasks.Anchor)` re-stamps the code state without
+   rerunning (only when you are CERTAIN the output is unchanged; when unsure, let
+   it rerun). Call the INSTANCE / `flow` form on your final task - it walks the
+   whole upstream band; the bare class form only re-stamps one task and can leave
+   dep-folded mismatches behind. Preview the pending band first with
+   `flow.preview()` (or `preview()` after a shared-helper edit) so a wide recompute
+   is a choice, not a surprise. A locked task instead uses its three warning exits:
+   bump (output differs - recomputes), reset (recompute regardless), or
+   `accept_code` (output-equivalent). Never leave a warning firing across runs.
 5. **After a run, read the returned result** - `result.reasons` /
    `result.warnings`; verify intended invalidations show up in `result.ran` with
    the matching reason (see "See what ACTUALLY ran").
@@ -740,9 +752,10 @@ each task's real current output). The rules, in the order they come up:
    `code_version`, `source_hashes`.
 7. **Log decision-relevant scalars** inside `run()` via `self.logger.info(...)` -
    they're captured as `task_log` events and become next session's memory.
-8. **Experiments side by side**: string version (`code_version =
-   'v2-log-features'`) plus `keep_versions = True` - old versions stay at
-   readable paths (`data/Task/v1-baseline/...`).
+8. **Experiments side by side**: a LOCKED task with a string version
+   (`code_version = 'v2-log-features'`) plus `keep_versions = True` keeps old
+   versions at readable paths (`data/Task/v1-baseline/...`); `keep_versions` keys
+   off explicit `code_version`, so auto tasks overwrite in place.
 9. **Raw stream convention**: current = `.oryxflow/events.jsonl` (stable head);
    offloaded months = `.oryxflow/events-YYYYMM.jsonl`; all history = glob
    `events*.jsonl`. Plain JSONL - `tail`/`grep`/`jq` work; prefer

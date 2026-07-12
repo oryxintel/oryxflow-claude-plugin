@@ -84,22 +84,26 @@ do not ask.
 - Edit the flow files, do not improvise: `tasks.py` (task classes),
   `flow_params.py` (parameters), `flow.py` (which final task runs), `run.py`
   (execute). Run the workflow with `python run.py`.
-- Track code changes with `code_version` (an int/str class attribute; the
-  scaffold ships `code_version = 1`) and BUMP it in the SAME edit whenever you
-  change that task's logic - its `run()` or a helper it imports. oryxflow caches
-  on identity (class + params), NOT code, so without the bump a plain run reuses
-  the stale output; the bump makes the task and everything downstream rerun. It is
-  opt-in per task, NOT required on every class: the fingerprint folds deps, so an
-  unversioned downstream task still reruns when a versioned upstream bumps -
-  declare it on the tasks whose own logic you want tracked (key outputs, expensive
-  upstreams). A PARAMETER change makes a new identity and auto-reruns (no bump).
-  For a task WITHOUT `code_version`, a code edit still needs `flow.reset(Task)`
-  before running (the old discipline). RESET (`flow.reset(Task)`, cascades
-  downstream) is otherwise for what the bump cannot see: changed source DATA
-  (reset the LOADER task that ingests it, not a downstream one), a suspect/corrupt
-  cache, or deleting outputs. Use the built-in `flow.reset` - never write a reset
-  helper. (`code_version` needs `oryxflow >= 26.7.12`; on older libraries drop it
-  and reset before running an edited task.)
+- Edited a task's logic (its `run()` or a helper it imports)? Just run - auto
+  invalidation reruns that task and everything downstream. oryxflow caches on
+  identity (class + params), NOT code, but it also hashes each task's source
+  (comment / docstring / formatting edits never count), so an edit does not ride
+  on the stale cache. Then VERIFY: the edited task must show in `result.ran` with
+  reason `code change (auto: <files>)`; if it did NOT rerun (`ran=0` for a task
+  you edited), auto has a blind spot for that change (a data file, an installed
+  package, dynamic dispatch) - `flow.reset(Task)` it. A PARAMETER change reruns
+  the same way (new identity). `code_version` (int/str class attribute) is an
+  opt-in LOCK: declare it to PIN an expensive task so it recomputes only on a
+  deliberate BUMP (auto stops watching its source; an unbumped edit only warns) -
+  and because auto DELETES and overwrites the old output on rerun, that pin is
+  what protects a slow API pull or long backtest from an accidental recompute.
+  RESET (`flow.reset(Task)`, cascades downstream) is for what auto cannot see:
+  changed source DATA (reset the LOADER task that ingests it, not a downstream
+  one), a suspect/corrupt cache, or deleting outputs. Use the built-in
+  `flow.reset` - never write a reset helper. Global opt-out:
+  `settings.code_version_auto = False` (pure opt-in - `code_version`/`reset` only).
+  (Auto + `code_version` need `oryxflow >= 26.7.12`; on older libraries reset
+  before running an edited task.)
 - Trust auto file management. If `flow.run()` finishes without error, the outputs
   exist - load them with `flow.outputLoad(...)`; do not stat the filesystem. For a
   task's data, `flow.outputLoad(Task)` (or `self.inputLoad()` in a task) is the
