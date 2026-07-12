@@ -719,8 +719,10 @@ cannot see (dynamic dispatch, data-driven behavior); (c) a KEY output task where
 the cache decision to be REVIEWABLE - a bump is a diffable line in the commit /
 `git log`, whereas an auto-rerun leaves no trace, which is why agent-run projects
 often pin their headline tasks even though auto needs nothing. Locks toggle FREELY:
-records store both the token and the source hashes, so adding or removing
-`code_version` on unchanged code never recomputes and never ripples downstream -
+the `code_version` line itself is invisible to the hash (typing it in, deleting it,
+or bumping it is a token change, never a source edit) and records store both the
+token and the source hashes, so adding or removing a lock never recomputes and
+never ripples downstream -
 while an edit masked during a locked-unbumped window reruns the moment the lock
 comes off, and locking in the same edit as a logic change reruns instead of
 blessing stale output. A locked task still reruns when an AUTO upstream
@@ -752,6 +754,11 @@ fickle across many long-running tasks. The rules, in the order they come up:
    it rerun). Call the INSTANCE / `flow` form on your final task - it walks the
    whole upstream band; the bare class form re-stamps one family and misses other
    tasks the same helper edit touched (they just rerun - safe direction).
+   `accept_code` prints what it re-stamped; "nothing accepted" means it missed
+   the target - switch to the instance / `flow` form. An `output predates
+   current code` warning (outputs with no record yet - fresh upgrade or
+   checkout) has the same answer: `flow.accept_code()` if the outputs are
+   current (stamps their baseline records), reset if not.
    Accepting never triggers downstream recomputes. Preview the pending band first with
    `flow.preview()` (or `preview()` after a shared-helper edit) so a wide recompute
    is a choice, not a surprise. A locked task instead uses its three warning exits:

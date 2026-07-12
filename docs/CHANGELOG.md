@@ -42,12 +42,21 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
   by deliberate bumps even below the guard threshold". The scaffold `cfg.py` now
   ships the auto knobs as commented lines (`code_version_auto`,
   `code_version_auto_expensive_s`) so opting out is a visible, conscious choice.
-- Lock-toggle semantics (`SKILL.md` + `reference.md`): adding or removing
-  `code_version` on unchanged code never recomputes and never ripples downstream
-  (records store both the token and the source hashes); an edit masked while
-  locked-unbumped reruns when the lock comes off. `accept_code` never triggers
-  downstream recomputes (the bare class form's caveat is "misses other tasks the
-  same helper edit touched").
+- Lock-toggle semantics (`SKILL.md` + `reference.md`): the `code_version` line
+  itself is stripped by the library's AST normalization, so typing it in /
+  deleting / bumping it is a token change, never a source edit - adding or
+  removing a lock on unchanged code never recomputes and never ripples
+  downstream (records store both the token and the source hashes); an edit
+  masked while locked-unbumped reruns when the lock comes off. `accept_code`
+  never triggers downstream recomputes (the bare class form's caveat is "misses
+  other tasks the same helper edit touched").
+- `accept_code` visibility + upgrade path (`SKILL.md` + `reference.md`): it
+  prints what it re-stamped ("nothing accepted" = wrong form - use the
+  instance/`flow` form); the instance/`flow` form also stamps baseline records
+  for outputs with no record yet, which is the answer to the `output predates
+  current code` warning after an upgrade or fresh checkout (accept if current,
+  reset if not). Staleness warnings dedupe per process on the printed channels;
+  `result.warnings` and the event stream keep every occurrence.
 - Code-aware invalidation guidance for `oryxflow >= 26.7.12` (`SKILL.md` +
   `reference.md`), reframed around AUTO invalidation (on by default,
   `settings.code_version_auto = True`): editing a task's `run()` or a helper it

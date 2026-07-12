@@ -354,14 +354,21 @@ the changed file) instead of rerunning. Lock a task for (a) an EXPENSIVE
 computation you want managed by deliberate bumps even below the guard threshold
 (auto deletes and overwrites the old output on rerun); (b) logic auto cannot
 see. Locks toggle
-FREELY: adding or removing `code_version` on unchanged code never recomputes and
-never ripples downstream (records store both the token and the source hashes);
-an edit masked while locked-unbumped reruns the moment the lock comes off. A
+FREELY: the `code_version` line itself is stripped by the AST normalization
+(typing it in / deleting / bumping it is a token change, never a source edit)
+and records store both the token and the source hashes, so adding or removing a
+lock on unchanged code never recomputes and never ripples downstream; an edit
+masked while locked-unbumped reruns the moment the lock comes off. A
 locked task still reruns when an AUTO upstream rematerializes - the lock pins
 only its OWN logic. Answer a lock's warning with
 one of its exits: bump (output differs - recomputes and propagates downstream),
-`oryxflow.accept_code(TaskX)` (certain the output is equivalent; when unsure,
-bump), or reset. Never write a reset helper (`reset_if_code_changed`, a
+`flow.accept_code()` / `oryxflow.accept_code(instance)` (certain the output is
+equivalent; when unsure, bump - it prints what it re-stamped, and the
+instance/flow form also stamps baseline records for outputs that have none yet,
+which is what clears an `output predates current code` warning after an
+upgrade), or reset. The printed warning dedupes per process (same message per
+task shows once; every occurrence still lands in `result.warnings` and the
+event stream). Never write a reset helper (`reset_if_code_changed`, a
 downstream-resetter). Global escape hatch: `settings.code_version_auto = False`
 reverts to pure opt-in (only explicit `code_version` / `flow.reset` rerun) - for
 projects where auto is too fickle across many long-running tasks. On pre-26.7.12
