@@ -499,19 +499,17 @@ rewriting.
 
 ## Code-aware invalidation (oryxflow >= 26.7.12): AUTO by default, lock to opt out
 
-The engine's code-invalidation feature folded into `26.7.12` in two waves, and the
-final shape is what the guidance targets. Wave one shipped the machinery
-(`code_version`, an AST source-hash, `accept_code()`, `keep_versions`, the event
-stream) with the hash ADVISORY-only, so correctness rode on the author remembering
-to declare and bump `code_version` per tracked task. Wave two (same version)
-promoted the hash to the DEFAULT AUTHORITY: `settings.code_version_auto = True`, so
-a task without `code_version` derives its code identity from the AST hash of its
-module + transitively imported repo-local files, and a logic edit reruns the task
-and everything downstream automatically. `code_version` flipped from the primary
-mechanism to an opt-in LOCK. The plugin guidance was first written for wave one
-(bump-first) and then rewritten for wave two; this note records the final design
-and why, so a reader who greps the changelog history is not confused by the
-intermediate bump-first framing.
+Code-invalidation ships as one behavior in `26.7.12`: auto is ON by default
+(`settings.code_version_auto = True`), so a task without `code_version` derives its
+code identity from the AST hash of its module + transitively imported repo-local
+files, and a logic edit reruns the task and everything downstream automatically.
+`code_version` is an opt-out LOCK, not the primary mechanism. The design call worth
+recording is auto-DEFAULT over opt-in: correctness must not hinge on the author
+remembering a per-task attribute - an opt-in net is inert until adopted, which is
+exactly the memory-dependent guardrail the feature exists to remove. The machinery
+(the AST source-hash, `accept_code()`, `keep_versions`, the event stream) is
+shared; what the default changes is that the hash GATES completeness rather than
+only advising.
 
 1. **The primary idiom is AUTO: edit -> run -> VERIFY.** No attribute to declare or
    remember; editing a task's `run()` or any helper it imports reruns the affected
@@ -531,10 +529,10 @@ intermediate bump-first framing.
 2. **The destructive-recompute risk is handled in the LIBRARY, not left to the
    agent.** Auto deletes and overwrites the old output on every rerun, so an
    output-equivalent refactor touching a slow API pull or a long backtest would
-   otherwise silently discard hours of compute. The engine's answer (shipped after
-   this exact concern was raised) is the expensive-recompute guard: an auto task
-   whose LAST run exceeded `settings.code_version_auto_expensive_s` (default 600s)
-   does not silently recompute on a code change - it stays complete and WARNS with
+   otherwise silently discard hours of compute. The engine's answer is the
+   expensive-recompute guard: an auto task whose LAST run exceeded
+   `settings.code_version_auto_expensive_s` (default 600s) does not silently
+   recompute on a code change - it stays complete and WARNS with
    the exits, so burning a long run is a decision. This is the right layer for it:
    a plugin doc telling the agent "remember to pin expensive tasks first" would be
    another memory-dependent guardrail, the very failure mode auto exists to kill;
@@ -578,29 +576,30 @@ intermediate bump-first framing.
 
 All of it is gated `oryxflow >= 26.7.12` with a pre-26.7.12 reset fallback stated
 where it applies; the supported floor stays 26.6.6 (the guidance degrades, it does
-not require the new library). A live project's agent once assumed a current library
-meant it was protected - under wave one that was false (the net was inert until a
-task declared `code_version`). Wave two makes it TRUE by default, which is the
-whole point of auto: correctness must not depend on memory OR on per-class
-ceremony. So `/oryxflow:update-project` dropped the adoption pass entirely (there
-is nothing to adopt); the only invalidation-related thing it does is report the
-reset-before-run -> auto convention flip when its normal `CLAUDE.md` floor reconcile
-produces it. An earlier draft had it flag a project that DISABLED auto, but that
-inverted the point (auto is on by default; a project only has it off deliberately),
-so it was cut.
+not require the new library). This is why auto is the default rather than an opt-in
+flag: on an opt-in-only design the net is inert until a task declares
+`code_version`, and a live project's agent wrongly assumed a current library alone
+meant protection. Auto-default closes that gap - correctness must not depend on
+memory OR on per-class ceremony. So `/oryxflow:update-project` has no adoption pass
+(there is nothing to
+adopt); the only invalidation-related thing it does is report the reset-before-run
+-> auto convention flip when its normal `CLAUDE.md` floor reconcile produces it. It
+deliberately does NOT flag a project that has DISABLED auto: auto is on by default,
+so a project only has it off on purpose, and telling someone about a setting they
+chose is noise.
 
-The scaffold matches the default from day one, from the OTHER direction than wave
-one did: the template `tasks.py` ships NO `code_version` (auto tracks the
-placeholders' source; shipping one would LOCK them - the opposite of intent), and
+The scaffold matches the default from day one: the template `tasks.py` ships NO
+`code_version` (auto tracks the placeholders' source; shipping one would LOCK them -
+the opposite of intent), and
 the "Add a new task" recipe says to add the attribute only to lock an expensive or
 hash-blind task. Consequence for releases: the template `CLAUDE.md` convention flip
 (reset-before-run -> auto) is a scaffold-FLOOR change - update-project reconciles
 `CLAUDE.md` - so it is floor-baseline-bump worthy (`26.6.29` -> `26.7.12`), unlike
 the `tasks.py` placeholder edit (PROJECT bucket, never reconciled), which just
-rides the release like any template change. The design requires LESS ceremony than
-even wave one asked: the residual human cost is a per-task lock only where auto's
-default is genuinely wrong, plus the verify habit - stated so agents neither treat
-`code_version` as mandatory boilerplate nor trust an edit reran without checking.
+rides the release like any template change. The residual human cost is small: a
+per-task lock only where auto's default is genuinely wrong, plus the verify habit -
+stated so agents neither treat `code_version` as mandatory boilerplate nor trust an
+edit reran without checking.
 
 ## Scaffolding: the init command and the template
 
