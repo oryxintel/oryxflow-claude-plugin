@@ -330,14 +330,16 @@ propagates. For ordinary CODE edits you do NOT reset - auto reruns them (below).
 **Code edits vs parameter changes (the iterate gotcha, mostly gone)**: oryxflow
 caches by task identity = class + parameters. A PARAMETER change creates a new
 identity, so it reruns on the next `flow.run()`. A CODE edit (a task's `run()`
-body or a helper it imports) does NOT change identity - but auto invalidation
+body or a helper it calls) does NOT change identity - but auto invalidation
 (oryxflow >= 26.7.12, `settings.code_version_auto = True` by default) hashes the
-task's module and its transitively imported project-local files
-(AST-normalized: comment / docstring / formatting edits never count), so the
-edited task and everything downstream rerun on the next run anyway, overwriting
-in place. So the old "reset before running an edited task" ritual is gone; the
-new discipline is to VERIFY the rerun landed - after an edit the task must appear
-in `result.ran` with reason `code change (auto: <files>)`. If it did not
+task's own class plus the project-local symbols it transitively references
+(AST-normalized: comment / docstring / formatting edits never count; editing an
+UNRELATED sibling task in the same file reruns nothing - one monolithic
+`tasks.py` stays cheap), so the edited task and everything downstream rerun on
+the next run anyway, overwriting in place. So the old "reset before running an
+edited task" ritual is gone; the new discipline is to VERIFY the rerun landed -
+after an edit the task must appear in `result.ran` with reason
+`code change (auto: <file>::<symbol>)`. If it did not
 (`ran=0` for a task you edited), auto has a blind spot for that change (a data
 file, an installed package, dynamic dispatch, a notebook-defined task): `reset`
 it, or LOCK it with `code_version`.
@@ -350,7 +352,7 @@ silently recomputing.
 `code_version` is now an opt-in LOCK, not a per-task ritual. Declaring it on a
 task tells auto to STOP watching that task's source: the task reruns only on an
 explicit bump, and a code edit without a bump WARNS (`StalenessWarning` naming
-the changed file) instead of rerunning. Lock a task for (a) an EXPENSIVE
+the changed symbol) instead of rerunning. Lock a task for (a) an EXPENSIVE
 computation you want managed by deliberate bumps even below the guard threshold
 (auto deletes and overwrites the old output on rerun); (b) logic auto cannot
 see. Locks toggle
@@ -366,18 +368,32 @@ one of its exits: bump (output differs - recomputes and propagates downstream),
 equivalent; when unsure, bump - it prints what it re-stamped, and the
 instance/flow form also stamps baseline records for outputs that have none yet,
 which is what clears an `output predates current code` warning after an
-upgrade), or reset. The printed warning dedupes per process (same message per
-task shows once; every occurrence still lands in `result.warnings` and the
-event stream). Never write a reset helper (`reset_if_code_changed`, a
-downstream-resetter). Global escape hatch: `settings.code_version_auto = False`
-reverts to pure opt-in (only explicit `code_version` / `flow.reset` rerun) - for
-projects where auto is too fickle across many long-running tasks. On pre-26.7.12
-(no auto, no `code_version`) the manual `flow.reset(thatTask)` before running is
-the whole discipline. For the deeper model - auto's file-level COARSENESS (editing
-one function in a shared `utils.py` recomputes every task importing it; `preview()`
-the pending band first), the import-graph-vs-dependency-graph nuance of a pin's
-warning, and the `reset_upstream(..., only=Family)` scopes - see the library's
-"Managing workflows" docs (the `code-versioning` section).
+upgrade), or reset. The printed warning dedupes per process ON THE MESSAGE
+(parameterized instances of one family and per-flow WorkflowMulti builds produce
+identical text - it prints once; `result.warnings` lists each distinct message
+once per run, only the event stream keeps every occurrence). Accepting
+CASCADES: it re-stamps the anchor and its whole upstream tree; bare
+`flow.accept_code()` covers the whole pipeline - every imported task family
+that resolves with the flow's params, multi-final included, from a fresh
+process - and a list of tasks works everywhere
+(`flow.accept_code([FinalA, FinalB])`). On WorkflowMulti use the flow method
+(`flow.accept_code()` covers all flows, `flow=...` for one) - the module-level
+bulk form does not know the flows' parameters and cannot re-key records whose
+symbols were renamed/moved (it reports those; use an instance); tasks reached
+only DYNAMICALLY
+(yielded inside a `run()`) need an explicit instance if they warn. Never write
+a reset helper (`reset_if_code_changed`, a downstream-resetter). Global escape
+hatch: `settings.code_version_auto = False` reverts to pure opt-in (only
+explicit `code_version` / `flow.reset` rerun) - for projects where auto is too
+fickle across many long-running tasks. On pre-26.7.12 (no auto, no
+`code_version`) the manual `flow.reset(thatTask)` before running is the whole
+discipline. Granularity is per SYMBOL, not per file: editing one helper in a
+shared `utils.py` recomputes exactly the tasks that reference it (directly or
+via other helpers; `preview()` the pending band first), and referencing another
+TASK in `requires()` is wiring, never a code dependency. For the deeper model -
+the reference-graph-vs-dependency-graph nuance of a lock's warning, and the
+`reset_upstream(..., only=Family)` scopes - see the library's "Managing
+workflows" docs (the `code-versioning` section).
 
 **Keeping versions side by side**: on a LOCKED task, a string version +
 `keep_versions = True` puts outputs under `data/Task/v<version>/`, so old
@@ -403,7 +419,9 @@ prints nothing - a bare call in a script shows nothing);
 `oryxflow.events.runs(task_family='X',
 last=2)` = diff the last two runs' params / code_version / source_hashes;
 `task_ran` events carry the rerun reason (`output missing` /
-`code change (auto: <files>)` / `code change (1 -> 2)` / `upstream rerun`), git
+`code change (auto: <file>::<symbol>)` / `code change (1 -> 2)` /
+`code change (1 -> auto)` or `code change (auto -> 1)` (lock toggled off/on with
+a source change to reconcile) / `upstream rerun`), git
 SHA, duration. `self.logger`
 lines are captured as `task_log` events, so logged scalars persist across
 sessions.

@@ -32,6 +32,29 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
      version + date, bump plugin.json to match, and add a fresh empty
      [Unreleased] back on top. See CLAUDE.md "Release". -->
 
+### Changed
+- Auto-invalidation guidance rewritten for symbol-level hashing (`SKILL.md` +
+  `reference.md`, tracks library 26.7.12): the hash unit is the task's own class
+  plus the repo-local symbols it transitively references - editing an unrelated
+  sibling task in one monolithic `tasks.py` reruns nothing, editing a shared
+  helper reruns exactly the tasks referencing it, and rerun reasons /
+  `StalenessWarning` name the changed symbol
+  (`code change (auto: <file>::<symbol>)`). Referencing another task in
+  `requires()` is wiring, never a code dependency. New `accept_code` guidance:
+  it cascades to the whole upstream tree; on `WorkflowMulti` use
+  `flow.accept_code()` (the module-level bulk form does not know the flows'
+  parameters); dynamically-yielded tasks need an explicit instance. Staleness
+  warnings dedupe on the message (parameterized instances / per-flow builds
+  print once).
+- `accept_code` coverage guidance (`SKILL.md` + `reference.md`, tracks library
+  26.7.12): bare `flow.accept_code()` covers the whole pipeline - every
+  imported task family that resolves with the flow's params, multi-final
+  pipelines included, from a fresh process (a one-shot bless script needs no
+  prior run) - and a list of tasks is accepted everywhere
+  (`flow.accept_code([FinalA, FinalB])`). `result.warnings` documented as one
+  entry per distinct condition (len = pending count); only the event stream
+  keeps every occurrence.
+
 ### Added
 - Run tiers by lifecycle (`conventions.md` "Scaling up"): name graduated run
   files by LIFECYCLE, not topic - `run.py` (experiment, one active param set),

@@ -594,7 +594,7 @@ class OEWSWages(oryxflow.tasks.TaskPqPandas):
    `'v2-log-features'`) or it keeps the stale output and only warns.
 3. VERIFY it reran (do not skip - this is the discipline auto trades for the
    attribute): the result must show the task in `result.ran` with reason
-   `code change (auto: <files>)` (`result.reasons`). `ran=0` for a task you just
+   `code change (auto: <file>::<symbol>)` (`result.reasons`). `ran=0` for a task you just
    edited means auto did not see the change - a blind spot (data file, installed
    package, dynamic dispatch, notebook-defined task), NOT a convenient skip:
    `flow.reset` that task or lock it with `code_version`. `ran=0` on an untouched
@@ -664,8 +664,9 @@ result = flow.run()
 print(result.summary())            # one glance: N ran / N cache-hit / N failed (result.success = verdict)
 result.did_run(tasks.ModelTrain)   # True if it recomputed (confirms auto/bump/reset took)
 result.ran          # tasks actually recomputed   result.complete  # cache hits (skipped)
-result.reasons      # {task_id: 'output missing' | 'code change (auto: tasks.py)' | 'code change (1 -> 2)' | 'upstream rerun'}
-result.warnings     # unacknowledged code-change warnings (answer them - see below)
+result.reasons      # {task_id: 'output missing' | 'code change (auto: tasks.py::TaskX)' | 'code change (1 -> 2)' | 'code change (1 -> auto)' / 'code change (auto -> 1)' (lock toggled, source reconciled) | 'upstream rerun'}
+result.warnings     # unacknowledged code-change warnings, one entry per distinct
+                    # condition (len = pending count; answer them - see below)
 # To inspect a FAILURE without re-running, capture it instead of raising:
 result = flow.run(abort=False)     # default abort=True raises (no result returned)
 if not result.success:
@@ -697,11 +698,13 @@ dispatch), or the task is locked with `code_version` and wasn't bumped. Reset it
 
 oryxflow records what ran, when, and why, and by DEFAULT reruns edited code for
 you. Auto invalidation is ON out of the box (`settings.code_version_auto = True`):
-each run hashes every task's module and the repo-local files it transitively
-imports (AST-normalized - comment / docstring / formatting edits are invisible),
-so editing a task's `run()` OR any helper it imports makes that task and
-everything downstream rerun on the next run, no ceremony. The default iterate loop
-is therefore edit -> run -> VERIFY it reran; there is no attribute to remember.
+each run hashes every task's own class plus the repo-local symbols it
+transitively references (AST-normalized - comment / docstring / formatting edits
+are invisible, and editing an UNRELATED task in the same file reruns nothing, so
+one monolithic `tasks.py` stays cheap), so editing a task's `run()` OR any helper
+it calls makes that task and everything downstream rerun on the next run, no
+ceremony. The default iterate loop is therefore edit -> run -> VERIFY it reran;
+there is no attribute to remember.
 
 Expensive tasks are guarded by default: an auto task whose LAST run took longer
 than `settings.code_version_auto_expensive_s` (600s) does NOT silently recompute
@@ -741,7 +744,7 @@ fickle across many long-running tasks. The rules, in the order they come up:
    on a task you have LOCKED (it declares the attribute).
 3. **VERIFY the rerun happened** - the load-bearing habit under auto. After an
    edit, the next run MUST show the edited task in `result.ran` / `events.runs()`
-   with reason `code change (auto: <files>)`. If it did NOT rerun (`ran=0` for a
+   with reason `code change (auto: <file>::<symbol>)`. If it did NOT rerun (`ran=0` for a
    task you just edited), auto did not SEE your change - a blind spot: the change
    lives in a data file, an installed package, dynamic dispatch, or a
    notebook-defined task. "I just edited this, why didn't it run?" -> `flow.reset`
@@ -752,10 +755,16 @@ fickle across many long-running tasks. The rules, in the order they come up:
    / `oryxflow.accept_code(tasks.Anchor)` re-stamps the code state without
    rerunning (only when you are CERTAIN the output is unchanged; when unsure, let
    it rerun). Call the INSTANCE / `flow` form on your final task - it walks the
-   whole upstream band; the bare class form re-stamps one family and misses other
-   tasks the same helper edit touched (they just rerun - safe direction).
+   whole upstream band. Bare `flow.accept_code()` covers the WHOLE pipeline -
+   every imported task that runs under the flow's params, multi-final included,
+   from a fresh process (a one-shot bless script needs no prior run); a list
+   also works (`flow.accept_code([FinalA, FinalB])`). The bare class form
+   re-stamps one family and misses other tasks the same helper edit touched
+   (they just rerun - safe direction).
    `accept_code` prints what it re-stamped; "nothing accepted" means it missed
-   the target - switch to the instance / `flow` form. An `output predates
+   the target - switch to the instance / `flow` form. On WorkflowMulti use
+   `flow.accept_code()` (all flows; `flow=...` for one) - the module-level bulk
+   form does not know the flows' parameters. An `output predates
    current code` warning (outputs with no record yet - fresh upgrade or
    checkout) has the same answer: `flow.accept_code()` if the outputs are
    current (stamps their baseline records), reset if not.
