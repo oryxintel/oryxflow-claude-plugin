@@ -139,7 +139,7 @@ wrap. Loaded on demand only.
 
 ## Verification
 1. `claude plugin validate .` - both manifests pass; command auto-discovered.
-2. Load locally: `claude --plugin-dir D:\OneDrive\dev\oryxlib\oryxflow-claude-plugin`,
+2. Load locally: `claude --plugin-dir /path/to/oryxflow-claude-plugin`,
    `/reload-plugins`. Confirm `/oryxflow:project-init` is listed.
 3. In an EMPTY temp dir, run `/oryxflow:project-init`: confirm it copies the .py
    wiring, `CLAUDE.md`, `docs/` PLACEHOLDER skeletons, `.gitignore`,

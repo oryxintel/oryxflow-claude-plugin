@@ -86,10 +86,10 @@ README.md            # install + quickstart for plugin users
 ## Develop / test loop
 
 ```
-claude --plugin-dir D:\OneDrive\dev\oryxlib\oryxflow-claude-plugin   # load without installing
-/reload-plugins                                              # after each edit
-/plugin validate .                                           # check both manifests
-git config core.hooksPath .githooks                          # ONE-TIME: enable repo hooks
+claude --plugin-dir /path/to/oryxflow-claude-plugin   # load without installing
+/reload-plugins                                       # after each edit
+/plugin validate .                                    # check both manifests
+git config core.hooksPath .githooks                   # ONE-TIME: enable repo hooks
 ```
 
 `/plugin validate .` (or `claude plugin validate .`) checks `plugin.json` and

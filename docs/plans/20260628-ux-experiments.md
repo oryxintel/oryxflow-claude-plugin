@@ -35,7 +35,7 @@ Decisions locked with the user:
 ## What oryxflow already gives us (verified against the installed lib)
 
 `oryxflow/__init__.py` and `oryxflow/utils.py` (installed at
-`d:\onedrive\dev\oryxlib\oryxflow\oryxflow`):
+`/path/to/oryxflow/oryxflow`):
 
 - `oryxflow.WorkflowMulti(task, params, path=None, env=None)` - many flows, one
   per param set. `params` accepts a dict-of-lists (auto cartesian), a list, or a
