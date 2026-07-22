@@ -83,6 +83,35 @@ README.md            # install + quickstart for plugin users
 - When you change skill behavior, update `docs/design/design-notes.md` if the *rationale*
   changed, and `docs/CHANGELOG.md` always.
 
+## Never write private identifiers into repo files
+
+**This repo is public and git history is forever.** Applies to every committed
+file - docs, skill text, code, comments, and commit messages - and *especially*
+`docs/plans/` and `docs/blog/`, where real-world context creeps in naturally (a
+plan grounded in real projects wants to name them; a blog post wants a real
+anecdote - don't). Sanitize as you WRITE, not later: scrubbing after the fact
+needs a history rewrite and a force-push, which breaks every existing clone.
+
+Never commit, with the neutral form to use instead:
+
+| Don't | Do |
+| --- | --- |
+| Absolute local paths - `D:\Users\<name>\dev\thing`, `/home/<name>/...` | `/path/to/<repo>`, a repo-relative path, or just the repo name |
+| An out-of-repo file's location | "tracked in an external note, `<filename>.md`" |
+| Client / customer / employer names, incl. as a directory or project slug (`acme-re`, `Acme-cx`) | "a downstream consumer project", "the consumer project" |
+| A client's data vendors, systems, or task/class names that embed them (`ReturnsAcmeVendorAll`) | A generic stand-in (`ReturnsBenchmarkAll`, "the upstream vendor API") |
+| Other private project codenames - a sibling private repo, an internal tool | "a private sibling project", or omit |
+| Anything credential-shaped - tokens, keys, bucket names, internal hostnames/URLs | A placeholder (`<PYPI_TOKEN>`), or reference where it is stored |
+
+A plan or example must stay executable after sanitizing: keep the *shape* of the
+real case (task names, param sets, the failure it exhibits) and drop only the
+identity. If sanitizing would gut the point, it belongs in an external note, not
+in this repo.
+
+Known carve-out: `README.md` uses a real local path in its two
+`--plugin-dir` / `marketplace add` examples, marked `# e.g.`. That is
+deliberate - leave it, and do not treat it as licence for new ones.
+
 ## Develop / test loop
 
 ```
