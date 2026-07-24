@@ -1,7 +1,7 @@
 # oryxflow — the Claude Code plugin for reproducible AI data analysis
 
 The official [oryxflow](https://github.com/oryxintel/oryxflow) plugin for **Claude
-Code** - a **skill plus slash commands** (not an MCP server) that teach the agent to
+Code** - a **skill plus slash commands** that teach the agent to
 build your data analysis as a cached, reproducible pipeline. Chain together complex,
 parameterized data flows with dependencies and caching, and rerun them intelligently
 after code or parameter changes - so AI-written data analysis is faster, cheaper, and

@@ -1,8 +1,8 @@
 {
   "name": "oryxflow",
   "displayName": "oryxflow - Data Science Pipelines",
-  "description": "Build highly effective data science workflows with oryxflow - chain parameterized tasks with dependencies, cache intermediate results, and rerun intelligently after code or parameter changes to build better models faster.",
-  "version": "26.7.12",
+  "description": "Build your data analysis as a cached, reproducible pipeline with oryxflow - chain parameterized tasks with dependencies, cache intermediate results, and rerun intelligently after code or parameter changes, so AI-written analysis is faster, cheaper, and more trustworthy.",
+  "version": "26.7.23",
   "author": {
     "name": "Oryx Intelligence LLC",
     "email": "dev@oryxintel.com"

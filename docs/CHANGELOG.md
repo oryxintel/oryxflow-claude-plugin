@@ -32,6 +32,8 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
      version + date, bump plugin.json to match, and add a fresh empty
      [Unreleased] back on top. See CLAUDE.md "Release". -->
 
+## [26.7.23] - 2026-07-23
+
 ### Added
 - `displayName` in `.claude-plugin/plugin.json` -
   `oryxflow - Data Science Pipelines`, shown in the `/plugin` picker and

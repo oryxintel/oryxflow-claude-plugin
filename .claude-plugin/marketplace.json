@@ -4,12 +4,12 @@
     "name": "Oryx Intelligence LLC",
     "email": "dev@oryxintel.com"
   },
-  "description": "Oryx Intelligence marketplace for the oryxflow plugin - build highly effective data science workflows in Claude Code with oryxflow: parameterized, dependency-aware, cached tasks.",
+  "description": "Oryx Intelligence marketplace for the oryxflow plugin - build your data analysis as cached, reproducible pipelines in Claude Code: parameterized, dependency-aware tasks that rerun intelligently after code or parameter changes.",
   "plugins": [
     {
       "name": "oryxflow",
       "source": "./",
-      "description": "Build and work with oryxflow data-science pipelines (tasks, dependencies, parameters, caching, reproducible workflows)."
+      "description": "Build and work with oryxflow data-science pipelines - parameterized, dependency-aware tasks with caching that rerun intelligently, so AI-written analysis stays reproducible."
     }
   ]
 }
