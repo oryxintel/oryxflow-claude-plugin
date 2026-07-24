@@ -1,10 +1,11 @@
-# oryxflow plugin
+# oryxflow — the Claude Code plugin for reproducible AI data analysis
 
-A Claude Code plugin for building highly effective data science workflows with
-[oryxflow](https://github.com/oryxintel/oryxflow): chain together complex,
-parameterized data flows with dependencies and caching, and rerun them
-intelligently after code or parameter changes - so you build better models
-faster.
+The official [oryxflow](https://github.com/oryxintel/oryxflow) plugin for **Claude
+Code** - a **skill plus slash commands** (not an MCP server) that teach the agent to
+build your data analysis as a cached, reproducible pipeline. Chain together complex,
+parameterized data flows with dependencies and caching, and rerun them intelligently
+after code or parameter changes - so AI-written data analysis is faster, cheaper, and
+more trustworthy: reproducible by default, and you build better models faster.
 
 It ships one skill, `oryxflow`, that activates when you work in a oryxflow project
 - editing `tasks.py` / `flow.py` / `run.py` / `cfg.py` / `flow_params.py`, adding
@@ -265,7 +266,8 @@ oryxflow-claude-plugin/
 Learn more about oryxflow itself (the underlying library this plugin helps you
 work with):
 
-- oryxflow documentation: https://oryxflow.readthedocs.io/
+- oryxflow documentation: https://docs.oryxflow.dev/
+- Claude Code for data science: https://docs.oryxflow.dev/docs/claude-code-for-data-science/
 - oryxflow source: https://github.com/oryxintel/oryxflow
 - Maintainer: https://oryxintel.com
 

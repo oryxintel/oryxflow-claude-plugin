@@ -803,7 +803,7 @@ prioritizing `BREAKING:` entries.
 
 - Library (source of truth for API/behavior) - changelog:
   `https://raw.githubusercontent.com/oryxintel/oryxflow/main/CHANGELOG.md`
-  (rendered: https://oryxflow.readthedocs.io/en/stable/changelog.html). In an
+  (rendered: https://docs.oryxflow.dev/docs/changelog/). In an
   editable checkout, `git log --oneline <old>..<new>` in the library repo is the
   live equivalent.
 - Plugin (skill/guidance + compat contract) - changelog:
@@ -869,7 +869,7 @@ reference. Load it when you organize files or name things.
 
 ## Additional Resources
 
-- Official docs: https://oryxflow.readthedocs.io/
+- Official docs: https://docs.oryxflow.dev/
 - GitHub: https://github.com/oryxintel/oryxflow
 
 ---

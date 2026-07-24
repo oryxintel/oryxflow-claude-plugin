@@ -32,6 +32,13 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
      version + date, bump plugin.json to match, and add a fresh empty
      [Unreleased] back on top. See CLAUDE.md "Release". -->
 
+### Added
+- `displayName` in `.claude-plugin/plugin.json` -
+  `oryxflow - Data Science Pipelines`, shown in the `/plugin` picker and
+  directory listings (requires Claude Code >= 2.1.143). The `name` field stays
+  `oryxflow`, so the install key and the `/oryxflow:*` command namespace are
+  unchanged.
+
 ### Changed
 - Auto-invalidation guidance rewritten for symbol-level hashing (`SKILL.md` +
   `reference.md`, tracks library 26.7.12): the hash unit is the task's own class

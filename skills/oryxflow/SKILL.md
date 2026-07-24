@@ -824,4 +824,4 @@ fickle across many long-running tasks. The rules, in the order they come up:
   package first - `inspect.signature(cls.method)`, `cls.__mro__` - that is
   version-matched ground truth. Then the docs / GitHub below. On any conflict the
   installed code wins (the online docs can lag the luigi decoupling).
-- oryxflow docs: https://oryxflow.readthedocs.io/ | GitHub: https://github.com/oryxintel/oryxflow
+- oryxflow docs: https://docs.oryxflow.dev/ | GitHub: https://github.com/oryxintel/oryxflow
