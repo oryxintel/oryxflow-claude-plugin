@@ -1,15 +1,38 @@
-# oryxflow — the Claude Code plugin for reproducible AI data analysis
+# oryxflow - the Claude Code data-science plugin for faster, cheaper, more trustworthy AI data analysis
 
-The official [oryxflow](https://github.com/oryxintel/oryxflow) plugin for **Claude
-Code** - a **skill plus slash commands** that teach the agent to
-build your data analysis as a cached, reproducible pipeline. Chain together complex,
-parameterized data flows with dependencies and caching, and rerun them intelligently
-after code or parameter changes - so AI-written data analysis is faster, cheaper, and
-more trustworthy: reproducible by default, and you build better models faster.
+[oryxflow](https://github.com/oryxintel/oryxflow) is a data-science plugin for
+**Claude Code** that makes an AI coding agent's data analysis reproducible. It
+teaches the agent to build your work as a cached, reproducible pipeline - reusing
+expensive results, rerunning only what your code or parameters change, and never
+building on stale data. The payoff: **faster, cheaper, and more trustworthy AI
+data analysis**.
+
+An AI coding agent's real weakness in data work isn't syntax - it's invisible
+state. Over a long session it loses track of what is already computed and whether
+it is still valid, then trains on stale features or re-runs a 40-minute job it did
+not need to. oryxflow externalizes that state into a cache and a lineage log, and
+the plugin - a skill plus slash commands - makes the agent a disciplined user of
+it: it reads cache state at the start of a session, verifies after each edit that
+the right tasks actually reran, and leaves a queryable record of what ran and why.
 
 It ships one skill, `oryxflow`, that activates when you work in a oryxflow project
 - editing `tasks.py` / `flow.py` / `run.py` / `cfg.py` / `flow_params.py`, adding
 or modifying pipeline tasks, running workflows, or analyzing outputs.
+
+## Why use oryxflow for data science in Claude Code?
+
+- **Faster and cheaper** - the agent reuses cached results instead of paying to
+  recompute an expensive step it already ran.
+- **More trustworthy** - code-change invalidation reruns exactly what your edit
+  affected, and the skill verifies the rerun actually happened, so a result can
+  never quietly sit on stale data.
+- **Reproducible by default** - a greppable JSONL lineage log records what data
+  and code produced each result, so it persists across sessions and stays
+  auditable.
+
+The full story is in the docs:
+[Build with Claude Code](https://docs.oryxflow.dev/docs/claude-plugin/) and
+[Trustworthy AI data analysis](https://docs.oryxflow.dev/docs/claude-plugin/trust/).
 
 ## Quickstart
 
@@ -263,13 +286,32 @@ oryxflow-claude-plugin/
 
 ## Resources
 
-Learn more about oryxflow itself (the underlying library this plugin helps you
-work with):
+Full documentation lives at [docs.oryxflow.dev](https://docs.oryxflow.dev/) - it
+goes deeper than this README, so start there.
 
-- oryxflow documentation: https://docs.oryxflow.dev/
-- Claude Code for data science: https://docs.oryxflow.dev/docs/claude-code-for-data-science/
-- oryxflow source: https://github.com/oryxintel/oryxflow
-- Maintainer: https://oryxintel.com
+**The plugin:**
+
+- [Build with Claude Code](https://docs.oryxflow.dev/docs/claude-plugin/) - the
+  plugin overview and why it matters
+- [Trustworthy AI data analysis](https://docs.oryxflow.dev/docs/claude-plugin/trust/)
+  - why not to take an agent's numbers on faith, and how the plugin makes its work
+  cheap to verify
+- [Commands](https://docs.oryxflow.dev/docs/claude-plugin/commands/) - the slash
+  commands in full
+- [Project structure](https://docs.oryxflow.dev/docs/claude-plugin/project-structure/)
+  and [coding standards](https://docs.oryxflow.dev/docs/claude-plugin/coding-standards/)
+  - the conventions the skill applies
+- [Why library + plugin is a matched pair](https://docs.oryxflow.dev/docs/claude-plugin/why/)
+
+**oryxflow itself** (the library this plugin drives):
+
+- [Why oryxflow](https://docs.oryxflow.dev/docs/why-oryxflow/) and
+  [Quickstart](https://docs.oryxflow.dev/docs/quickstart/) - start here if new
+- [Managing complex workflows](https://docs.oryxflow.dev/docs/managing-workflows/)
+  - caching, staleness, and automatic code invalidation
+- [API reference](https://docs.oryxflow.dev/docs/reference/) and
+  [changelog](https://docs.oryxflow.dev/docs/changelog/)
+- Source: https://github.com/oryxintel/oryxflow | maintainer: https://oryxintel.com
 
 This plugin's own repository and issue tracker:
 https://github.com/oryxintel/oryxflow-claude-plugin

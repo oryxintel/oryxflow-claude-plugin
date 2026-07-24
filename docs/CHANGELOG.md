@@ -34,6 +34,14 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
 
 ## [26.7.23] - 2026-07-23
 
+### Changed
+- `README.md` and the `plugin.json` / `marketplace.json` descriptions reframed
+  to lead with the value ("faster, cheaper, more trustworthy AI data analysis")
+  and niche through the Claude Code / data-science door. The README H1 and intro
+  now sell why-it-matters before usage, and depth is linked out to
+  `docs.oryxflow.dev` (plugin overview, trust, commands, conventions) to keep the
+  README lean.
+
 ### Added
 - `displayName` in `.claude-plugin/plugin.json` -
   `oryxflow - Data Science Pipelines`, shown in the `/plugin` picker and
