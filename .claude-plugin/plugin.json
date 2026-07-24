@@ -1,6 +1,6 @@
 {
   "name": "oryxflow",
-  "displayName": "oryxflow - Data Science Pipelines",
+  "displayName": "oryxflow - Trustworthy AI Data Analysis",
   "description": "Faster, cheaper, more trustworthy AI data analysis in Claude Code. oryxflow is a data-science plugin that teaches your coding agent to build the work as a cached, reproducible pipeline - reusing expensive results and rerunning only what your code or parameters change, instead of recomputing everything by hand.",
   "version": "26.7.23",
   "author": {

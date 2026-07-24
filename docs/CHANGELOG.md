@@ -44,10 +44,10 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
 
 ### Added
 - `displayName` in `.claude-plugin/plugin.json` -
-  `oryxflow - Data Science Pipelines`, shown in the `/plugin` picker and
-  directory listings (requires Claude Code >= 2.1.143). The `name` field stays
-  `oryxflow`, so the install key and the `/oryxflow:*` command namespace are
-  unchanged.
+  `oryxflow - Trustworthy AI Data Analysis`, shown in the `/plugin` picker and
+  directory listings (requires Claude Code >= 2.1.143). Leads with the value
+  promise rather than the mechanism. The `name` field stays `oryxflow`, so the
+  install key and the `/oryxflow:*` command namespace are unchanged.
 
 ### Changed
 - Auto-invalidation guidance rewritten for symbol-level hashing (`SKILL.md` +
