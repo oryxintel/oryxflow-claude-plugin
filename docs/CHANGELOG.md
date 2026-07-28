@@ -32,6 +32,70 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
      version + date, bump plugin.json to match, and add a fresh empty
      [Unreleased] back on top. See CLAUDE.md "Release". -->
 
+## [26.7.28] - 2026-07-28
+
+### Changed
+- Task logic is now stated as belonging IN the task in every tier
+  (`skills/oryxflow/SKILL.md`, `resources/template-minimal/CLAUDE.md`, and a new
+  `skills/oryxflow/conventions.md` subsection "Task logic belongs in the task"):
+  `run()` holds the reading, parsing, renaming and cleaning, and `utils/` earns a
+  helper only when the logic is LARGE/complex or SHARED by 2+ tasks. The smell is
+  a `run()` that is one call into a project module plus logging
+  (`df = mod.read_x(cfg.file_x)`). Two rationalizations are rejected by name: "an
+  `eda/` probe needs it" (the probe should `flow.outputLoad(tasks.X)` - calling
+  the helper re-runs ingestion outside the DAG, uncached and free to diverge from
+  what the task saved) and "so I can iterate" (auto invalidation already reruns an
+  edited `run()`; `code_version` + `keep_versions` compares versions directly).
+  Inlining must carry the helper's comments across. Previously only
+  `conventions.md` "Extract on the SECOND use" covered this - one bullet in an
+  on-demand file, framed as extraction timing - while the always-loaded tier
+  advertised `utils/  # Shared + per-subject helpers` with no stated bar. Additive
+  for existing projects (the old scaffold `CLAUDE.md` is silent here, not wrong);
+  `/oryxflow:check-standards` finds already-hollowed tasks in existing code.
+- `/oryxflow:check-standards` gains a seventh review dimension, "Task / helper
+  split" - flags a `run()` that is a single call into a project module plus
+  logging/asserts, and an `eda/` probe importing a task's helper instead of
+  `flow.outputLoad`. Fix is to inline the body WITH its comments. Stays placement
+  only; DAG re-architecture is still reserved for `/oryxflow:cleanup-tasks`.
+- BREAKING: auto-invalidation COVERAGE is now stated positively in every tier
+  (`resources/template-minimal/CLAUDE.md`, `skills/oryxflow/SKILL.md`,
+  `skills/oryxflow/reference.md`): the fingerprint covers a task's `run()`, the
+  helpers it calls, AND the module-level CONSTANTS it reads, followed
+  transitively across project-local modules, per SYMBOL not per file - so a
+  `cfg.py` edit reruns only the tasks that actually reference the edited symbol.
+  The old "its `run()` or a helper it imports" phrasing named the blind spots in
+  full but left the covered set vague, and a project agent read it as
+  functions-only, concluding a `cfg.py` constant was unwatched and keeping an
+  unnecessary `code_version` lock. A project scaffolded before this still carries
+  the vague phrasing in its `CLAUDE.md`. Migration: run
+  `/oryxflow:update-project` to reconcile it. Floor baseline bumped to `26.7.28`.
+- `code_version` guidance now leads with the default expensive guard
+  (`settings.code_version_auto_expensive_s`, 600s) before the opt-in lock, and
+  adds a structural DO NOT: never lock a task that fuses an expensive
+  un-replayable fetch with cheap deterministic parsing - "is this edit
+  output-equivalent?" is unanswerable there, so SPLIT the task (pin the download,
+  let the parse rerun freely).
+
+- Output-format guidance is now a RANKING, not a menu of equals
+  (`skills/oryxflow/SKILL.md` Quick Reference, `skills/oryxflow/reference.md`
+  task-type table): Parquet unless a human opens the file (`TaskExcelPandas`) or
+  a system you cannot change reads it - a downstream repo you own is not one.
+  Names the failure mode (CSV carries no dtypes: numeric-looking string keys
+  round-trip to ints, dates to strings, and the repair leaks into the consumer as
+  filename-based date-format branching) and the anchoring trap (reproducing a
+  legacy CSV artifact: the contract is its SCHEMA, not its container). The old
+  table listed `TaskCSVPandas` as simply "human-readable", reading as an equal
+  option.
+
+### Added
+- Pointers to the machine-readable library docs in `SKILL.md`,
+  `reference.md`, the template `CLAUDE.md`, and `README.md`:
+  `https://docs.oryxflow.dev/llms.txt` (page index),
+  `https://docs.oryxflow.dev/llms-full.txt` (whole corpus in one fetch), and any
+  page + `index.md` for clean markdown. Fetch these instead of inferring library
+  behavior the skill does not carry; the installed package still wins on conflict
+  (the site documents the latest release).
+
 ## [26.7.23] - 2026-07-23
 
 ### Changed

@@ -157,8 +157,9 @@ Three buckets:
 - `eda/<subject>/<name>.py` - READ-ONLY test / exploration / verification probes
   (the no-inline-Python destination). Each `eda/<subject>/` is a package: add an
   `__init__.py` and run probes as `python -m eda.<subject>.<name>` from the root.
-- `utils/` - helpers. `utils/<subject>.py` for one subject's helpers;
-  `utils/__init__.py` only for truly generic, subject-less helpers.
+- `utils/` - helpers that EARNED extraction (large/complex, or shared by 2+
+  tasks - see "Task logic belongs in the task" below). `utils/<subject>.py` for one
+  subject's helpers; `utils/__init__.py` only for truly generic, subject-less ones.
 - `viz/` - plotting. `viz/<subject>.py` exposes that subject's figures (e.g.
   `build_map(metro)`); `viz/__init__.py` only for generic plotting helpers
   (palettes, save/format). The starter `visualize.py` graduates into `viz/` once
@@ -216,10 +217,53 @@ viz/
   iterating, dump an intermediate to eyeball) - and that goes to
   `data/.eda/<subject>/`, never beside task outputs. See "Scratch for probes".
 - **Extract on the SECOND use** (or when a single-use helper is large enough to
-  clutter the task). A one-off constant used by one task stays inline in
-  `tasks.py`; do not spin up a near-empty module per task.
+  clutter the task) - full rule below. A one-off constant used by one task stays
+  inline in `tasks.py`; do not spin up a near-empty module per task.
 - **Keep `__init__.py` for truly generic, subject-less helpers only** so
   `utils/__init__.py` / `viz/__init__.py` do not become junk drawers.
+
+### Task logic belongs in the task
+
+A task's `run()` is where its logic lives. Reading a source, parsing, renaming
+columns, coercing dtypes, cleaning - all of it goes in the body, however
+unglamorous. The smell is a `run()` that is one call into a project module plus
+logging and asserts:
+
+```python
+def run(self):
+    df = benchmark.read_returns(cfg.file_returns)   # <- the task, elsewhere
+    self.logger.info("rows={}", len(df))
+    self.save(df)
+```
+
+The task is now a wrapper around the thing a reader came to read, and the module
+is a private detail of one task with a public-looking name. Inline it.
+
+**Extract only on one of two triggers**: the logic is LARGE or complex enough to
+clutter the task (a real algorithm, not a load-and-tidy), or 2+ TASKS use it.
+Nothing else qualifies. Two rationalizations to reject by name:
+
+- **"An `eda/` probe needs it."** That is an argument AGAINST extracting. A probe
+  that imports the helper re-runs ingestion outside the DAG: uncached, and free to
+  drift from what the task actually saved (different source file, different code
+  state), so the probe verifies something no downstream task ever saw. The probe
+  should read the task's OUTPUT - `flow.outputLoad(tasks.ReturnsBenchmark)`.
+  Needing the helper is usually the signal the probe is bypassing the task; fix
+  the probe, not the layout. (A probe that must run BEFORE the task exists is fine - it is
+  throwaway, and the logic lands in the task afterwards.)
+- **"I need to iterate on the logic."** Editing `run()` in place already iterates:
+  auto invalidation reruns that task and its downstream on the next `python run.py`
+  (see the skill's "Code-aware invalidation"). To compare versions directly rather
+  than overwrite, pin `code_version = 'v1-baseline'` plus `keep_versions = True`,
+  which keeps old outputs at readable paths (`data/Task/v1-baseline/...`).
+  Extraction buys nothing here.
+
+When you inline a helper, CARRY ITS COMMENTS. The reason a helper accumulates is
+often a hard-won quirk ("the export reads the id column as a float when any row is
+blank, so `14454` becomes `14454.0` and every join breaks silently") - that
+sentence is the most valuable thing in the file. It belongs in the task docstring
+(if it is part of the in -> out contract) or inline at the line it explains. Losing
+it is a worse outcome than the original layout.
 
 ### Import contract
 

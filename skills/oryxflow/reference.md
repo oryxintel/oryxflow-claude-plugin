@@ -63,14 +63,28 @@ class LoadData(oryxflow.tasks.TaskPqPandas):
 | Task Type | Output Format | Use Case |
 |-----------|---------------|----------|
 | `TaskPqPandas` | Parquet | DataFrames (default choice, fast) |
-| `TaskCSVPandas` | CSV | DataFrames (human-readable) |
-| `TaskExcelPandas` | Excel | DataFrames (for reports) |
+| `TaskCSVPandas` | CSV | Last resort - only a reader you cannot change (below) |
+| `TaskExcelPandas` | Excel | DataFrames a HUMAN opens (reports) |
 | `TaskPickle` | Pickle | Any Python object (models, dicts, lists) |
 | `TaskJson` | JSON | Dictionaries, simple data structures |
-| `TaskAggregator` | None | Runs dependencies without saving output |
+| `TaskAggregator` | None | Groups tasks declared in `requires()` (empty `run()`), saves no output |
 
-**Best Practice**: Use `TaskPqPandas` for DataFrames (fastest), `TaskPickle`
-for models/objects.
+**Format rule - this is a ranking, not a menu of equals**: `TaskPqPandas` for
+every DataFrame, `TaskPickle` for models/objects. Drop to CSV/Excel ONLY when a
+HUMAN opens the file (`TaskExcelPandas`) or a system you CANNOT change reads it.
+A downstream repo YOU own is not such a system - it changes its reader (one
+line); the pipeline does not change its format.
+
+CSV carries no dtypes, and the cost lands in the CONSUMER, not the writer:
+numeric-looking string keys (ZIP / account codes) round-trip to ints and
+lose leading zeros or gain a `.0`, and dates come back as strings needing a
+`format=` guess - which is how a consumer ends up branching on the FILENAME to
+pick a date format. If you have written repair code for a mangled CSV INPUT, do
+not emit a CSV OUTPUT: same bug class, re-introduced one hop downstream.
+
+Reproducing a legacy CSV artifact does NOT make CSV the requirement - the
+contract is its SCHEMA (the named columns), not its container. An export
+convention inherited from a decade-old tool is a convention, not a spec.
 
 ### 3. Dependencies
 
@@ -330,12 +344,17 @@ propagates. For ordinary CODE edits you do NOT reset - auto reruns them (below).
 **Code edits vs parameter changes (the iterate gotcha, mostly gone)**: oryxflow
 caches by task identity = class + parameters. A PARAMETER change creates a new
 identity, so it reruns on the next `flow.run()`. A CODE edit (a task's `run()`
-body or a helper it calls) does NOT change identity - but auto invalidation
+body, a helper it calls, or a module-level CONSTANT it reads) does NOT change
+identity - but auto invalidation
 (oryxflow >= 26.7.12, `settings.code_version_auto = True` by default) hashes the
-task's own class plus the project-local symbols it transitively references
+task's own class plus the project-local symbols it transitively references -
+helpers, constants, and project-local base classes alike, per SYMBOL not per file
 (AST-normalized: comment / docstring / formatting edits never count; editing an
-UNRELATED sibling task in the same file reruns nothing - one monolithic
-`tasks.py` stays cheap), so the edited task and everything downstream rerun on
+UNRELATED sibling task or constant in the same file reruns nothing - one
+monolithic `tasks.py` or a shared `cfg.py` stays cheap). A `cfg.py` edit reruns
+exactly the tasks that read the edited symbol: reorder a concept list a task
+consumes and it refetches; change an unrelated date constant and it does not.
+So the edited task and everything downstream rerun on
 the next run anyway, overwriting in place. So the old "reset before running an
 edited task" ritual is gone; the new discipline is to VERIFY the rerun landed -
 after an edit the task must appear in `result.ran` with reason
@@ -355,7 +374,18 @@ explicit bump, and a code edit without a bump WARNS (`StalenessWarning` naming
 the changed symbol) instead of rerunning. Lock a task for (a) an EXPENSIVE
 computation you want managed by deliberate bumps even below the guard threshold
 (auto deletes and overwrites the old output on rerun); (b) logic auto cannot
-see. Locks toggle
+see.
+
+Do NOT lock a task that FUSES an expensive un-replayable fetch with cheap
+deterministic parsing - a common shape, and the one where a lock actively misleads.
+Every exit a lock offers reduces to "is this edit output-equivalent?", and there
+that question is UNANSWERABLE: you cannot re-derive the parse without refetching,
+so `accept_code` is a guess and the honest answer to any code change is "refetch".
+SPLIT the task instead - a download task (pin it) feeding a parse task (let it
+rerun freely). Prefer the split to the lock whenever the two halves have different
+costs; reach for the lock only once the expensive part stands alone.
+
+Locks toggle
 FREELY: the `code_version` line itself is stripped by the AST normalization
 (typing it in / deleting / bumping it is a token change, never a source edit)
 and records store both the token and the source hashes, so adding or removing a
@@ -387,10 +417,11 @@ hatch: `settings.code_version_auto = False` reverts to pure opt-in (only
 explicit `code_version` / `flow.reset` rerun) - for projects where auto is too
 fickle across many long-running tasks. On pre-26.7.12 (no auto, no
 `code_version`) the manual `flow.reset(thatTask)` before running is the whole
-discipline. Granularity is per SYMBOL, not per file: editing one helper in a
-shared `utils.py` recomputes exactly the tasks that reference it (directly or
-via other helpers; `preview()` the pending band first), and referencing another
-TASK in `requires()` is wiring, never a code dependency. For the deeper model -
+discipline. Per-symbol granularity again: editing one helper or constant in a
+shared `utils.py` / `cfg.py` recomputes exactly the tasks that reference it
+(directly or via other helpers; `preview()` the pending band first), and
+referencing another TASK in `requires()` is wiring, never a code dependency.
+For the deeper model -
 the reference-graph-vs-dependency-graph nuance of a lock's warning, and the
 `reset_upstream(..., only=Family)` scopes - see the library's "Managing
 workflows" docs (the `code-versioning` section).
@@ -819,7 +850,10 @@ prioritizing `BREAKING:` entries.
 Fetch the raw URLs (files are never auto-in-context); the raw URL returns clean
 markdown, a `blob` URL returns HTML chrome. For the installed plugin you have the
 skill on disk (no fetch); the fetch that matters is the LIBRARY changelog read
-from inside a user's project.
+from inside a user's project. For BEHAVIOR (not just the changelog), the docs
+site serves markdown to agents directly - `https://docs.oryxflow.dev/llms.txt`
+to orient, any page + `index.md` for one page, `/llms-full.txt` for everything
+(see "Additional Resources").
 
 ---
 
@@ -869,7 +903,24 @@ reference. Load it when you organize files or name things.
 
 ## Additional Resources
 
-- Official docs: https://docs.oryxflow.dev/
+- Official docs: https://docs.oryxflow.dev/ - **agent-readable by design**
+  ([why](https://docs.oryxflow.dev/docs/ai-ready/)). Three ways in, cheapest
+  first:
+  - `https://docs.oryxflow.dev/llms.txt` - sectioned index of every page with
+    one-line descriptions. Orient here, then fetch only what you need.
+  - any page + `index.md` - clean markdown, no HTML chrome (e.g.
+    `https://docs.oryxflow.dev/docs/managing-workflows/index.md`,
+    `.../docs/tasks/index.md`, `.../docs/advparam/index.md`).
+  - `https://docs.oryxflow.dev/llms-full.txt` - the ENTIRE corpus in one fetch.
+    Use when the question is broad or you are converting a script wholesale.
+
+  Both `llms*.txt` regenerate on every deploy, so they describe the currently
+  RELEASED library - which is not necessarily the version installed in the
+  project you are in. On a conflict, the installed package wins (check
+  `oryxflow.__version__`, `inspect.signature`, `cls.__mro__`). Reach for the site
+  when this skill is thin on a behavior; do not infer the answer, and do not
+  assume a user has the library source on disk - a normal install has the wheel,
+  not the docs.
 - GitHub: https://github.com/oryxintel/oryxflow
 
 ---

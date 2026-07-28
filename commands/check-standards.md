@@ -1,5 +1,5 @@
 ---
-description: Check oryxflow project code against the house standards for readable, reliable code - naming (task / column / variable / module), code style (ASCII-only, self.logger, no try/except, off-the-shelf libraries), and docstring contracts. Evaluates and recommends a concrete fix per issue; applies only what the user approves. Use before or after writing a task.
+description: Check oryxflow project code against the house standards for readable, reliable code - naming (task / column / variable / module), code style (ASCII-only, self.logger, no try/except, off-the-shelf libraries), task-vs-utils placement, and docstring contracts. Evaluates and recommends a concrete fix per issue; applies only what the user approves. Use before or after writing a task.
 disable-model-invocation: true
 ---
 
@@ -15,9 +15,9 @@ Target directory: `${CLAUDE_PROJECT_DIR}`.
 
 Companion command: `/oryxflow:cleanup-tasks` reviews code ORGANIZATION (repeated
 calls / reused data that should be consolidated into a cached task, task
-decomposition). This command stays on NAMES + STYLE + DOCSTRINGS - do not drift
-into re-architecting the pipeline; note an organization smell as a one-line
-pointer to `cleanup-tasks` and move on.
+decomposition). This command stays on NAMES + STYLE + DOCSTRINGS + where code
+SITS (task vs `utils/`) - do not drift into re-architecting the pipeline; note an
+organization smell as a one-line pointer to `cleanup-tasks` and move on.
 
 ## 1. Load the rules first (they are the rubric)
 
@@ -26,6 +26,8 @@ the rules so you review against the ACTUAL conventions, not your priors:
 
 - `conventions.md` "Naming" - columns, tasks, variables, modules (the Don't/Do
   table and the worked count/ratio family are the crux).
+- `conventions.md` "Task logic belongs in the task" - the two extraction triggers
+  and the two rationalizations they rule out.
 - `SKILL.md` "Code Style" and "Naming tasks" / "Task docstrings".
 
 If the plugin / skill is not available at all, STOP and tell the user - this
@@ -44,7 +46,7 @@ Read the files in scope. Do not run the pipeline - this is a static review.
 
 The rules themselves live in the files you loaded in step 1 - review AGAINST
 those, do not work from a restated copy (it would drift from the skill). This
-list only guarantees COVERAGE: walk all six dimensions so none is skipped, and
+list only guarantees COVERAGE: walk all seven dimensions so none is skipped, and
 for each, the named rubric section is the authority. For every hit capture
 `file:line`, the offending name/code, the rule it breaks, and a concrete fix
 (the actual rename / rewrite, not "consider renaming").
@@ -67,6 +69,13 @@ for each, the named rubric section is the authority. For every hit capture
   `from loguru import logger` inside a task instead of `self.logger`;
   `try/except` wrapping; hand-rolled math over an off-the-shelf library; inline
   `python -c` / ad-hoc scripts.
+- **Task / helper split** - `conventions.md` "Task logic belongs in the task".
+  Trap: a `run()` that is one call into a project module plus logging/asserts
+  (`df = mod.read_x(cfg.file_x)`), where the helper is neither large/complex nor
+  used by 2+ tasks. Fix = inline the helper body into `run()`, carrying its
+  comments (the quirk it documents is the point). Related trap: an `eda/` probe
+  importing a task's helper instead of `flow.outputLoad(tasks.X)` - flag the probe.
+  Placement only; leave DAG re-architecture to `cleanup-tasks`.
 - **Task docstrings** - `SKILL.md` "Task docstrings". Trap: a one-line
   code-restatement with no in -> out contract (inputs + saved columns/keys).
 

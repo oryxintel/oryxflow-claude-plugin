@@ -311,6 +311,12 @@ goes deeper than this README, so start there.
   - caching, staleness, and automatic code invalidation
 - [API reference](https://docs.oryxflow.dev/docs/reference/) and
   [changelog](https://docs.oryxflow.dev/docs/changelog/)
+- [Built for AI coding agents](https://docs.oryxflow.dev/docs/ai-ready/) - the
+  docs are machine-readable: [`llms.txt`](https://docs.oryxflow.dev/llms.txt)
+  indexes every page, [`llms-full.txt`](https://docs.oryxflow.dev/llms-full.txt)
+  is the whole corpus in one fetch, and any page + `index.md` returns clean
+  markdown. Point your agent at them when it needs library detail the skill does
+  not carry.
 - Source: https://github.com/oryxintel/oryxflow | maintainer: https://oryxintel.com
 
 This plugin's own repository and issue tracker:

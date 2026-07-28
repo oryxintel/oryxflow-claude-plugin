@@ -123,7 +123,7 @@ run `eda/` scripts, or build the docs - that is opt-in exploration (below).
 
 While orienting, read the floor stamp in the project's `CLAUDE.md`
 (`<!-- oryxflow-floor: VERSION -->`). If it is missing, or its VERSION is older
-than the current floor baseline **26.7.12**, the scaffold floor predates the
+than the current floor baseline **26.7.28**, the scaffold floor predates the
 current template - suggest the user run `/oryxflow:update-project` to reconcile it
 (one line; do not nag or auto-run it).
 
@@ -237,7 +237,7 @@ project/
 |-- viz-template.ipynb # Report-notebook template; copy to viz-<topic>.ipynb (at root)
 |-- .creds.yaml        # Protected credentials (optional, not committed)
 |-- eda/               # Test / exploration probes, grouped by subject
-|-- utils/             # Shared + per-subject helpers (snake_case modules)
+|-- utils/             # Large or 2+-task helpers ONLY (snake_case modules)
 |-- viz/               # Plotting helpers + per-subject figures
 |-- data/              # Data storage (task outputs + raw/exported data)
 |-- docs/              # Project documentation
@@ -248,6 +248,14 @@ project/
 **Central pattern**: `from flow import flow`  # import everywhere.
 File flow: `cfg.py` -> `flow_params.py` -> `tasks.py` -> `flow.py` ->
 `run.py` / `visualize.py` / `viz-<topic>.ipynb` (all import the same `flow`).
+
+**Task logic lives IN the task.** Default: `run()` holds the reading, parsing,
+renaming and cleaning. Extract to `utils/` only when the logic is LARGE/complex or
+SHARED by 2+ tasks - a thin `df = mod.read_x(cfg.file_x)` body is the smell. Two
+BAD reasons: "an `eda/` probe needs it" (the probe should
+`flow.outputLoad(tasks.X)` - calling the helper re-runs ingestion outside the DAG,
+uncached and free to diverge from what downstream actually got) and "so I can
+iterate on it" (edit `run()` and re-run - auto invalidation handles it).
 
 **Code organization** (full rules + edge cases in conventions.md): group supporting
 code by SUBJECT - a task, dataset, or concept, snake_case: `eda/<subject>/<name>.py`
@@ -582,7 +590,8 @@ class OEWSWages(oryxflow.tasks.TaskPqPandas):
 4. Keep the docstring accurate; update the module docstring if the goal changed.
 
 ### Modify an existing task (the common iterate loop)
-1. Edit the task's `run()` in `tasks.py` (or a helper it imports).
+1. Edit the task's `run()` in `tasks.py` (or a helper it calls, or a constant it
+   reads - auto follows all three).
 2. Run `python run.py`. Auto invalidation reruns the edited task and everything
    downstream on its own - a code edit does NOT change task identity (class +
    parameters), but auto hashes the source, so it does not ride on the stale
@@ -699,12 +708,14 @@ dispatch), or the task is locked with `code_version` and wasn't bumped. Reset it
 oryxflow records what ran, when, and why, and by DEFAULT reruns edited code for
 you. Auto invalidation is ON out of the box (`settings.code_version_auto = True`):
 each run hashes every task's own class plus the repo-local symbols it
-transitively references (AST-normalized - comment / docstring / formatting edits
-are invisible, and editing an UNRELATED task in the same file reruns nothing, so
-one monolithic `tasks.py` stays cheap), so editing a task's `run()` OR any helper
-it calls makes that task and everything downstream rerun on the next run, no
-ceremony. The default iterate loop is therefore edit -> run -> VERIFY it reran;
-there is no attribute to remember.
+transitively references - its `run()`, the helpers it calls, AND the module-level
+CONSTANTS it reads (a `cfg.py` list counts, but only for tasks that actually
+reference that symbol). Granularity is per SYMBOL, not per file, and
+AST-normalized: comment / docstring / formatting edits are invisible, and editing
+an UNRELATED task or constant in the same file reruns nothing, so one monolithic
+`tasks.py` (or a shared `cfg.py`) stays cheap. An edit therefore reruns that task
+and everything downstream on the next run, no ceremony. The default iterate loop
+is edit -> run -> VERIFY it reran; there is no attribute to remember.
 
 Expensive tasks are guarded by default: an auto task whose LAST run took longer
 than `settings.code_version_auto_expensive_s` (600s) does NOT silently recompute
@@ -721,7 +732,12 @@ threshold (auto DELETES and overwrites the old output on rerun); (b) logic auto
 cannot see (dynamic dispatch, data-driven behavior); (c) a KEY output task where you want
 the cache decision to be REVIEWABLE - a bump is a diffable line in the commit /
 `git log`, whereas an auto-rerun leaves no trace, which is why agent-run projects
-often pin their headline tasks even though auto needs nothing. Locks toggle FREELY:
+often pin their headline tasks even though auto needs nothing. Do NOT lock a task
+that FUSES an expensive un-replayable fetch with cheap deterministic parsing: a
+lock's exits all reduce to "is this edit output-equivalent?", which is
+unanswerable there because you cannot re-derive the output without refetching.
+SPLIT it - pin the download task, let the parse rerun freely. That is structural,
+not a judgment call. Locks toggle FREELY:
 the `code_version` line itself is invisible to the hash (typing it in, deleting it,
 or bumping it is a token change, never a source edit) and records store both the
 token and the source hashes, so adding or removing a lock never recomputes and
@@ -739,7 +755,8 @@ fickle across many long-running tasks. The rules, in the order they come up:
    assuming anything about cache state. Use `events.status()` when you want the
    same facts as a dict to filter; it RETURNS and prints nothing (a bare call in
    a script shows nothing). No-Python fallback: `tail -30 .oryxflow/events.jsonl`.
-2. **Changed a task's logic** (its `run()` or a helper module it uses): just run -
+2. **Changed a task's logic** (its `run()`, a helper module it uses, or a
+   constant it reads): just run -
    auto reruns the affected band. Then VERIFY (rule 3). Bump `code_version` only
    on a task you have LOCKED (it declares the attribute).
 3. **VERIFY the rerun happened** - the load-bearing habit under auto. After an
@@ -799,6 +816,12 @@ fickle across many long-running tasks. The rules, in the order they come up:
 **Task types**: `TaskPqPandas` (DataFrames as Parquet, FASTEST - default),
 `TaskPickle` (any Python object: models, dicts, lists), `TaskJson`
 (dicts / simple structures). Full table in [reference.md](reference.md).
+**Format rule**: Parquet unless a HUMAN opens the file (`TaskExcelPandas`) or a
+system you CANNOT change reads it - a repo you own is not one (change its reader,
+not the pipeline's format). CSV carries no dtypes: numeric-looking string keys
+(ZIP codes) come back as ints, dates as strings, and the repair leaks into the
+CONSUMER (branching on a filename to guess a date format). Reproducing a legacy
+CSV? The contract is its SCHEMA, not its container.
 
 **Loading**: `df = self.inputLoad()` (single), `df1, df2 = self.inputLoad()`
 (multiple), `meta = self.metaLoad()` (metadata).
@@ -823,5 +846,12 @@ fickle across many long-running tasks. The rules, in the order they come up:
 - **When this skill doesn't cover an API**, confirm against the *installed*
   package first - `inspect.signature(cls.method)`, `cls.__mro__` - that is
   version-matched ground truth. Then the docs / GitHub below. On any conflict the
-  installed code wins (the online docs can lag the luigi decoupling).
-- oryxflow docs: https://docs.oryxflow.dev/ | GitHub: https://github.com/oryxintel/oryxflow
+  installed code wins - the site documents the LATEST release, which may not be
+  the version in this project.
+- oryxflow docs: https://docs.oryxflow.dev/ - built for agents: `/llms.txt` is a
+  page index, `/llms-full.txt` the whole corpus in one fetch, and any page +
+  `index.md` is clean markdown
+  (https://docs.oryxflow.dev/docs/managing-workflows/index.md). Both regenerate on
+  deploy, so they match the CURRENT library. Reach for them when this skill is
+  thin on a behavior - do not infer the answer.
+  GitHub: https://github.com/oryxintel/oryxflow

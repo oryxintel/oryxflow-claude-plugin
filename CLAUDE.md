@@ -164,7 +164,7 @@ When you want consumers to pull the accumulated `[Unreleased]` changes:
    for the next cycle.
 2. **Floor baseline - decide, then stamp (usually SKIP).** The floor baseline is a
    SEPARATE number from the plugin version: it is the plugin version AS OF the last
-   MIGRATION-WORTHY scaffold change (currently `26.6.29`, below the plugin
+   MIGRATION-WORTHY scaffold change (currently `26.7.28`, at or below the plugin
    version). Bump it ONLY if a change in this release alters the scaffold in a way
    existing projects should adopt (`resources/template-minimal/**`, the project
    `CLAUDE.md`, wiring an old project lacks). Skill / docs / reference-only changes

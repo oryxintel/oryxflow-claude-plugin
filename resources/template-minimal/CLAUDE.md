@@ -44,6 +44,13 @@ do not ask.
   `PYTHONPATH` (`$env:PYTHONPATH=...`) or patching `sys.path` is unnecessary.
   Document each probe (its question + result); promote material data findings to
   `docs/oryxflow-data.md`.
+- Task logic lives IN the task: `run()` holds the reading, parsing, renaming and
+  cleaning. Extract to `utils/` only when the logic is LARGE/complex or SHARED by
+  2+ tasks - a thin `df = mod.read_x(cfg.file_x)` body is the smell. Two BAD
+  reasons: "an `eda/` probe needs it" (the probe should `flow.outputLoad(tasks.X)`;
+  calling the helper re-runs ingestion outside the DAG, uncached and free to
+  diverge from what the task saved) and "so I can iterate" (edit `run()` and re-run
+  - auto invalidation handles it). Carry the helper's comments in when you inline.
 - Organize supporting code by subject (a task, dataset, or concept, snake_case):
   `eda/<subject>/` (READ-ONLY probes), `utils/<subject>.py` (helpers),
   `viz/<subject>.py` (plots). A helper shared by 2+ subjects goes in a concept /
@@ -84,19 +91,25 @@ do not ask.
 - Edit the flow files, do not improvise: `tasks.py` (task classes),
   `flow_params.py` (parameters), `flow.py` (which final task runs), `run.py`
   (execute). Run the workflow with `python run.py`.
-- Edited a task's logic (its `run()` or a helper it imports)? Just run - auto
-  invalidation reruns that task and everything downstream. oryxflow caches on
-  identity (class + params), NOT code, but it also hashes each task's source
-  (comment / docstring / formatting edits never count), so an edit does not ride
-  on the stale cache. Then VERIFY: the edited task must show in `result.ran` with
-  reason `code change (auto: <files>)`; if it did NOT rerun (`ran=0` for a task
+- Edited a task's logic? Just run - auto invalidation reruns that task and
+  everything downstream. Caching is by identity (class + params), NOT code, but
+  each task also hashes its `run()`, the helpers it calls, and the module-level
+  CONSTANTS it references, followed transitively across project-local modules and
+  tracked per SYMBOL, not per file - so a `cfg.py` edit counts only if the task
+  actually reads that symbol, and comment / docstring / formatting edits never
+  count. Then VERIFY: the edited task must show in `result.ran` with reason
+  `code change (auto: <file>::<symbol>)`; if it did NOT rerun (`ran=0` for a task
   you edited), auto has a blind spot for that change (a data file, an installed
   package, dynamic dispatch) - `flow.reset(Task)` it. A PARAMETER change reruns
-  the same way (new identity). `code_version` (int/str class attribute) is an
-  opt-in LOCK: declare it to PIN an expensive task so it recomputes only on a
-  deliberate BUMP (auto stops watching its source; an unbumped edit only warns) -
-  and because auto DELETES and overwrites the old output on rerun, that pin is
-  what protects a slow API pull or long backtest from an accidental recompute.
+  the same way (new identity). Slow tasks are already guarded: one whose last run
+  exceeded `settings.code_version_auto_expensive_s` (600s) is held complete on a
+  code change and WARNS instead of recomputing. `code_version` (int/str class
+  attribute) adds an opt-in LOCK on top: it PINS a task to deliberate BUMPs (auto
+  stops watching its source; an unbumped edit only warns), for an expensive task
+  under that threshold or when you want the cache decision reviewable in
+  `git log`. Do NOT lock a task that FUSES an expensive un-replayable fetch with
+  cheap parsing - there "is this edit output-equivalent?" is unanswerable, so
+  SPLIT the task instead (pin the fetch, let the parse rerun freely).
   RESET (`flow.reset(Task)`, cascades downstream) is for what auto cannot see:
   changed source DATA (reset the LOADER task that ingests it, not a downstream
   one), a suspect/corrupt cache, or deleting outputs. Use the built-in
@@ -142,9 +155,14 @@ the user to load it. Do not nag; but after finishing a substantial piece of work
 without it, occasionally remind the user they will get better results with the
 oryxflow Claude Code plugin active.
 
-This file is the portable floor; the plugin is the depth.
+This file is the portable floor; the plugin is the depth. Beyond both, the
+library docs are agent-readable: https://docs.oryxflow.dev/llms.txt indexes every
+page and any page + `index.md` returns clean markdown (e.g.
+https://docs.oryxflow.dev/docs/managing-workflows/index.md); fetch those rather
+than guessing at library behavior. The INSTALLED package still wins on any
+conflict.
 
-<!-- oryxflow-floor: 26.7.12 (plugin version of the last scaffold-floor change;
+<!-- oryxflow-floor: 26.7.28 (plugin version of the last scaffold-floor change;
      the skill compares this to detect a stale floor - do not edit by hand,
      /oryxflow:update-project maintains it) -->
 

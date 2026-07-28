@@ -170,6 +170,34 @@ The forks that were decided (each had a defensible alternative):
   brittle).
 - **Extract on the 2nd use** (or when a single-use helper is large), not
   preemptively - avoids a swarm of near-empty per-task modules.
+- **Inline-by-default is stated as a RULE, in every tier** (SKILL.md, the template
+  `CLAUDE.md`, and a `conventions.md` subsection), not left implicit in the
+  extract-on-2nd-use timing bullet. Observed failure: agents reviewing real project
+  code had hollowed tasks out into `run()` bodies that were a single
+  `df = mod.read_x(cfg.file_x)` call plus logging - the load, rename, dtype-coerce
+  and clean all sitting in `utils/`. The timing rule already forbade this, but it
+  lived as one bullet in an on-demand file and read as "when to extract", while the
+  always-loaded tier advertised `utils/  # Shared + per-subject helpers` - a folder
+  with an inviting name and no stated bar. A default only holds if it is stated
+  where the decision is made.
+- **The two rationalizations are named and rejected explicitly**, because each is
+  locally reasonable and only wrong given how oryxflow works:
+  - *"An `eda/` probe needs the helper."* This is an argument against extracting,
+    not for it. A probe calling the helper re-runs ingestion OUTSIDE the DAG -
+    uncached, and free to diverge from what the task actually saved - so it
+    verifies data no downstream task ever saw. The probe should
+    `flow.outputLoad(tasks.X)`. Needing the helper is the tell that the probe
+    bypasses the task, which is the whole point of having a task.
+  - *"I need to iterate on the logic."* Predates auto invalidation. Editing `run()`
+    in place already reruns the task and its downstream; `code_version` +
+    `keep_versions` retains old versions at readable paths for direct comparison.
+    Extraction buys nothing, and the skill documented both mechanisms without ever
+    connecting them to this decision.
+- **Inlining must carry the helper's COMMENTS.** The observed helpers were thin in
+  code but rich in hard-won quirk documentation (a float-coerced id column silently
+  breaking joins). A mechanical inline that drops those is a worse outcome than the
+  layout it fixes, so the rule says so and names the destinations (task docstring
+  if it is contract, inline comment if it is local).
 - **`eda/` is read-only; builders are separate.** A probe asserts, it does not
   write `data/`. Loading external data is just the loader-task pattern, so it is a
   source task BY DEFAULT (DAG + cache). Two cases stay a `utils/<dataset>.py`
@@ -344,6 +372,21 @@ Raw source inputs are typically loose files directly under `data/` (`.csv`,
 (`data/GetData/*.parquet`). When hunting for inputs, ignore the parquet
 subfolders. The source path can be redirected via `cfg.py`.
 
+## Output format is a ranking, not a menu
+
+The task-type table used to describe each type by WHAT PYTHON OBJECT it stores
+(frame / model / dict), with `TaskCSVPandas` glossed as "human-readable". That
+frames a lossy container as a peer of parquet, and an agent reproducing a legacy
+CSV artifact took the container for the contract - proposing a CSV output whose
+absent dtypes would have re-mangled the very numeric-looking string keys it had
+already written repair code for on the INPUT side. So the guidance now states a
+ranking with an explicit escape condition (a human opens it, or a reader you
+cannot change), and names the cost where it actually lands: not on the writer, on
+the CONSUMER, which ends up branching on a filename to guess a date format. The
+"a repo you own is not such a system" clause is the load-bearing half - the
+failure was over-weighting "don't break the consumer" for a consumer one line
+from reading parquet.
+
 ## Three-layer model: plugin / project docs / always-on CLAUDE.md
 
 Where each kind of information lives, and why:
@@ -388,6 +431,21 @@ source not yet in the pipeline (nothing to `outputLoad` yet). The distinction is
 "does a task already produce this?", not the tool used. The plugin's `SKILL.md`
 carries the same wording for when the skill IS active; `CLAUDE.md` catches the
 cold-start case.
+
+**Corollary - the docs site is a FOURTH layer, and the tiers now say so.** Ranked
+by what an agent in a user's project can actually reach: the project `CLAUDE.md`
+(always), the plugin skill files (only if the plugin loaded), installed-package
+docstrings (in the wheel, but nobody reads library source by habit), and the
+published docs (needs network and knowing where to look). The library docs are
+built for machine reading - `llms.txt` indexes every page, `llms-full.txt` is the
+whole corpus, and any page + `index.md` is clean markdown - which makes the fourth
+layer cheap enough to name explicitly in the first two, so an agent that hits the
+skill's edge FETCHES instead of inferring. It does not change the authority order:
+the installed package still wins, because the site documents the latest RELEASE and
+the project may be on another version. What it does change is the failure mode - an
+agent finding the skill thin used to guess; the danger case is a live checkout of
+the library on disk, which one agent read and then generalized from, not realizing
+that fallback exists only on an author's machine.
 
 ## Changelogs are a diagnostic surface; a compat contract catches skew
 
@@ -501,8 +559,10 @@ rewriting.
 
 Code-invalidation ships as one behavior in `26.7.12`: auto is ON by default
 (`settings.code_version_auto = True`), so a task without `code_version` derives its
-code identity from the AST hash of its module + transitively imported repo-local
-files, and a logic edit reruns the task and everything downstream automatically.
+code identity from the AST hash of its own class plus the transitive closure of the
+project-local SYMBOLS it actually references (helpers, constants, project-local base
+classes) - per symbol, not per file - and a logic edit reruns the task and
+everything downstream automatically.
 `code_version` is an opt-out LOCK, not the primary mechanism. The design call worth
 recording is auto-DEFAULT over opt-in: correctness must not hinge on the author
 remembering a per-task attribute - an opt-in net is inert until adopted, which is
@@ -512,8 +572,8 @@ shared; what the default changes is that the hash GATES completeness rather than
 only advising.
 
 1. **The primary idiom is AUTO: edit -> run -> VERIFY.** No attribute to declare or
-   remember; editing a task's `run()` or any helper it imports reruns the affected
-   band (all parameter variants and downstream included - the old
+   remember; editing a task's `run()`, a helper it calls, or a constant it reads
+   reruns the affected band (all parameter variants and downstream included - the old
    `runLoad(reset=True)`-per-variant sibling-staleness hazard stays retired).
    Comment/docstring/formatting edits are AST-normalized to nothing, so they never
    rerun. What auto trades the attribute-ritual for is a VERIFY-ritual, and that is
@@ -568,7 +628,36 @@ only advising.
    authoritative; the separate advisory source-hash is warn-only and never gates.
    An agent must not collapse those two into "the hash merely warns".
 
-5. **Rendered as terse prose, not tables.** SKILL.md is always-loaded; every row
+5. **Coverage is stated POSITIVELY, not only by its exceptions.** The earlier
+   phrasing ("its `run()` or a helper it imports") named the blind spots in full
+   while leaving the covered set vague, and a project agent read "helper" as
+   "function" - concluding a `cfg.py` CONSTANT was outside the fingerprint. It then
+   kept an unnecessary `code_version` lock, and nearly wrote that wrong model into
+   its project docs; only an unusual local checkout of the library let it discover
+   otherwise. Enumerating gaps against a vague covering set biases a reader toward
+   the NARROWER reading, and the narrow reading is the expensive one (it argues for
+   locks that are not needed). So every tier now names the three covered kinds -
+   `run()`, helpers it calls, constants it reads - plus "per symbol, not per file"
+   and the qualifier that makes it decidable: only if the task actually references
+   that symbol. The floor `CLAUDE.md` carries it too; it is the ONLY reference an
+   agent in a user's project is guaranteed to have (the plugin skill needs the
+   plugin loaded, the library docstrings need someone to read wheel source, the
+   docs site needs network), so a gap there is the one that actually bites.
+
+6. **A lock has a structural "do not", not just a judgment call.** "Lock only when
+   an edit is output-equivalent" reads as a call the author makes case by case. It
+   is not, for one common shape: a task that FUSES an expensive un-replayable fetch
+   with cheap deterministic parsing. There every exit a lock offers reduces to a
+   question with no answer - you cannot check output-equivalence without refetching,
+   which is what the lock existed to avoid - so `accept_code` degrades to a guess.
+   The fix is structural (SPLIT the task: pin the download, let the parse rerun
+   freely), so the guidance states it as a rule rather than leaving the agent to
+   rediscover the trap per project. Related: the expensive guard
+   (`code_version_auto_expensive_s`, item 2) is the general policy version of what
+   most people reach for a lock to get; the guidance now leads with it so a lock is
+   the exception rather than the reflex.
+
+7. **Rendered as terse prose, not tables.** SKILL.md is always-loaded; every row
    costs context on every activation. The verbs (auto rerun / verify / lock+bump /
    accept_code / reset) live inline in the iterate loop and the invalidation rules.
    A table would duplicate that at extra token cost - prose is the token-efficient
