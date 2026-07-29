@@ -58,6 +58,19 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
   cache reads empty and every item re-runs, with nothing to warn because "no output
   there" and "never ran" are indistinguishable. Report the directory delta and let
   the user choose to move the outputs or accept a knowing recompute.
+- `dynamic-dags.md` + the `SKILL.md` trigger - the same list looped in 2+ tasks is
+  an AXIS: make it a Parameter and fan out even where each individual loop is cheap
+  enough to keep. The REPETITION is the cost - copies of the literal drift apart,
+  nothing can be run or reset for one item, and every task added later inherits the
+  loop. This outranks the per-branch cost threshold ("would I re-run just this
+  branch?"), which on its own excuses a small loop that should still be an axis.
+- `dynamic-dags.md` - two routing fixes the decision table needed: nested `for`s
+  over INDEPENDENT knobs (`for sector: for horizon:`) are a GRID - ONE
+  `requires_each` with two fanned parameters - and a hierarchy only when the inner
+  list is INDEXED BY the outer value; and migration recipe step 1 now names the
+  extraction, since a source usually has no per-item task yet - a cacheable loop
+  body means SPLITTING one task in two (the body becomes a new task parameterized
+  by the loop variables, the task that held the loop becomes the combining task).
 - `skills/oryxflow/SKILL.md` "Per-item work: DECLARE the fan-out, never loop inside
   `run()`" - the always-on TRIGGER for the above (a rule with no trigger is never
   loaded), plus `@oryxflow.requires_each` in Core Concepts, the

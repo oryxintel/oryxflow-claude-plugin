@@ -17,8 +17,8 @@ Classify before you write anything. Most mistakes here are picking the wrong row
 |---|---|---|
 | Loop over a fixed list, results combined | fan-out + combine | `@oryxflow.requires_each(Dep, x=cfg.LIST)` on the combining task |
 | Loop over a list computed from THIS task's params | dynamic fan-out | `requires_each(Dep, x=lambda self: ...)`, or `self.requires_grid` in `requires()` |
-| Nested loops (`for country: for state:`) | hierarchy | one aggregator task per level (below) |
-| Loop over every combination of 2+ knobs | grid | `requires_each(Dep, model=M, horizon=H)` - cartesian product |
+| Nested loops, inner list INDEXED BY the outer value (`for country: for state in STATES[country]:`) | hierarchy | one aggregator task per level (below) |
+| Nested loops over INDEPENDENT knobs (`for sector: for horizon:`) | grid, NOT a hierarchy | ONE `requires_each(Dep, sector=S, horizon=H)` - cartesian product |
 | Loop over variants you manage SEPARATELY (own run, own reset) | independent runs | `WorkflowMulti` (reference.md Pattern 1) |
 | Loop INSIDE one step's computation (rows, columns, a fit's folds) | not a DAG shape | a plain `for` in `run()` - leave it alone |
 
@@ -27,6 +27,14 @@ it is slow, hits the network, or you want to reset just it. Do NOT fan out cheap
 per-item work: `for row in df.iterrows()` is not 10,000 tasks, it is one task with
 a loop in it. Ask "would I ever want to re-run just this branch?" If no, keep the
 loop.
+
+**The same list in 2+ tasks is an AXIS, not a loop.** `for sec in ['Apartment',
+'Office', ...]` repeated across tasks means the whole pipeline is sector-wise: make
+`sector` a Parameter and fan out, even where one task's loop is cheap enough to
+keep on its own. The REPETITION is the cost - copies of the literal drift apart,
+nothing can be run or reset for one sector, and every task added later inherits the
+loop. This outranks the threshold above: a fan-out is justified by one slow branch,
+and equally by an axis the pipeline shares.
 
 ## The default: `@oryxflow.requires_each`
 
@@ -228,7 +236,11 @@ EACH loop against the table at the top before porting it. In order:
 
 1. **Does the loop body produce a cacheable artifact per item?** No (it builds up
    one frame row by row, fits one model's folds) -> it stays a plain loop inside
-   one task. Stop here.
+   one task. Stop here. Yes -> you are SPLITTING one task into two, not decorating
+   the task that exists: the loop BODY becomes a new task whose Parameters are the
+   loop variables, and the task that held the loop becomes the combining task. A
+   body that is already one helper call (`fit_sector(df, sec, h)`) makes this
+   mechanical - that call is the new task's whole `run()`.
 2. **Where does the list come from?** A literal / config constant -> `cfg.py`, then
    `requires_each`. Computed from a parameter of the task -> a callable or
    `requires_grid`. A directory listing (`glob.glob('data-raw/*.csv')`) -> also
