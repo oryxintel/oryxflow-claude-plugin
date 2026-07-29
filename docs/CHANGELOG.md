@@ -34,6 +34,29 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
 
 ## [26.7.28] - 2026-07-28
 
+### Fixed
+- BREAKING: corrected a WRONG claim carried in every tier - `flow.reset(Task)`
+  does NOT cascade downstream (`resources/template-minimal/CLAUDE.md`,
+  `skills/oryxflow/SKILL.md`, `skills/oryxflow/reference.md`, `README.md`,
+  `docs/design/design-notes.md`). `Workflow.reset` delegates to that task's own
+  `reset()` and deletes only ITS output; `flow.reset_downstream(Task)` is what
+  invalidates a band. Downstream recompute is never performed by reset - it is
+  inferred at run time by `TaskData.complete()`, which under AUTO catches it via
+  each dep's `output_id` (so the claim was true by default, which is why it
+  survived). With `settings.code_version_auto = False` and no `code_version`
+  pins, `_code_fingerprint` is None for the whole chain, that dimension goes
+  INERT, and the only propagation left is `settings.check_dependencies` -
+  evaluated LAZILY per task by `core.build._process`, which skips a complete task
+  WITHOUT descending into its deps. A branch reached BEFORE the reset task is
+  rebuilt reruns; one reached AFTER sees the output restored and stays CACHED on
+  stale input. Reported from a real project: resetting a mid-pipeline task reran
+  it and its immediate consumer while two branches silently served results
+  computed from the old upstream. Guidance now says reset invalidates ONE task,
+  and names `reset_downstream` (plus `task_downstream=` per final on multi-final
+  pipelines, since it defaults to the flow's default task). Verified against
+  oryxflow 26.7.21. Migration: run `/oryxflow:update-project` to replace the false
+  claim in an existing project's `CLAUDE.md`.
+
 ### Changed
 - Task logic is now stated as belonging IN the task in every tier
   (`skills/oryxflow/SKILL.md`, `resources/template-minimal/CLAUDE.md`, and a new

@@ -336,10 +336,32 @@ meta = flow.metaLoad(TrainModel)          # Metadata
 
 **When to reset**: auto could not SEE the change (source DATA changed, dynamic
 dispatch, a notebook-defined task), you suspect a corrupt cache, or you want
-outputs deleted. `flow.reset(TaskName)` cascades to downstream tasks. When it is
-changed input data, reset at the LOADER task that ingests it, not a downstream
-task - a downstream reset re-loads the cached old input, so the change never
-propagates. For ordinary CODE edits you do NOT reset - auto reruns them (below).
+outputs deleted. When it is changed input data, reset at the LOADER task that
+ingests it, not a downstream task - a downstream reset re-loads the cached old
+input, so the change never propagates. For ordinary CODE edits you do NOT reset -
+auto reruns them (below).
+
+**`flow.reset` does NOT delete downstream outputs** - it invalidates ONE task
+(`Workflow.reset` -> that task's `reset()`). Downstream recompute is INFERRED
+later, when the build evaluates `complete()`, and the two mechanisms differ:
+
+- **Auto ON (default)**: an upstream that actually rematerialized gets a new
+  `output_id`, so every downstream record's folded dep state no longer matches and
+  the band is incomplete regardless of walk order. A plain `flow.reset` is enough.
+- **Auto OFF** (`settings.code_version_auto = False`, no `code_version` pins):
+  there is no code identity anywhere in the chain, so that dimension goes INERT and
+  the only propagation left is `settings.check_dependencies` - which the build
+  evaluates LAZILY, per task, as it walks (a complete task is skipped WITHOUT
+  descending into its deps). A branch reached BEFORE the reset task is rebuilt sees
+  the missing output and reruns; a branch reached AFTER sees it restored and stays
+  CACHED on stale input. Propagation is therefore partial and order-dependent.
+
+So with auto off, to invalidate a BAND use `flow.reset_downstream(TaskName)`, which
+deletes every complete task between it and the terminal. The terminal defaults to
+the flow's default task - on a multi-final pipeline pass `task_downstream=` per
+final, or branches that do not reach the default are silently missed.
+(Verified against oryxflow 26.7.21: `Workflow.reset`, `TaskData.complete`,
+`TaskData._code_ok`, `core.build._process`.)
 
 **Code edits vs parameter changes (the iterate gotcha, mostly gone)**: oryxflow
 caches by task identity = class + parameters. A PARAMETER change creates a new

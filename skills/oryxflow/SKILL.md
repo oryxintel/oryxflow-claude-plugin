@@ -610,8 +610,9 @@ class OEWSWages(oryxflow.tasks.TaskPqPandas):
    pipeline is the healthy "cache is trusted" signal.
 4. Keep the docstring accurate.
    - On oryxflow < 26.7.12 (no auto, no `code_version`): fall back to
-     reset-before-run - `flow.reset(tasks.ModifiedTask)` (cascades downstream),
-     kept as a commented-out toggle line in `run.py`.
+     reset-before-run - `flow.reset_downstream(tasks.ModifiedTask)`, kept as a
+     commented-out toggle line in `run.py`. NOT bare `flow.reset` - it deletes one
+     task's output only (see "Reset invalidates ONE task").
 
 **Add / remove / rename an output column** is this same loop: edit `run()`, update
 the docstring's `Out:` column list to match, then re-run and verify. Adding is
@@ -748,7 +749,22 @@ blessing stale output. A locked task still reruns when an AUTO upstream
 rematerializes - the lock pins only its OWN logic. Global escape:
 `settings.code_version_auto = False` reverts to pure opt-in (only an explicit
 `code_version` or `flow.reset` drives reruns) - reach for it when auto is too
-fickle across many long-running tasks. The rules, in the order they come up:
+fickle across many long-running tasks, and read the reset rule below first: with
+auto off, a plain `flow.reset` no longer reliably recomputes the band.
+
+**Reset invalidates ONE task; `reset_downstream` invalidates the band.**
+`flow.reset(tasks.X)` deletes only X's own output - it never deletes downstream
+outputs. Under AUTO that is still enough: X's rerun stamps a new output id, which
+makes every downstream incomplete. With auto OFF (or no `code_version` anywhere)
+that link is inert, and the only propagation left is evaluated LAZILY as the build
+walks - a branch reached AFTER X was rebuilt sees a complete upstream and stays
+CACHED on stale input, so the band recomputes PARTIALLY and which branches survive
+depends on walk order. With auto off, reach for
+`flow.reset_downstream(tasks.X)`; on a multi-final pipeline pass
+`task_downstream=` per final (it defaults to the flow's default task, so other
+branches are missed). Full mechanism: reference.md "When to reset".
+
+The rules, in the order they come up:
 
 1. **Session start / after `/clear`**: call `oryxflow.events.print_status()` -
    pending code warnings, last run per task family, recent failures - before

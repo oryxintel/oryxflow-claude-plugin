@@ -166,7 +166,8 @@ Run and inspect:
 - "preview the flow" / "what will run?" - shows `flow.preview()`
 - "update `<Task>` to ..." then "run the flow" - after a code edit auto
   invalidation reruns the task; the skill verifies it actually reran
-- "re-run `<Task>`" / "reset `<Task>`" - recompute it; reset cascades downstream
+- "re-run `<Task>`" / "reset `<Task>`" - recompute it, and everything downstream
+  that depends on the new result
 - "load the output of `<Task>`" / "plot the results"
 
 Understand:

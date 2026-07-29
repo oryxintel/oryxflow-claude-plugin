@@ -538,10 +538,16 @@ model example, the colorize switch) plus live log lines IN the `FeaturesTransfor
 ## The cache-reset gotcha is promoted to every tier (salience, not depth)
 
 oryxflow caches on task IDENTITY (class + params), not code, so a CODE/DATA change
-needs `flow.reset(Task)` (cascades downstream); a plain run reuses stale output -
-the #1 oryxflow surprise. The depth already lived in `reference.md`, but that is
-on-demand, so in a live session the rule was not in context when needed and a real
-project's agent invented a `reset_downstream` helper instead of the built-in.
+needs a reset; a plain run reuses stale output - the #1 oryxflow surprise. The
+depth already lived in `reference.md`, but that is on-demand, so in a live session
+the rule was not in context when needed and a real project's agent hand-rolled a
+downstream-resetter instead of the built-in.
+
+CORRECTION (26.7.28): this note - and the tier text it drove - said
+`flow.reset(Task)` "cascades downstream". It does not; see "Reset does not cascade"
+below. The hand-rolled resetter that prompted this note was reaching for
+`flow.reset_downstream`, which already exists; the lesson was right (use the
+built-in, do not hand-roll) but the built-in named was the wrong one.
 
 The fix was NOT to reorganize `reference.md` (its reset section is fine) but to
 PROMOTE the one-liner up the tiers - same logic as the "first-action rules belong
@@ -554,6 +560,43 @@ defaults to `confirm=False` / no prompt, so it is safe in a non-interactive run 
 is; `confirm=True` opts INTO the prompt.) General lesson: when an agent misses a
 documented rule live, first ask whether it was in a loaded tier - promotion beats
 rewriting.
+
+## Reset does not cascade; only `reset_downstream` deletes a band
+
+Every tier claimed `flow.reset(Task)` "cascades downstream". It never did. Traced
+in oryxflow 26.7.21 after a project agent hit it: resetting a mid-pipeline task
+reran it and its immediate consumer, while two further branches stayed cached and
+served results computed from the OLD upstream - a silent stale-result bug, the
+exact failure the skill exists to prevent.
+
+The mechanism, and why the claim looked true for so long:
+
+- `Workflow.reset(task)` delegates to that task's own `reset()`, which deletes only
+  ITS outputs and meta. Nothing downstream is touched. `reset_downstream` is the one
+  that walks (`invalidate_downstream` -> every COMPLETE task between the target and
+  a terminal).
+- Downstream recompute is therefore never performed by reset; it is INFERRED at run
+  time by `TaskData.complete()`, which has two independent dimensions: the folded
+  dep state (`_code_ok` / `_dep_state`, keyed on each dep's `output_id`) and the
+  `settings.check_dependencies` upstream walk.
+- Under AUTO the first dimension carries it: a rerun stamps a fresh `output_id`, so
+  every downstream record mismatches and the band is incomplete no matter what order
+  the build visits it in. The claim was effectively TRUE by default, which is why it
+  survived review.
+- With `code_version_auto = False` and no pins, `_code_fingerprint` is None for the
+  whole chain, `_code_ok` returns True unconditionally, and that dimension goes
+  INERT. All that remains is `check_dependencies` - and `core.build._process`
+  evaluates `complete()` LAZILY per task as it walks, skipping a complete task
+  WITHOUT descending into its deps. So a branch reached before the reset task is
+  rebuilt reruns; a branch reached after sees the output restored and stays cached.
+  Partial, order-dependent, silent.
+
+Lesson recorded because it generalizes: the claim was written against the DEFAULT
+configuration and stated unconditionally. A behavior that holds only under a
+default is a CONDITIONAL, and the tier text has to say which setting it depends on
+- the opt-out (`code_version_auto = False`) is precisely where the guidance flips,
+and that is the state a user reaches for when auto feels too fickle, i.e. on big
+expensive pipelines where a silent stale result costs the most.
 
 ## Code-aware invalidation (oryxflow >= 26.7.12): AUTO by default, lock to opt out
 

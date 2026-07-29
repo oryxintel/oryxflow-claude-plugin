@@ -110,11 +110,16 @@ do not ask.
   `git log`. Do NOT lock a task that FUSES an expensive un-replayable fetch with
   cheap parsing - there "is this edit output-equivalent?" is unanswerable, so
   SPLIT the task instead (pin the fetch, let the parse rerun freely).
-  RESET (`flow.reset(Task)`, cascades downstream) is for what auto cannot see:
-  changed source DATA (reset the LOADER task that ingests it, not a downstream
-  one), a suspect/corrupt cache, or deleting outputs. Use the built-in
-  `flow.reset` - never write a reset helper. Global opt-out:
-  `settings.code_version_auto = False` (pure opt-in - `code_version`/`reset` only).
+  RESET is for what auto cannot see: changed source DATA (reset the LOADER task
+  that ingests it, not a downstream one), a suspect/corrupt cache, or deleting
+  outputs. `flow.reset(Task)` invalidates ONE task - it does NOT delete downstream
+  outputs. Under auto that is enough (the rerun stamps a new output id, so the band
+  follows); with auto OFF that link is inert and propagation goes partial and
+  order-dependent, so use `flow.reset_downstream(Task)` - which deletes the band up
+  to the terminal (defaults to the flow's default task; pass `task_downstream=` per
+  final on a multi-final pipeline). Use the built-ins - never write a reset helper.
+  Global opt-out: `settings.code_version_auto = False` (pure opt-in -
+  `code_version` / `reset_downstream` only).
   (Auto + `code_version` need `oryxflow >= 26.7.12`; on older libraries reset
   before running an edited task.)
 - Trust auto file management. If `flow.run()` finishes without error, the outputs
