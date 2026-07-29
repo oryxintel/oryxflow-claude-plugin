@@ -58,12 +58,13 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
   cache reads empty and every item re-runs, with nothing to warn because "no output
   there" and "never ran" are indistinguishable. Report the directory delta and let
   the user choose to move the outputs or accept a knowing recompute.
-- `dynamic-dags.md` + the `SKILL.md` trigger - the same list looped in 2+ tasks is
-  an AXIS: make it a Parameter and fan out even where each individual loop is cheap
-  enough to keep. The REPETITION is the cost - copies of the literal drift apart,
-  nothing can be run or reset for one item, and every task added later inherits the
-  loop. This outranks the per-branch cost threshold ("would I re-run just this
-  branch?"), which on its own excuses a small loop that should still be an axis.
+- `dynamic-dags.md` + the `SKILL.md` trigger - a list iterated ACROSS THE DAG is an
+  AXIS: when task after task loops the same list, it belongs in the Parameters
+  whatever any single loop costs, because the payoff is pipeline-wide (run and reset
+  ONE item end to end; no copied literal to drift). So there are two independent
+  reasons to fan out - a branch worth caching on its own, or a repeated axis - and
+  neither covers a small one-off loop or a cheap comparison, which stay loops even
+  over the axis list.
 - `dynamic-dags.md` - two routing fixes the decision table needed: nested `for`s
   over INDEPENDENT knobs (`for sector: for horizon:`) are a GRID - ONE
   `requires_each` with two fanned parameters - and a hierarchy only when the inner

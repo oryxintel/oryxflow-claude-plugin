@@ -613,10 +613,11 @@ NEVER build a `oryxflow.Workflow(...)` inside a `run()` to iterate: those tasks 
 not dependencies, so `preview()` cannot see them and a targeted reset invalidates
 NOTHING - you get stale numbers with a green run. Guard the other way too: fan out
 only where a branch is worth caching alone; `for row in df.iterrows()` stays a
-plain loop. But the same list looped in 2+ tasks is an AXIS - make it a Parameter
-even where each loop is cheap, or the literal drifts and nothing can be run or
-reset for one item. Decision table, hierarchies, shared-input stacking, and the
-migration recipe: [dynamic-dags.md](dynamic-dags.md) (needs oryxflow >= 26.7.28).
+plain loop, and so does a small one-off comparison. But a list iterated in task
+after task is an AXIS - make it a Parameter whatever one loop costs, so you can run
+and reset ONE item end to end. Decision table, hierarchies, shared-input stacking,
+and the migration recipe: [dynamic-dags.md](dynamic-dags.md) (needs oryxflow >=
+26.7.28).
 
 ### Modify an existing task (the common iterate loop)
 1. Edit the task's `run()` in `tasks.py` (or a helper it calls, or a constant it

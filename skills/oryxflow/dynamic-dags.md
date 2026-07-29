@@ -28,13 +28,15 @@ per-item work: `for row in df.iterrows()` is not 10,000 tasks, it is one task wi
 a loop in it. Ask "would I ever want to re-run just this branch?" If no, keep the
 loop.
 
-**The same list in 2+ tasks is an AXIS, not a loop.** `for sec in ['Apartment',
-'Office', ...]` repeated across tasks means the whole pipeline is sector-wise: make
-`sector` a Parameter and fan out, even where one task's loop is cheap enough to
-keep on its own. The REPETITION is the cost - copies of the literal drift apart,
-nothing can be run or reset for one sector, and every task added later inherits the
-loop. This outranks the threshold above: a fan-out is justified by one slow branch,
-and equally by an axis the pipeline shares.
+**A list iterated across the DAG is an AXIS.** `for sec in ['Apartment', 'Office',
+...]` in one task is a loop; the same list in task after task means the pipeline is
+sector-wise, and `sector` belongs in the Parameters - reason enough on its own,
+whatever any single loop costs. The payoff is pipeline-wide rather than per-task:
+you can run and reset ONE sector end to end, and no copied literal can drift.
+
+So two independent reasons to fan out - a branch worth caching on its own, or an
+axis the DAG keeps repeating. Neither covers a small one-off loop or a cheap
+comparison: leave those as loops, even over the axis list.
 
 ## The default: `@oryxflow.requires_each`
 
