@@ -18,7 +18,7 @@ Classify before you write anything. Most mistakes here are picking the wrong row
 | Loop over a fixed list, results combined | fan-out + combine | `@oryxflow.requires_each(Dep, x=cfg.LIST)` on the combining task |
 | Loop over a list computed from THIS task's params | dynamic fan-out | `requires_each(Dep, x=lambda self: ...)`, or `self.requires_grid` in `requires()` |
 | Nested loops, inner list INDEXED BY the outer value (`for country: for state in STATES[country]:`) | hierarchy | one aggregator task per level (below) |
-| Nested loops over INDEPENDENT knobs (`for sector: for horizon:`) | grid, NOT a hierarchy | ONE `requires_each(Dep, sector=S, horizon=H)` - cartesian product |
+| Nested loops over INDEPENDENT knobs (`for model: for horizon:`) | grid, NOT a hierarchy | ONE `requires_each(Dep, model=MODELS, horizon=[1, 5, 20])` - cartesian product |
 | Loop over variants you manage SEPARATELY (own run, own reset) | independent runs | `WorkflowMulti` (reference.md Pattern 1) |
 | Loop INSIDE one step's computation (rows, columns, a fit's folds) | not a DAG shape | a plain `for` in `run()` - leave it alone |
 
@@ -28,11 +28,11 @@ per-item work: `for row in df.iterrows()` is not 10,000 tasks, it is one task wi
 a loop in it. Ask "would I ever want to re-run just this branch?" If no, keep the
 loop.
 
-**A list iterated across the DAG is an AXIS.** `for sec in ['Apartment', 'Office',
-...]` in one task is a loop; the same list in task after task means the pipeline is
-sector-wise, and `sector` belongs in the Parameters - reason enough on its own,
-whatever any single loop costs. The payoff is pipeline-wide rather than per-task:
-you can run and reset ONE sector end to end, and no copied literal can drift.
+**A list iterated across the DAG is an AXIS.** One `for region in cfg.REGIONS:` is a
+loop; the same list in task after task means the pipeline is region-wise, and
+`region` belongs in the Parameters - reason enough on its own, whatever any single
+loop costs. The payoff is pipeline-wide rather than per-task: you can run and reset
+ONE region end to end, and there is no copied literal to drift.
 
 So two independent reasons to fan out - a branch worth caching on its own, or an
 axis the DAG keeps repeating. Neither covers a small one-off loop or a cheap
@@ -241,8 +241,8 @@ EACH loop against the table at the top before porting it. In order:
    one task. Stop here. Yes -> you are SPLITTING one task into two, not decorating
    the task that exists: the loop BODY becomes a new task whose Parameters are the
    loop variables, and the task that held the loop becomes the combining task. A
-   body that is already one helper call (`fit_sector(df, sec, h)`) makes this
-   mechanical - that call is the new task's whole `run()`.
+   body that is already one helper call (`train_and_predict(df, model, horizon)`)
+   makes this mechanical - that call is the new task's whole `run()`.
 2. **Where does the list come from?** A literal / config constant -> `cfg.py`, then
    `requires_each`. Computed from a parameter of the task -> a callable or
    `requires_grid`. A directory listing (`glob.glob('data-raw/*.csv')`) -> also
