@@ -669,16 +669,21 @@ Two load-bearing points, both general (not ML-specific):
   singleton at import, bound to the experiment tier (`cfg.env`, `params`) and
   shared by everything that does `from flow import flow`. It cannot serve two
   tiers at once, so `run_prod.py` constructs its own
-  `oryxflow.WorkflowMulti(FinalTask, variants, env='prod')` - the same move
-  `RunAll...Prod` makes inside the DAG. (Since `params_prod` is one frozen dict,
-  build the named `variants` from it + the prod axis; a single frozen run can use
-  plain `oryxflow.Workflow`.)
+  `oryxflow.WorkflowMulti(FinalTask, variants, env='prod')`. (Since `params_prod`
+  is one frozen dict, build the named `variants` from it + the prod axis; a single
+  frozen run can use plain `oryxflow.Workflow`.) When the prod axis should instead
+  be ONE cached deliverable, make it a `RunAll...Prod` task that FANS OUT over the
+  axis (`@oryxflow.requires_each`) - never a loop building a Workflow inside its
+  `run()`, which puts the variants outside the DAG where no reset can reach them
+  ([dynamic-dags.md](dynamic-dags.md)).
 - **Selective reset by COST + AUTHORITY.** In `run_prod.py`, reset ONLY the
   cheap, fast-moving LOCAL source so a new period picks up fresh inputs; NEVER
   reset the expensive / external pulls - those are the frozen "trusted" baseline
-  that must persist across prod runs. (The ML case in
-  [ml-patterns.md](ml-patterns.md) is the same principle with the model frozen
-  and the data refreshed.)
+  that must persist across prod runs. Scope it with
+  `flow.reset_upstream(FinalTask, only=DataSource)`, which finds every instance of
+  that family across the fan-out via the DAG, so adding a variant needs no edit
+  here. (The ML case in [ml-patterns.md](ml-patterns.md) is the same principle with
+  the model frozen and the data refreshed.)
 
 A prod run that should itself be a CACHED, reproducible DAG node (aggregated
 output saved, `code_version`-pinnable) stays a `RunAll...Prod` TASK; `run_prod.py`

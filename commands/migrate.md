@@ -41,6 +41,9 @@ skill if it is not active and read the rules you will migrate TOWARD:
   for the OUTPUT, not the verb), and "Task docstrings".
 - `conventions.md` - "Naming" (tasks / columns / variables) and "Code
   organization" (grouping `eda/` / `utils/` / `viz/` by subject).
+- `dynamic-dags.md` - REQUIRED if the source has `for` loops over regions / files /
+  models / date ranges, or a grid search. It has the decision table for
+  classifying each loop and the step-by-step migration recipe.
 - `ml-patterns.md` - ONLY if the source is an ML pipeline (features, training,
   backtest); it has the task templates for that lifecycle.
 
@@ -61,6 +64,15 @@ natively (cells + outputs). Inventory:
   SOURCE loader task; every `to_csv(...)` + later `read_csv(...)` handoff between
   steps is a `save` -> `inputLoad` edge that oryxflow will own (the intermediate
   file goes away).
+- **The loops.** Every `for` in the source is a shape decision, and getting it
+  wrong is the expensive mistake in a migration - a per-item loop ported verbatim
+  into one task throws away the per-item cache and the targeted reset. Classify
+  each one against the table in `dynamic-dags.md`: a loop whose body produces a
+  cacheable artifact per item becomes a `@oryxflow.requires_each` FAN-OUT (one task
+  per region / file / model) plus a combining task; nested loops become one
+  aggregator per level; a loop that just builds up one frame stays a plain loop
+  inside a single task. Record the enumeration it iterates - that list goes to
+  `cfg.py`.
 - **The knobs.** Magic constants, thresholds, date ranges, model choices, file
   paths - these become `flow_params.py` parameters (values that change identity)
   or `cfg.py` settings (the source data dir, env). Note each with the step it
@@ -101,7 +113,10 @@ Turn the step list from step 2 into a concrete task map. For EACH task:
   dict.
 - **Wire dependencies** with `@oryxflow.requires(<Upstream>)` (multiple upstreams:
   `@oryxflow.requires(A, B)`), matching the data seams you traced. Root loaders
-  have no `requires`.
+  have no `requires`. For a step the source ran per item, use
+  `@oryxflow.requires_each(<Upstream>, <param>=cfg.<LIST>)` on the task that
+  COMBINES them (its `run()` is `self.save(self.inputLoadConcat())`) - and note that
+  the combining task must NOT declare the fanned-out parameter.
 - **Convert the body**: raw `read_*` at a root loader (from a `cfg.py` path, not a
   hardcoded string); replace intermediate file I/O with `self.inputLoad()` at the
   top and `self.save(df_out)` at the end; hoist magic constants to
@@ -131,9 +146,11 @@ whole DAG:
 2. Add the root loader task(s), set `flow.py` to that task, `python run.py`,
    confirm it produces the expected frame.
 3. Add each downstream task in dependency order, running the flow after each so a
-   break surfaces at the task that caused it - not five tasks later. Reset an
-   edited task before re-running (a code edit does not change identity; a plain
-   run skips it).
+   break surfaces at the task that caused it - not five tasks later. Auto
+   invalidation reruns an edited task on its own (oryxflow >= 26.7.12) - VERIFY it
+   shows in `result.ran` rather than assuming, and `flow.reset` it if not.
+   Add a fan-out one branch at a time too: get `cfg.<LIST>` down to a single value,
+   run, then restore the full list so only the new branches run.
 4. Move the plotting / analysis into `visualize.py` or a `viz-<topic>.ipynb`
    copied from `viz-template.ipynb`; move probes to `eda/`, helpers to `utils/`.
 

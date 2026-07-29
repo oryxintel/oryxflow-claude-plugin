@@ -259,6 +259,39 @@ def train_model(self, X, y):
     return lightgbm.LGBMClassifier(class_weight='balanced', random_state=42).fit(X, y)
 ```
 
+### Comparing model variants in ONE flow (fan-out)
+
+To score several models against each other and keep building downstream, fan out
+over `model` and converge on a combining task - the shared data prep runs ONCE:
+
+```python
+@oryxflow.requires_each(ModelTrain, model=cfg.MODELS)   # one ModelTrain per model
+class ModelCombine(oryxflow.tasks.TaskPqPandas):
+    """Every variant's predictions in one frame, tagged with `model`."""
+
+    def run(self):
+        self.save(self.inputLoadConcat())
+
+@oryxflow.requires(ModelCombine)                        # back to plain requires
+class ModelReport(oryxflow.tasks.TaskPqPandas):
+    def run(self):
+        df = self.inputLoad().assign(error=lambda d: (d['y_pred'] - d['target']).abs())
+        self.save(df.groupby('model')['error'].mean().reset_index())
+```
+
+`FeaturesTransform` has no `model` parameter, so it is ONE task however many
+variants you compare - add a fifth model and only that branch trains. Neither
+`ModelCombine` nor anything downstream may declare `model` (that is where the
+branches meet). Then `flow.reset_upstream(ModelReport, only=ModelTrain)` retrains
+every variant while keeping the feature build cached. Fan out for one combined
+comparison; use `WorkflowMulti` when the variants are separately managed runs
+(reference.md Pattern 1). Needs oryxflow >= 26.7.28 - see
+[dynamic-dags.md](dynamic-dags.md).
+
+Fan out over more than one knob by naming more parameters -
+`@oryxflow.requires_each(ModelTrain, model=cfg.MODELS, horizon=[1, 5, 20])` is the
+cartesian product, and `df.groupby(['model', 'horizon'])` works on the result.
+
 ---
 
 ## Pattern 3: Model performance
@@ -418,31 +451,50 @@ directory. The two coexist through three pieces:
 orchestration IMPORTS it rather than re-hardcoding the values inline (re-typing
 them is how prod and the recorded params drift apart).
 
-**2. A `RunAll...Prod` orchestration task** that loops the prod variants and does
-SELECTIVE RESETS - refresh the data layers so a new period pulls fresh inputs,
-but do NOT reset `ModelTrain`, so the production model stays frozen/cached across
-runs. Its experiment twin (`RunAll`) uses `params`.
+**2. A `RunAll...Prod` orchestration task** that FANS OUT over the prod variants -
+one declared dependency per variant, combined into the deliverable. Its experiment
+twin (`RunAll`) uses `params`.
 
 ```python
 # tasks.py spine - prod orchestration
+@oryxflow.requires_each(tasks_predict.ModelPredictCurrent, sector=cfg.sectors)
+class RunAllModelPredictCurrentProd(oryxflow.tasks.TaskExcelPandas):
+    """Prod deliverable: current predictions for every sector, one sheet.
+
+    In:  ModelPredictCurrent, one branch per sector (frozen params_prod).
+    Out: the branches stacked, each row tagged with its `sector`.
+    """
+
+    def run(self):
+        self.save(self.inputLoadConcat())
+```
+
+Do NOT write this as a `for sector in cfg.sectors:` loop that builds a
+`oryxflow.Workflow` per sector inside `run()`. Those tasks are not dependencies, so
+the selective reset below cannot find them and silently does nothing - the prod
+run then serves LAST period's numbers under this period's label, with a green run.
+(See [dynamic-dags.md](dynamic-dags.md); needs oryxflow >= 26.7.28.)
+
+**The SELECTIVE RESET is a run decision, so it lives in the entrypoint**, not
+inside the task - refresh the data layers so a new period pulls fresh inputs, but
+do NOT reset `ModelTrain`, so the production model stays frozen/cached across runs:
+
+```python
+# run_prod.py
 from flow_params import params_prod
 
-class RunAllModelPredictCurrentProd(oryxflow.tasks.TaskExcelPandas):
-    """Prod run: frozen params, all variants, fresh data, model stays cached."""
-    period_current = oryxflow.Parameter()
-    def run(self):
-        dfl = []
-        for sector in cfg.sectors:
-            params = {**params_prod, 'sector': sector,
-                      'period_current': self.period_current}
-            flow = oryxflow.Workflow(tasks_predict.ModelPredictCurrent,
-                                    params=params, env='prod')
-            flow.reset(tasks_features.DataSource)  # refresh data layer ONLY
-            # do NOT reset ModelTrain -> frozen model
-            flow.run()
-            dfl.append(flow.outputLoad(tasks_predict.ModelPredictCurrent))
-        self.save(pd.concat(dfl))
+flow = oryxflow.Workflow(tasks.RunAllModelPredictCurrentProd,
+                         params={**params_prod, 'period_current': period},
+                         env='prod')
+flow.reset_upstream(tasks.RunAllModelPredictCurrentProd,
+                    only=tasks_features.DataSource)   # refresh data layer ONLY,
+                                                      # every sector, found via the DAG
+# do NOT reset ModelTrain -> frozen model stays cached
+flow.run()
 ```
+
+`only=` is what makes this safe at scale: it discovers every `DataSource` instance
+across all sectors through the DAG, so adding a sector needs no change here.
 
 **3. Environment-segregated outputs** via `cfg.env`, so runs under different envs
 never overwrite each other's outputs. `env` is a label YOU choose, not a fixed
@@ -450,9 +502,9 @@ scheme - commonly `dev` vs `prod`, but also e.g. `utest` for a sampled subset yo
 can share. Pick what the project needs; don't assume prod/dev is universal.
 
 **Periodic-refresh protocol** (the recurring prod run): refresh the raw inputs in
-`data/`, bump `period_current` (in `flow_params.py` or as the task parameter),
-then run the `RunAll...Prod` task. The selective reset re-pulls the data layers
-for the new period while the trained model is reused as-is.
+`data/`, bump `period_current` (in `flow_params.py` or as the prod params), then
+run `run_prod.py`. Its selective reset re-pulls the data layers for the new period
+while the trained model is reused as-is.
 
 The prod run gets its own ENTRYPOINT file, `run_prod.py` (kept separate from the
 experiment `run.py`) - it builds the prod Workflow inline and can either run the

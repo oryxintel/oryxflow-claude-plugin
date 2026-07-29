@@ -14,6 +14,8 @@ when_to_use: >-
   rename an output column or save a new field on it), make one task depend on
   another, set the final task, or add / change a parameter; build a data-prep
   task or load / clean / transform / analyze the data (each becomes a task); run
+  a step for each item in a list (per region / model / file), a parameter grid,
+  or a per-X-then-combine hierarchy; run
   the flow, preview
   it (flow.preview), check what is cached, or re-run / reset a task (an edited
   task reruns automatically - verify it did); load or plot a task's output; explore or inspect
@@ -35,8 +37,9 @@ intermediate results and rerunning intelligently after code or parameter changes
 **Compatibility**: this skill's guidance assumes `oryxflow >= 26.6.6` (the floor;
 `docs/CHANGELOG.md` carries the authoritative value). Auto code invalidation (on
 by default), `code_version`, `accept_code`, and `oryxflow.events` need
-`oryxflow >= 26.7.12`; on older versions fall back to the reset-before-run loop
-noted where it applies. The
+`oryxflow >= 26.7.12`; `@oryxflow.requires_each` / stacked dependency decorators /
+`Task.requires_grid` need `oryxflow >= 26.7.28`; on older versions fall back to the
+reset-before-run loop noted where it applies. The
 library `CHANGELOG.md` is the source of truth for API/behavior; when the two
 disagree about library behavior, the library wins. If the running
 `oryxflow.__version__` is OLDER than the floor, the skill has run ahead of the
@@ -51,6 +54,8 @@ Depth lives on demand, not here: [reference.md](reference.md) for the full
 library reference (task types, advanced patterns, avoiding silent data errors,
 recipes, debugging); [conventions.md](conventions.md) for house conventions
 (project layout, code organization, naming columns / tasks / variables);
+[dynamic-dags.md](dynamic-dags.md) for work shaped like a LOOP (per-item fan-out,
+grids, per-X-then-combine hierarchies, porting a source full of `for` loops);
 [ml-patterns.md](ml-patterns.md) for ML pipeline templates (features, training,
 SHAP, expanding-window backtests). Load whichever you need beyond the essentials
 below.
@@ -210,7 +215,9 @@ conventions.md "Scaling up", ml-patterns.md "Productionizing".
    (`TaskPqPandas`, `TaskPickle`, ...). They save outputs via `self.save()`.
    Identified by class name + parameters.
 2. **Dependencies** - Declared with `@oryxflow.requires()`; oryxflow runs tasks in
-   order. Load upstream data with `self.inputLoad()`.
+   order. Load upstream data with `self.inputLoad()`. One dependency PER ITEM of a
+   list (per region / model / file): `@oryxflow.requires_each` - see "Per-item
+   work" below. Decorators stack.
 3. **Parameters** - Make tasks dynamic and reusable. They affect task identity
    (caching) and auto-inherit downstream. Use `significant=False` for params that
    should not affect identity.
@@ -589,6 +596,26 @@ class OEWSWages(oryxflow.tasks.TaskPqPandas):
 3. If it is the new final task, set `task = tasks.OEWSWages` in `flow.py`.
 4. Keep the docstring accurate; update the module docstring if the goal changed.
 
+### Per-item work: DECLARE the fan-out, never loop inside `run()`
+
+"For each region / model / file", a parameter grid, a per-X-then-combine
+hierarchy - that is a DAG SHAPE decision, not a `for` loop. Default:
+
+```python
+@oryxflow.requires_each(RegionLoad, region=cfg.REGIONS)   # one dep PER VALUE
+class RegionCombine(oryxflow.tasks.TaskPqPandas):
+    def run(self):
+        self.save(self.inputLoadConcat())     # stacks branches, tags each with `region`
+```
+It copies the dependency's params minus the fanned-out one, so the combining task
+is the single node the branches meet at and downstream never knows N existed.
+NEVER build a `oryxflow.Workflow(...)` inside a `run()` to iterate: those tasks are
+not dependencies, so `preview()` cannot see them and a targeted reset invalidates
+NOTHING - you get stale numbers with a green run. Guard the other way too: fan out
+only where a branch is worth caching alone; `for row in df.iterrows()` stays a
+plain loop. Decision table, hierarchies, shared-input stacking, and the migration
+recipe: [dynamic-dags.md](dynamic-dags.md) (needs oryxflow >= 26.7.28).
+
 ### Modify an existing task (the common iterate loop)
 1. Edit the task's `run()` in `tasks.py` (or a helper it calls, or a constant it
    reads - auto follows all three).
@@ -850,6 +877,10 @@ CSV? The contract is its SCHEMA, not its container.
 ## Additional Resources
 
 - [reference.md](reference.md) - comprehensive oryxflow patterns and reference.
+- [dynamic-dags.md](dynamic-dags.md) - loop-shaped work: per-item fan-out
+  (`requires_each`), grids, per-X-then-combine hierarchies, fan-out vs
+  `WorkflowMulti`, and classifying a migration source's `for` loops. Load on
+  demand whenever the ask involves "for each ...".
 - [ml-patterns.md](ml-patterns.md) - ML pipeline task templates. Load on demand.
 - [d6tflow-migration.md](d6tflow-migration.md) - migrating a d6tflow-era project
   to oryxflow (the `d6tflow` -> `oryxflow` rename). Load on demand when the user

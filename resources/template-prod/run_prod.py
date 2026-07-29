@@ -15,8 +15,10 @@ oryxflow.enable_logging()
 # or clobber each other's cache/state.
 #
 # Prod usually runs several frozen variants (one per segment/period). Build them
-# from params_prod + the prod axis - same shape a RunAll...Prod loop produces -
-# keyed by name so results are labelled. For a SINGLE frozen run, drop the dict:
+# from params_prod + the prod axis, keyed by name so results are labelled. Use
+# this when the variants are SEPARATELY managed (own summary, own reset scope);
+# when they belong in ONE cached deliverable, fan out instead with a RunAll...Prod
+# task (@oryxflow.requires_each). For a SINGLE frozen run, drop the dict:
 #   wf = oryxflow.Workflow(tasks.FinalTask, params_prod, env='prod')
 variants = {seg: {**params_prod, 'segment': seg}         # PLACEHOLDER SCAFFOLD - the prod axis
             for seg in cfg.segments}

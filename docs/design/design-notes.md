@@ -12,7 +12,7 @@ and everything deep lives in files pulled in only when needed.
 Keeping `SKILL.md` lean is a recurring cost decision: every line is paid for on
 each activation. Resist moving reference material up into it.
 
-### Why the on-demand depth is split three ways
+### Why the on-demand depth is split four ways
 
 The depth is NOT one file. It is `reference.md` (the oryxflow LIBRARY: task types,
 params, running/reset, advanced patterns, recipes, debugging, and the silent-
@@ -28,6 +28,17 @@ many: each extra file adds discovery overhead and a drift surface, so depth is
 cut at the load-bearing seam (library vs conventions) and no finer. Routing is in
 `SKILL.md`'s header pointer and the inline pointers ("full rules in
 conventions.md"); keep those accurate or the second file goes unfound.
+
+`dynamic-dags.md` is the fourth, and it was weighed against that stopping rule
+rather than exempted from it. What earns it a file is that it answers a question
+the other three cannot host: not "what does the API do" (reference.md) and not
+"where does code go" (conventions.md) but **what SHAPE should this DAG be** - a
+decision procedure applied per loop, with a wrong answer that is expensive and
+silent. It also has two independent consumers - the skill and
+`/oryxflow:migrate` - and a single sharp trigger ("for each ..."), which is the
+bar any fifth file must also clear. Folding it into `reference.md` would have
+meant paying ~1000 lines of API to answer "how do I structure this grid search",
+which is the exact dilution the original split was made to avoid.
 
 ### Why d6tflow-migration.md is an on-demand doc, not a command
 
@@ -597,6 +608,41 @@ default is a CONDITIONAL, and the tier text has to say which setting it depends 
 - the opt-out (`code_version_auto = False`) is precisely where the guidance flips,
 and that is the state a user reaches for when auto feels too fickle, i.e. on big
 expensive pipelines where a silent stale result costs the most.
+
+## Fan-out is DECLARED, never looped inside run() (oryxflow >= 26.7.28)
+
+`@oryxflow.requires_each` gave the skill a real construct for per-item work, but
+the reason it is promoted all the way into `SKILL.md` is not the new API - it is
+that the plugin had been TEACHING the anti-pattern. `reference.md` "Pattern 3:
+Nested Workflows" and `ml-patterns.md`'s `RunAll...Prod` both built a
+`oryxflow.Workflow` per item inside a `run()`. Documenting the new decorator
+elsewhere would have left those two as the nearest matching template an agent
+finds.
+
+Why the loop is worse than it looks: it produces CORRECT numbers on the first run,
+so nothing flags it. The cost lands on the next change. Tasks started inside a
+`run()` are not `requires()` edges, so `reset_upstream(..., only=Family)` finds
+nothing, reports no error, and invalidates nothing - you edit a branch, reset "just
+that step", re-run, and get the old numbers back under a green run. `preview()`
+cannot show the branches and the run summary does not count them. That failure
+mode - silent, delayed, and indistinguishable from success - is the same class as
+the "silent data errors" section, and it gets the same treatment: named
+explicitly, with the wrong version shown as a labelled ANTI-PATTERN rather than
+deleted, because an agent pattern-matching on shape needs to see the shape it
+should not copy.
+
+The guard runs in BOTH directions, which is why the tier text carries a threshold
+rather than just "loops become fan-outs". An agent told the latter turns
+`for row in df.iterrows()` into 10,000 tasks. The rule is per-branch CACHE VALUE -
+"would I ever want to re-run just this branch?" - so cheap per-item work stays a
+plain loop inside one task.
+
+Moving the prod selective reset OUT of `RunAll...Prod` and into `run_prod.py`
+follows from the same model: with the variants declared as real edges, the reset
+is a RUN-TIME decision scoped by `reset_upstream(Final, only=DataSource)`, which
+discovers every instance through the DAG. Adding a variant then needs no edit to
+the reset - the hand-tracking the loop version required is exactly what the
+declared form removes.
 
 ## Code-aware invalidation (oryxflow >= 26.7.12): AUTO by default, lock to opt out
 

@@ -67,6 +67,7 @@ class LoadData(oryxflow.tasks.TaskPqPandas):
 | `TaskExcelPandas` | Excel | DataFrames a HUMAN opens (reports) |
 | `TaskPickle` | Pickle | Any Python object (models, dicts, lists) |
 | `TaskJson` | JSON | Dictionaries, simple data structures |
+| `TaskMarkdown` | Markdown (+ HTML) | Narrative text a task GENERATES (an LLM write-up, a rendered section) |
 | `TaskAggregator` | None | Groups tasks declared in `requires()` (empty `run()`), saves no output |
 
 **Format rule - this is a ranking, not a menu of equals**: `TaskPqPandas` for
@@ -104,6 +105,40 @@ class MergeData(oryxflow.tasks.TaskPqPandas):
         df_data, df_meta = self.inputLoad()
         self.save(df_data.merge(df_meta, on='id'))
 ```
+
+**One dependency PER ITEM of a list** (oryxflow >= 26.7.28):
+`@oryxflow.requires_each(Dep, param=values)` declares a branch per value and copies
+`Dep`'s parameters onto the decorated task MINUS the fanned-out ones, so the
+combining task is the single node the branches converge into.
+`Task.requires_grid(cls, **grid)` is the same thing written inside your own
+`requires()`, for when the list comes from the task's own parameters. Decorators
+STACK (`@oryxflow.requires` + `@oryxflow.requires_each`, any order, any number) so a
+combining task can also take a shared, not-fanned-out input. Full decision table,
+hierarchies, and gotchas: [dynamic-dags.md](dynamic-dags.md).
+
+BREAKING (26.7.28): the free function `oryxflow.utils.requires_grid(cls, param,
+values, **base)` is now the `Task.requires_grid(cls, **grid)` METHOD. With no
+`self` it could not carry the calling task's parameters down to the branches -
+every shared parameter had to be repeated in `base`, and one left out was silently
+missing from the children (they got the DEFAULT - a wrong result, not an error).
+`requires_grid(ModelTrain, 'model', MODELS)` becomes
+`self.requires_grid(ModelTrain, model=MODELS)` inside `requires()`, and anything
+you passed via `base` can be deleted.
+
+Two errors this raises at class definition, both previously silent:
+
+- A hand-written `requires()` **plus** a dependency decorator -> `TypeError`. The
+  decorator assigns `requires` after the class body, so the method used to be
+  discarded silently. Keep one.
+- A task decorated `@oryxflow.requires_each(Dep, x=[...])` that also declares
+  `x = oryxflow.Parameter(...)` -> `TypeError`. The declaration used to survive and
+  put one branch's value into the combining task's identity - one combining task
+  per value, each combining all branches, at N times the cost. Delete the
+  declaration.
+
+Two dependencies resolving to the same key now raise `ValueError` from `requires()`
+instead of one silently replacing the other; name one of them
+(`@oryxflow.requires_each({'chart': Chart}, region=REGIONS)`).
 
 ### 4. Parameters
 
@@ -143,6 +178,17 @@ class ProcessData(oryxflow.tasks.TaskPqPandas):
 **Important**: Same class + same parameters = same task instance (cached).
 Different parameters = different task instance (separate cache).
 
+**Reserved names**: `path`, `flows`, `cls` and `derive` cannot be Parameter names -
+each raises `ValueError` at class definition (oryxflow >= 26.7.28). They are
+arguments the engine owns: `path` = the flow's DATA DIRECTORY, `flows` = flows
+attached with `attach_flow()`, `cls` / `derive` = arguments of `clone()` /
+`requires_grid()`. A Parameter of that name binds to the ARGUMENT instead, so
+`MyTask(path='a.csv')` never reached it - the Parameter kept its DEFAULT, mapping
+every value to the same task, and that default then became the output directory
+(`x.csv/MyTask/...`). Rename: `file` / `filename`, `model_cls`,
+`derive_features`. This bites hardest in a per-file fan-out, where `path` is the
+tempting name.
+
 ### 5. Parameter Inheritance
 
 Parameters auto-inherit from dependencies. Use `significant=False` for params
@@ -180,6 +226,8 @@ a `flow`), and HOW MANY (all vs one):
 | Load ONE output (by name)    | `self.inputLoad(keys='a')`              | `flow.outputLoad(Task, keys='a')`  |
 | Pick ONE dependency          | `self.inputLoad(task='name')`           | -                                  |
 | Load metadata                | `self.metaLoad(key=0)`                   | `flow.outputLoadMeta(Task)`        |
+| Stack a fan-out's branches   | `self.inputLoadConcat()`                | -                                  |
+| Group branches under one key | `self.inputLoad(flatten=False)`         | -                                  |
 
 Notes:
 - An OUTPUT is selected by name (`keys=`); a DEPENDENCY by name/index (`task=`,
@@ -191,6 +239,12 @@ Notes:
 - TRAP: `load()`/`inputLoad()` swallow unknown kwargs silently, so a wrong
   selector returns the whole/default output with NO error - e.g.
   `load(persist='a')` (the kwarg is `keys=`, not `persist=`).
+- `inputLoadConcat()` (fan-out only) stacks the branch outputs and TAGS each row
+  with that branch's parameters, so `groupby` works straight away; silence a tag
+  with `tagkeys=[...]` / `tag=False`. It WARNS if it would row-stack a shared
+  dependency in with the branches - pass `task='<group>'` for just the branches,
+  or `flatten=False` for one frame per group. See
+  [dynamic-dags.md](dynamic-dags.md).
 
 ### Loading Data from Upstream Tasks
 
@@ -321,8 +375,11 @@ flow.complete()  # Returns True if all tasks complete
 
 ```python
 # Reset (force re-run) - flow.reset is the preferred path
-flow.reset(TaskName)                      # specific task + downstream (no prompt by default)
+flow.reset(TaskName)                      # ONE task's own output (no prompt by default)
 flow.reset(TaskName, confirm=True)        # opt IN to a confirmation prompt
+flow.reset_downstream(TaskName)           # that task + everything between it and the terminal
+flow.reset_upstream(Anchor)               # Anchor + its whole upstream cone
+flow.reset_upstream(Anchor, only=Family)  # just that FAMILY within the cone (every instance)
 flow.resetAll()                           # entire workflow
 flow.run([TaskName()], forced_all=True)   # force this task + its upstream
 flow.run(forced_all_upstream=True)        # force everything
@@ -355,6 +412,14 @@ later, when the build evaluates `complete()`, and the two mechanisms differ:
   descending into its deps). A branch reached BEFORE the reset task is rebuilt sees
   the missing output and reruns; a branch reached AFTER sees it restored and stays
   CACHED on stale input. Propagation is therefore partial and order-dependent.
+
+`reset_upstream(Anchor, only=Family)` is the scoped form a FAN-OUT needs: it walks
+the full upstream cone to DISCOVER every instance of `Family` (every region, every
+`(sector, country)` pair) and invalidates only those, leaving the expensive
+neighbours cached - no hand-listing. All three take an ANCHOR task; there is no
+no-argument form on `Workflow`. This works only because the branches are real
+`requires()` edges - it is precisely what a loop inside `run()` gives up (see
+[dynamic-dags.md](dynamic-dags.md)).
 
 So with auto off, to invalidate a BAND use `flow.reset_downstream(TaskName)`, which
 deletes every complete task between it and the terminal. The terminal defaults to
@@ -529,7 +594,11 @@ See the escalation note in SKILL.md for the full signatures - confirm against th
 installed package (`inspect.signature(oryxflow.WorkflowMulti.outputLoad)`) rather
 than assuming.
 
-### Pattern 1b: Dynamic Task Creation
+### Pattern 1b: Generate the param sets for a WorkflowMulti sweep
+
+This builds a list of PARAM SETS (one independently-managed flow each) - it is not
+dynamic task creation. To generate one TASK per item inside a single DAG, use the
+fan-out in Pattern 3.
 
 ```python
 import oryxflow.utils
@@ -556,18 +625,38 @@ class RunAll(oryxflow.tasks.TaskJson):
         self.save({'status': 'complete', 'timestamp': datetime.now()})
 ```
 
-### Pattern 3: Nested Workflows
+### Pattern 3: Per-item fan-out (one task per list item)
+
+Declare one dependency per value and let a combining task stack them. Full
+decision table (fan-out vs `WorkflowMulti` vs a plain loop), hierarchies,
+shared-input stacking, and the migration recipe: [dynamic-dags.md](dynamic-dags.md).
 
 ```python
+@oryxflow.requires_each(RegionLoad, region=cfg.REGIONS)   # one RegionLoad PER region
+class RegionCombine(oryxflow.tasks.TaskPqPandas):
+    def run(self):
+        self.save(self.inputLoadConcat())   # stacks branches, tags each with `region`
+```
+
+`requires_each` copies `RegionLoad`'s parameters onto `RegionCombine` MINUS
+`region`, so downstream tasks go back to plain `@oryxflow.requires` and never learn
+that N branches existed. Add a region to `cfg.REGIONS` and only that branch runs.
+
+**ANTI-PATTERN - do not build a sub-`Workflow` inside a `run()` to iterate:**
+
+```python
+# WRONG: tasks started in run() are NOT dependencies
 class MasterTask(oryxflow.tasks.TaskPqPandas):
     def run(self):
-        results = []
         for region in ['US', 'EU', 'ASIA']:
             sub_flow = oryxflow.Workflow(ProcessRegion, params={'region': region})
-            sub_flow.run()
-            results.append(sub_flow.outputLoad())
-        self.save(pd.concat(results))
+            sub_flow.run()   # invisible to preview(), to the run summary, to reset
 ```
+
+Nothing can find those tasks: `flow.reset_upstream(MasterTask, only=ProcessRegion)`
+invalidates nothing and reports no error, so you change a region's logic, reset
+"just that step", re-run - and get the OLD numbers back with a green run. Declared
+as a fan-out, every reset reaches every branch and a failure names its parameters.
 
 ### Pattern 4: Incremental Processing
 

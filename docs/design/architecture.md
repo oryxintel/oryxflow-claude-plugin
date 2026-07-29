@@ -14,12 +14,13 @@ it points to them:
 
 A single-skill Claude Code plugin for working in oryxflow data-science projects
 (oryxflow = a data-pipeline library). It ships the `oryxflow` skill (model-
-activated guidance) and four manual commands - `/oryxflow:init-project` (scaffold
+activated guidance) and five manual commands - `/oryxflow:init-project` (scaffold
 a new project), `/oryxflow:init-gitlfs` (put `data/` under Git LFS),
 `/oryxflow:update-project` (reconcile an old project's scaffold floor to the latest
-template), and `/oryxflow:check-standards` (check code against the house standards -
-naming, style, docstrings). The repo is also its own marketplace, so it installs
-directly from git or a local path.
+template), `/oryxflow:check-standards` (check code against the house standards -
+naming, style, docstrings), and `/oryxflow:migrate` (restructure a messy
+notebook/script project into a pipeline). The repo is also its own marketplace, so
+it installs directly from git or a local path.
 
 ## Two interacting artifacts
 
@@ -41,11 +42,13 @@ Keep these straight - changes go to different places:
 | `skills/oryxflow/SKILL.md` | runtime behavior + essentials; frontmatter `description` drives activation | on activation |
 | `skills/oryxflow/reference.md` | full library reference (task types, patterns, silent-data-error guards) | on demand |
 | `skills/oryxflow/conventions.md` | house conventions (project layout, code-org-by-subject, naming columns/tasks/vars, scaling a growing project) | on demand |
+| `skills/oryxflow/dynamic-dags.md` | loop-shaped work: the fan-out decision table (`requires_each` vs `WorkflowMulti` vs a plain loop), hierarchies, shared-input stacking, gotchas, and the `for`-loop migration recipe | on demand |
 | `skills/oryxflow/ml-patterns.md` | ML task templates (features, training, SHAP, backtest) + prod lifecycle | on demand |
 | `commands/init-project.md` | `/oryxflow:init-project`; manual (`disable-model-invocation: true`) | on invoke |
 | `commands/init-gitlfs.md` | `/oryxflow:init-gitlfs`; manual (`disable-model-invocation: true`) | on invoke |
 | `commands/update-project.md` | `/oryxflow:update-project`; reconcile old project floor to latest scaffold; manual | on invoke |
 | `commands/check-standards.md` | `/oryxflow:check-standards`; check code against the house standards (naming, style, docstrings); manual. Points AT `conventions.md`/`SKILL.md` for the rules (does not restate them) | on invoke |
+| `commands/migrate.md` | `/oryxflow:migrate`; restructure a messy notebook/script project into a pipeline; PLAN-then-APPLY; manual. Points AT the skill files for the target shape | on invoke |
 | `resources/template-minimal/` | project scaffold (edited directly here) | copied by init |
 | `resources/template-prod/` | graduated run-tier add-ons (`run_prod.py`, `run_eda.py`); NOT copied by init - copied by hand when a project needs prod / comparison tiers | on graduation |
 | `docs/design/architecture.md` | this map | dev-time |
@@ -59,13 +62,16 @@ Keep these straight - changes go to different places:
 - **Always loaded**: the project's own `CLAUDE.md` (in a USER project); the root
   `CLAUDE.md` (in THIS repo). Keep lean.
 - **On skill activation**: `SKILL.md`.
-- **On demand**: `reference.md`, `conventions.md`, `ml-patterns.md`.
+- **On demand**: `reference.md`, `conventions.md`, `dynamic-dags.md`,
+  `ml-patterns.md`.
 
 Every line in an always/activation file is paid for on each load. This is why
 `SKILL.md` stays essentials-only and depth lives in the on-demand files (now
-three: `reference.md` = library API, `conventions.md` = house style for layout /
-code-org / naming, `ml-patterns.md` = ML templates), and why the
-architecture/playbook lives here, not in `CLAUDE.md`.
+four: `reference.md` = library API, `conventions.md` = house style for layout /
+code-org / naming, `dynamic-dags.md` = how to SHAPE a fan-out DAG,
+`ml-patterns.md` = ML templates), and why the architecture/playbook lives here,
+not in `CLAUDE.md`. Each on-demand file needs a TRIGGER in `SKILL.md` or it is
+never loaded - that is the always-loaded cost a new file buys.
 
 ## Control & data flows
 
@@ -127,6 +133,7 @@ data doc) is opt-in (`/oryxflow:oryxflow explore` or a plain-language request).
 | Task-type table / deep patterns / debugging / silent-data-error guards | `skills/oryxflow/reference.md` | - |
 | Project layout / code-org-by-subject / naming (column, task, df) | `skills/oryxflow/conventions.md` | - |
 | Scaling LAYOUT (graduated `tasks.py` split, spine, axes, app) | `skills/oryxflow/conventions.md` "Scaling up" | - |
+| Fan-out / loop-shaped DAGs (`requires_each`, `requires_grid`, hierarchies, grids, migration recipe) | `skills/oryxflow/dynamic-dags.md` | keep the SKILL.md "Per-item work" trigger in sync (a rule with no trigger is never loaded) |
 | ML pipeline templates | `skills/oryxflow/ml-patterns.md` | - |
 | PROD lifecycle (`params_prod`, `RunAll...Prod`, selective resets, notebook->pipeline) | `skills/oryxflow/ml-patterns.md` "Productionizing" | - |
 | Any scaffold/template file (wiring, `CLAUDE.md`, data doc, `.gitignore`) | `resources/template-minimal/` directly | bump version + floor stamp (next row) |

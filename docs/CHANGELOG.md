@@ -32,6 +32,103 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
      version + date, bump plugin.json to match, and add a fresh empty
      [Unreleased] back on top. See CLAUDE.md "Release". -->
 
+### Added
+- `skills/oryxflow/dynamic-dags.md` - a new on-demand skill file (the fourth) for
+  work shaped like a LOOP: the decision table that classifies each loop
+  (`@oryxflow.requires_each` fan-out vs `WorkflowMulti` vs a plain loop inside
+  `run()`), the fan-out threshold ("would I re-run just this branch?"),
+  iterate-and-aggregate hierarchies, stacking a fan-out with a shared dependency,
+  fan-out when the qualifying list is not known until the data is read, a gotchas
+  list, and a step-by-step recipe for porting a migration source's `for` loops.
+  Needs `oryxflow >= 26.7.28`.
+- `dynamic-dags.md` "A setting that follows from the fanned value: `derive=`" -
+  `@oryxflow.requires_each(..., derive={'source': lambda v: cfg.SOURCE[v['region']]})`
+  for a per-branch setting determined BY the fanned value. The callable takes the
+  branch's fanned values dict (never `self`). Why it is not optional: the same
+  lookup written `cfg.SOURCE[self.region]` inside `run()` never reaches the
+  branch's `task_id`, so editing the mapping returns the OLD output with no
+  warning - and on a paid-API fan-out that silence costs money. Also warns against
+  fanning out over the lookup instead (`requires_grid` would take the cartesian
+  product: N^2 branches).
+- `dynamic-dags.md` migration step 6 - before converting a nested-flow loop, CHECK
+  where the inner `oryxflow.Workflow(...)` was writing. It usually carried
+  different `path`/`env` settings from the outer flow (often none, so it wrote to
+  the default `data/` while the outer runs under `data/env=<env>/`). Convert
+  blindly and the branches are read from a path they were never written to: the
+  cache reads empty and every item re-runs, with nothing to warn because "no output
+  there" and "never ran" are indistinguishable. Report the directory delta and let
+  the user choose to move the outputs or accept a knowing recompute.
+- `skills/oryxflow/SKILL.md` "Per-item work: DECLARE the fan-out, never loop inside
+  `run()`" - the always-on TRIGGER for the above (a rule with no trigger is never
+  loaded), plus `@oryxflow.requires_each` in Core Concepts, the
+  `oryxflow >= 26.7.28` feature gate in the compatibility block, and a
+  `when_to_use` clause so "for each region / model / file" activates the skill.
+- `skills/oryxflow/reference.md` - `@oryxflow.requires_each` / `Task.requires_grid`
+  / decorator STACKING under "Dependencies"; `self.inputLoadConcat()` and
+  `self.inputLoad(flatten=False)` in the load/save cheat-sheet (including the
+  shared-dependency row-stacking warning); `flow.reset_upstream(Anchor,
+  only=Family)` in the reset block - the scoped form a fan-out needs, which
+  discovers every branch instance through the DAG.
+- `skills/oryxflow/reference.md` - `TaskMarkdown` added to the task-type table
+  (markdown + HTML; narrative text a task generates), the type the fan-out report
+  example uses.
+- `skills/oryxflow/ml-patterns.md` "Comparing model variants in ONE flow (fan-out)"
+  - fan out over `model`, converge on a combining task, keep the shared feature
+  build cached; plus the multi-knob cartesian form.
+
+### Changed
+- BREAKING: `skills/oryxflow/reference.md` "Pattern 3: Nested Workflows" and
+  `skills/oryxflow/ml-patterns.md`'s `RunAll...Prod` template both TAUGHT the
+  anti-pattern - a `oryxflow.Workflow` built per item inside a `run()`. Tasks
+  started there are not `requires()` edges, so `flow.reset_upstream(Final,
+  only=Family)` invalidates nothing and reports no error, `preview()` cannot show
+  the branches, and the run summary does not count them: an edited branch serves
+  STALE numbers under a green run. Both are rewritten as declared fan-outs, with
+  the old form kept as a labelled ANTI-PATTERN block. `RunAll...Prod` additionally
+  moves its selective reset out of the task and into `run_prod.py`, scoped with
+  `reset_upstream(..., only=DataSource)`. Migration: replace any
+  `for x in ...: oryxflow.Workflow(...)` inside a `run()` with
+  `@oryxflow.requires_each(Dep, x=cfg.LIST)` on the combining task; run
+  `/oryxflow:check-standards` to review.
+- `skills/oryxflow/reference.md` "Pattern 1b: Dynamic Task Creation" renamed to
+  "Generate the param sets for a WorkflowMulti sweep" - it builds param sets for
+  independent flows, not tasks, and the old title now collides with the real
+  per-item fan-out.
+- `skills/oryxflow/reference.md` records three library errors that were previously
+  silent (`oryxflow >= 26.7.28`): a hand-written `requires()` plus a dependency
+  decorator now raises `TypeError`; a combining task that also declares the
+  fanned-out Parameter raises `TypeError` (it used to put one branch's value into
+  the combining task's identity - N cached copies at N times the cost); two
+  dependencies resolving to the same key raise `ValueError`; and a fanned-out or
+  derived name that is not a Parameter of the dependency raises `TypeError` naming
+  the ones it does have (it used to give N keys pointing at ONE task, so
+  `inputLoadConcat()` returned N copies of a single output tagged as separate
+  branches). Also the `oryxflow.utils.requires_grid(...)` ->
+  `Task.requires_grid(...)` move, and the reserved-Parameter-name `ValueError`,
+  now covering all four names the engine owns - `path`, `flows`, `cls`, `derive`
+  (rename to `file` / `filename`, `model_cls`, `derive_features`).
+- `commands/migrate.md` - loops are now a first-class inventory item in step 2
+  ("The loops": classify each before porting), step 1 loads `dynamic-dags.md` when
+  the source has loops, step 4 wires per-item steps with `requires_each`, and step
+  5 adds a fan-out one branch at a time. Also corrects step 5's stale
+  reset-before-run instruction: auto invalidation reruns an edited task
+  (`oryxflow >= 26.7.12`) - verify `result.ran` instead.
+- `skills/oryxflow/conventions.md` "Run tiers by lifecycle" - a `RunAll...Prod`
+  that covers a prod AXIS fans out rather than looping; the selective reset is
+  scoped with `reset_upstream(FinalTask, only=DataSource)` so adding a variant
+  needs no edit. `resources/template-prod/run_prod.py` comments updated to match
+  (`WorkflowMulti` = separately managed variants; fan-out = one cached
+  deliverable). No scaffold-floor change - `template-prod/` is a hand-copied
+  add-on.
+- `docs/design/architecture.md` - `dynamic-dags.md` added to the component table,
+  load tiers, and the where-to-change playbook; the missing `commands/migrate.md`
+  row and command count corrected.
+- `docs/design/design-notes.md` - why the on-demand depth is now split FOUR ways
+  (and the bar a fifth file must clear), plus "Fan-out is DECLARED, never looped
+  inside `run()`": why the loop's failure mode is silent and delayed, why the
+  anti-pattern is shown rather than deleted, and why the threshold guards both
+  directions.
+
 ## [26.7.28] - 2026-07-28
 
 ### Fixed
