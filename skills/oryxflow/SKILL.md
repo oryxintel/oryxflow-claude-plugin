@@ -115,8 +115,9 @@ On a plain load with no specific task, orient cheaply and STOP:
    real but ad-hoc data-science work - notebooks / linear scripts, not an empty
    dir - name `/oryxflow:migrate` as the fitting path: init-project first, then
    migrate restructures that work into the pipeline.
-1. Otherwise read the `tasks.py` docstrings and `docs/oryxflow-data.md`. If
-   markers are gone, trust them.
+1. Otherwise read the `tasks*.py` docstrings (module docstrings first if the
+   project split into topic modules) and `docs/oryxflow-data.md`. If markers are
+   gone, trust them.
 2. `tasks.py` still carries `PLACEHOLDER SCAFFOLD` -> fresh scaffold; else ->
    built pipeline (data doc maybe just not written yet).
 3. Report the state in a sentence or two and ask what the user wants. Built
@@ -199,8 +200,10 @@ into one shape):
 - **A separable subsystem appears** (an app, an LLM/reporting layer, an alt data
   source) -> offer to carve it into its own module / subdir package.
 - **A genuinely long `tasks.py`** (~1000 lines / ~20+ tasks, or scroll-to-find
-  pain) -> offer comment section-headers, then a split into `tasks_<phase>.py`
-  behind a slim spine.
+  pain) -> offer comment section-headers, then a split into `tasks_<topic>.py`
+  behind a slim spine. If the user ASKS for topic modules, just do it - an
+  explicit request beats the deferral, and past the split `tasks_<topic>.py` is
+  the normal shape (add the next one as the topic appears).
 
 Nudge MID-EDIT, on these triggers - NOT on raw task count (one sectioned file
 scales far past 500 lines, so "you have 10 tasks, split it" is wrong) and NOT on
@@ -276,10 +279,12 @@ is hand-curated, or its output is not a table/serializable object a task stores,
 which stays a maintenance script. A probe writes no pipeline artifact to `data/`;
 disposable scratch (an iterated cache, an intermediate to eyeball) goes to
 `data/.eda/<subject>/` (gitignored, regenerable), never beside task outputs.
-As a project GROWS (long `tasks.py`, going to prod, a separable subsystem),
-conventions.md "Scaling up" has the graduated path: naming families -> comment
-section-headers -> split into `tasks_<phase>.py` modules behind a slim `tasks.py`
-spine; one `flow_params.py` with `params` + frozen `params_prod`.
+As a project GROWS (long `tasks.py`, going to prod, a separable subsystem, or the
+user asks), conventions.md "Scaling up" has the graduated path: naming families ->
+comment section-headers -> split into `tasks_<topic>.py` modules behind a slim
+`tasks.py` spine that imports those MODULES - never re-export their tasks through
+it (a consumer does `import tasks_reports` and names `tasks_reports.ReportX`); one
+`flow_params.py` with `params` + frozen `params_prod`.
 
 **Column naming**: carry ONE canonical `snake_case` name per column - rename raw
 codes once at ingestion, never re-alias downstream (no code->display->code
@@ -301,8 +306,8 @@ NEVER: `python -c "import oryxflow; flow = oryxflow.Workflow(...); flow.run()"`
 
 ALWAYS:
 
-- **Modify logic** - Edit `tasks.py` (task classes), `flow_params.py`
-  (parameters), or `flow.py` (which final task runs).
+- **Modify logic** - Edit `tasks.py` / the owning `tasks_<topic>.py` (task
+  classes), `flow_params.py` (parameters), or `flow.py` (which final task runs).
 - **Run** - Edit `run.py` if needed, then `python run.py`. If a task's CODE was
   just edited, auto invalidation reruns it and its downstream on the run - just
   VERIFY the edited band shows in `result.ran` (see "Modify an existing task").
@@ -568,7 +573,9 @@ Include a short snippet only when it is the clearest way to state a contract
 the data doc.
 
 ### Add a new task
-1. Define it in `tasks.py`, named for its output, with a real docstring:
+1. Define it in `tasks.py` - or, once the project has split, in the
+   `tasks_<topic>.py` that OWNS the topic (and leave it there: no re-export
+   through `tasks.py`) - named for its output, with a real docstring:
 ```python
 @oryxflow.requires(DataOEWS)
 class OEWSWages(oryxflow.tasks.TaskPqPandas):

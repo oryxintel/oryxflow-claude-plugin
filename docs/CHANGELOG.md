@@ -142,6 +142,25 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
   inside `run()`": why the loop's failure mode is silent and delayed, why the
   anti-pattern is shown rather than deleted, and why the threshold guards both
   directions.
+- Splitting `tasks.py` is RELAXED, and the modules are now `tasks_<topic>.py`
+  rather than `tasks_<phase>.py` (`<topic>` covers both split axes, and real names
+  are subsystem-shaped: `tasks_sources.py`, `tasks_reports.py`). Two additions:
+  an explicit USER REQUEST is its own sufficient trigger - split it, do not defend
+  the single file - and past the first split `tasks_<topic>.py` is the normal
+  shape, so a new topic module does not have to re-earn the ~1000-line bar.
+  `skills/oryxflow/conventions.md` ("Scaling `tasks.py`", the `tasks.py` file
+  description), `skills/oryxflow/SKILL.md` (graduation trigger, "Code
+  organization"), `resources/template-minimal/CLAUDE.md`.
+- A task now gets ADDED to the module that owns its topic, stated where tasks get
+  added rather than only in the on-demand tier - `skills/oryxflow/SKILL.md` "Add a
+  new task" / "Modify logic" and `resources/template-minimal/CLAUDE.md` said task
+  code lives in `tasks.py`, which a split project satisfies by re-exporting every
+  task from every topic module (seen in a real project). The ban already existed in
+  `conventions.md`; it now also names the pressure (re-export keeps `tasks.X`
+  working in `flow.py` / `visualize.py` / notebooks / `eda/`) and the cost (a second
+  edit per task to stay reachable; one import line hands every consumer the whole
+  DAG) - update the consumer to `import tasks_reports` instead. Orientation reads
+  `tasks*.py` docstrings, not just `tasks.py`.
 
 ## [26.7.28] - 2026-07-28
 

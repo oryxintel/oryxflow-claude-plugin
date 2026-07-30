@@ -390,9 +390,10 @@ class Process(oryxflow.tasks.TaskPqPandas):
 
 Best practices: start with one file and keep it that way far longer than feels
 natural - a sectioned single file scales past 500 lines fine. Split into
-`tasks_<phase>.py` modules only once it is genuinely long or a separable
-subsystem appears; see "Scaling up" below for the full graduated progression.
-Keep tasks focused and documented. Import `cfg` for centralized configuration.
+`tasks_<topic>.py` modules once it is genuinely long, a separable subsystem
+appears, or the user asks; see "Scaling up" below for the full graduated
+progression. Keep tasks focused and documented. Import `cfg` for centralized
+configuration.
 
 #### `cfg.py` - Global Configuration
 
@@ -552,17 +553,24 @@ strains - you keep one file as long as it stays navigable:
   # Model layer - train + evaluate (parallel to the feature layer above)
   # ===========================================================================
   ```
-- **d. Split into modules** - only when the file is GENUINELY long (rough signal
-  ~1000 lines / ~20+ tasks, or "scrolling to find a task" pain) OR a separable
-  subsystem has emerged. Cut along the section seams from step c. This is
-  cache-safe: a task's identity is its CLASS NAME (`task_family`), not its module
-  path, so moving a class from `tasks.py` to `tasks_model.py` does NOT invalidate
-  its `data/<Class>/` cache. (RENAMING a class still orphans the old cache - see
-  "Stale caches on rename"; only MOVING is free.)
+- **d. Split into `tasks_<topic>.py` modules** - when the file is GENUINELY long
+  (rough signal ~1000 lines / ~20+ tasks, or "scrolling to find a task" pain), a
+  separable subsystem has emerged, or THE USER ASKS. An explicit request is reason
+  enough - split it, don't defend the single file. Cut along the section seams from
+  step c. This is cache-safe: a task's identity is its CLASS NAME (`task_family`),
+  not its module path, so moving a class from `tasks.py` to `tasks_model.py` does
+  NOT invalidate its `data/<Class>/` cache. (RENAMING a class still orphans the old
+  cache - see "Stale caches on rename"; only MOVING is free.)
+
+Past the split, `tasks_<topic>.py` is the NORMAL shape, not a concession - a
+grown project reads better as `tasks_sources.py` / `tasks_reports.py` than as one
+3000-line file. Add the next topic module as the topic appears; you do not have to
+re-earn the ~1000-line trigger each time.
 
 ### Two split axes
 
-When you do split (step d), there are two orthogonal ways to cut:
+When you do split (step d), there are two orthogonal ways to cut - `<topic>` is
+whichever one you used:
 
 - **Phase axis** - break up the main pipeline by stage: `tasks_features.py` /
   `tasks_model.py` / `tasks_eval.py`. Each module imports the UPSTREAM phase only
@@ -579,18 +587,24 @@ When you do split (step d), there are two orthogonal ways to cut:
 
 After splitting, `tasks.py` stays - it holds the pipeline-overview module
 docstring (the project-goal home this convention mandates) plus the orchestration
-tasks (`RunAll`, and a prod twin if any), and it imports the phase modules. The
-phase/subsystem modules hold the actual work; a cross-module dependency imports
-the specific sibling module directly. Do NOT build an aggregator module that
-re-exports every task - direct imports keep the graph acyclic and are what real
-projects use.
+tasks (`RunAll`, and a prod twin if any), and it imports the topic MODULES (not
+their names). The topic modules hold the actual work; a cross-module dependency
+imports the specific sibling module directly.
+
+Do NOT re-export the tasks - no `from tasks_reports import *`, no import listing
+every class. The pressure to do it is real (it keeps `tasks.X` working in
+`flow.py`, `visualize.py`, notebooks, and `eda/` probes) and you pay for it: every
+new task needs a second edit to stay reachable, and one import line hands every
+consumer the whole DAG. Update those consumers instead - `import tasks_reports`,
+then `tasks_reports.ReportSummary`. An import naming the owning module is also
+what tells a reader where the task lives.
 
 ```python
 # tasks.py (the spine, after splitting)
 """<Project goal: what the pipeline produces and why - top-level project doc.>"""
 import oryxflow
 import cfg
-import tasks_features, tasks_model, tasks_eval   # phase modules (the work)
+import tasks_features, tasks_model, tasks_eval   # topic modules (the work)
 
 @oryxflow.requires(tasks_eval.ModelEval)
 class RunAll(oryxflow.tasks.TaskJson):

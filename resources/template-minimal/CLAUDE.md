@@ -88,9 +88,9 @@ do not ask.
   skill's `conventions.md` "Naming".
 - No try/except wrapping. Let code fail natively so errors surface (except in
   throwaway `eda/` code, or when the user asks for it).
-- Edit the flow files, do not improvise: `tasks.py` (task classes),
-  `flow_params.py` (parameters), `flow.py` (which final task runs), `run.py`
-  (execute). Run the workflow with `python run.py`.
+- Edit the flow files, do not improvise: `tasks.py` / `tasks_<topic>.py` (task
+  classes), `flow_params.py` (parameters), `flow.py` (which final task runs),
+  `run.py` (execute). Run the workflow with `python run.py`.
 - Edited a task's logic? Just run - auto invalidation reruns that task and
   everything downstream. Caching is by identity (class + params), NOT code, but
   each task also hashes its `run()`, the helpers it calls, and the module-level
@@ -134,8 +134,11 @@ do not ask.
   `result.did_run(Task)` - do not scrape the log to see what ran or broke.
 - `from flow import flow` everywhere - one workflow instance, imported.
 - This project can scale: keep one `tasks.py` (use comment section-headers as it
-  grows) and split into `tasks_<phase>.py` modules only when genuinely long or a
-  separable subsystem appears. The plugin's "Scaling up" guidance has the path.
+  grows) and split into `tasks_<topic>.py` modules when it is genuinely long, a
+  separable subsystem appears, or the user asks. Past that split, a new task goes
+  in the module that OWNS its topic and `tasks.py` imports the MODULES - never
+  re-export their tasks through it; a consumer does `import tasks_reports` and
+  names `tasks_reports.ReportX`. The plugin's "Scaling up" guidance has the path.
 
 ## Files
 

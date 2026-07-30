@@ -257,12 +257,30 @@ The model itself, and the forks decided:
   d) cuts along the section seams already drawn. Splitting on raw task count is
   explicitly wrong - hence the proactivity triggers below are file-length /
   prod / subsystem, NOT count.
+- **The deferral is a default, not a position to defend.** Two relaxations were
+  added after a real project showed the rule read as a prohibition: an explicit
+  user request is its own sufficient trigger (the deferral exists to stop
+  PREMATURE splitting, not to argue with a decision already made), and past the
+  first split `tasks_<topic>.py` is the normal shape - a new topic module does not
+  have to re-earn the ~1000-line bar, or the guidance would push a grown project
+  back toward a monolith. Docs say `tasks_<topic>.py`, not `tasks_<phase>.py`:
+  `<topic>` covers both split axes, and observed real names are subsystem-shaped
+  (`tasks_sources`, `tasks_reports`).
 - **A slim `tasks.py` spine, NOT a re-export aggregator.** When the file splits,
   `tasks.py` stays as the home of the project-goal module docstring (our
   convention mandates one, and it needs a stable home) plus the orchestration
   tasks; phase modules hold the work and import the specific sibling they depend
   on. An aggregator that re-exports every task was rejected: it invites import
-  cycles and no studied real project used one (all use direct imports).
+  cycles and no studied real project used one (all use direct imports). A real
+  project then built one anyway, so the docs now name the PRESSURE rather than just
+  the verdict: re-exporting keeps `tasks.X` working in `flow.py` / `visualize.py` /
+  notebooks / `eda/` after a split, which is exactly what an agent reaches for when
+  the guidance it loaded says task code lives in `tasks.py`. Hence two matching
+  fixes - "add the task to the module that OWNS the topic" is stated where a task
+  gets added (SKILL.md "Add a new task", the project `CLAUDE.md`), and the cost is
+  stated next to the ban (a second edit per task to stay reachable; one import
+  hands every consumer the whole DAG). The alternative is cheap: update the
+  consumer to `import tasks_reports`.
 - **Two split axes: phase and subsystem.** Phase (`tasks_features/model/eval`)
   breaks up the main pipeline and imports UPSTREAM-ONLY, so the graph is acyclic
   by construction. Subsystem (an app, an LLM layer, an alt source) is just the
