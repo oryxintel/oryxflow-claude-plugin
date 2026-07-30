@@ -170,7 +170,7 @@ https://docs.oryxflow.dev/docs/managing-workflows/index.md); fetch those rather
 than guessing at library behavior. The INSTALLED package still wins on any
 conflict.
 
-<!-- oryxflow-floor: 26.7.28 (plugin version of the last scaffold-floor change;
+<!-- oryxflow-floor: 26.7.29 (plugin version of the last scaffold-floor change;
      the skill compares this to detect a stale floor - do not edit by hand,
      /oryxflow:update-project maintains it) -->
 

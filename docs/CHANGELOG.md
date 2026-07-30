@@ -32,6 +32,8 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
      version + date, bump plugin.json to match, and add a fresh empty
      [Unreleased] back on top. See CLAUDE.md "Release". -->
 
+## [26.7.29] - 2026-07-29
+
 ### Added
 - `skills/oryxflow/dynamic-dags.md` - a new on-demand skill file (the fourth) for
   work shaped like a LOOP: the decision table that classifies each loop
@@ -142,7 +144,7 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
   inside `run()`": why the loop's failure mode is silent and delayed, why the
   anti-pattern is shown rather than deleted, and why the threshold guards both
   directions.
-- Splitting `tasks.py` is RELAXED, and the modules are now `tasks_<topic>.py`
+- BREAKING: splitting `tasks.py` is RELAXED, and the modules are now `tasks_<topic>.py`
   rather than `tasks_<phase>.py` (`<topic>` covers both split axes, and real names
   are subsystem-shaped: `tasks_sources.py`, `tasks_reports.py`). Two additions:
   an explicit USER REQUEST is its own sufficient trigger - split it, do not defend
@@ -150,7 +152,10 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
   shape, so a new topic module does not have to re-earn the ~1000-line bar.
   `skills/oryxflow/conventions.md` ("Scaling `tasks.py`", the `tasks.py` file
   description), `skills/oryxflow/SKILL.md` (graduation trigger, "Code
-  organization"), `resources/template-minimal/CLAUDE.md`.
+  organization"), `resources/template-minimal/CLAUDE.md` - so the scaffold floor
+  baseline moves to `26.7.29`: an existing project's `CLAUDE.md` keeps an
+  always-loaded line that now contradicts the shipped skill. Migration:
+  `/oryxflow:update-project`.
 - A task now gets ADDED to the module that owns its topic, stated where tasks get
   added rather than only in the on-demand tier - `skills/oryxflow/SKILL.md` "Add a
   new task" / "Modify logic" and `resources/template-minimal/CLAUDE.md` said task
@@ -160,7 +165,8 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
   working in `flow.py` / `visualize.py` / notebooks / `eda/`) and the cost (a second
   edit per task to stay reachable; one import line hands every consumer the whole
   DAG) - update the consumer to `import tasks_reports` instead. Orientation reads
-  `tasks*.py` docstrings, not just `tasks.py`.
+  `tasks*.py` docstrings, not just `tasks.py`. Same floor bump / same migration as
+  the bullet above.
 
 ## [26.7.28] - 2026-07-28
 

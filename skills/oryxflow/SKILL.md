@@ -129,7 +129,7 @@ run `eda/` scripts, or build the docs - that is opt-in exploration (below).
 
 While orienting, read the floor stamp in the project's `CLAUDE.md`
 (`<!-- oryxflow-floor: VERSION -->`). If it is missing, or its VERSION is older
-than the current floor baseline **26.7.28**, the scaffold floor predates the
+than the current floor baseline **26.7.29**, the scaffold floor predates the
 current template - suggest the user run `/oryxflow:update-project` to reconcile it
 (one line; do not nag or auto-run it).
 
