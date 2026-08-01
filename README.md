@@ -1,18 +1,19 @@
-# oryxflow - the Claude Code data-science plugin for faster, cheaper, more trustworthy AI data analysis
+# oryxflow - the Claude Code data-science plugin for trustworthy, reproducible AI data analysis
 
 [oryxflow](https://github.com/oryxintel/oryxflow) is a data-science plugin for
-**Claude Code** that makes an AI coding agent's data analysis reproducible. It
-teaches the agent to build your work as a cached, reproducible pipeline - reusing
-expensive results, rerunning only what your code or parameters change, and never
-building on stale data. The payoff: **faster, cheaper, and more trustworthy AI
-data analysis**.
+**Claude Code** that makes an AI coding agent's data analysis **trustworthy and
+reproducible**. It teaches the agent to build your work as a pipeline that reruns
+exactly what your code, data, or parameters change - so a number can never quietly
+sit on stale inputs - and records what produced every result. Because finished
+work is reused rather than recomputed, that guarantee costs you less time, not
+more.
 
 An AI coding agent's real weakness in data work isn't syntax - it's invisible
 state. Over a long session it loses track of what is already computed and whether
-it is still valid, then trains on stale features or re-runs a 40-minute job it did
-not need to. oryxflow externalizes that state into a cache and a lineage log, and
-the plugin - a skill plus slash commands - makes the agent a disciplined user of
-it: it reads cache state at the start of a session, verifies after each edit that
+it is still valid, then trains on stale features and hands you a plausible number
+that nothing flags as wrong. oryxflow externalizes that state, and the plugin - a
+skill plus slash commands - makes the agent a disciplined user of it: it reads
+what is actually current at the start of a session, verifies after each edit that
 the right tasks actually reran, and leaves a queryable record of what ran and why.
 
 It ships one skill, `oryxflow`, that activates when you work in a oryxflow project
@@ -21,14 +22,15 @@ or modifying pipeline tasks, running workflows, or analyzing outputs.
 
 ## Why use oryxflow for data science in Claude Code?
 
-- **Faster and cheaper** - the agent reuses cached results instead of paying to
-  recompute an expensive step it already ran.
-- **More trustworthy** - code-change invalidation reruns exactly what your edit
+- **Trustworthy** - code-change invalidation reruns exactly what your edit
   affected, and the skill verifies the rerun actually happened, so a result can
   never quietly sit on stale data.
-- **Reproducible by default** - a greppable JSONL lineage log records what data
-  and code produced each result, so it persists across sessions and stays
-  auditable.
+- **Reproducible** - a greppable JSONL lineage log records what data and code
+  produced each result, so it survives across sessions and stays auditable months
+  later.
+- **And cheaper, not more expensive** - keeping the two above true normally means
+  rerunning everything. It doesn't here: the agent reuses finished results instead
+  of paying to recompute a step it already ran.
 
 The full story is in the docs:
 [Build with Claude Code](https://docs.oryxflow.dev/docs/claude-plugin/) and

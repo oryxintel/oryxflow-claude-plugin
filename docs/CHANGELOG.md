@@ -32,6 +32,13 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
      version + date, bump plugin.json to match, and add a fresh empty
      [Unreleased] back on top. See CLAUDE.md "Release". -->
 
+### Changed
+- `README.md`, `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`
+  descriptions now lead with TRUST, then REPRODUCIBILITY, and place caching third
+  as the mechanism rather than the promise. Caching is an implementation detail;
+  what a user gets is a number that cannot sit on stale inputs and a result they
+  can regenerate later. No behavior change - copy only.
+
 ## [26.7.29] - 2026-07-29
 
 ### Added

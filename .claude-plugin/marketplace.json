@@ -4,12 +4,12 @@
     "name": "Oryx Intelligence LLC",
     "email": "dev@oryxintel.com"
   },
-  "description": "Oryx Intelligence marketplace - faster, cheaper, more trustworthy AI data analysis in Claude Code. Home of the oryxflow plugin, which builds your data-science work as a reproducible, cached pipeline that reruns only what your code or parameters change.",
+  "description": "Oryx Intelligence marketplace - trustworthy, reproducible AI data analysis in Claude Code. Home of the oryxflow plugin, which stops your coding agent building on stale data and records what produced every result.",
   "plugins": [
     {
       "name": "oryxflow",
       "source": "./",
-      "description": "Faster, cheaper, more trustworthy AI data analysis in Claude Code - the oryxflow plugin builds your data-science work as a reproducible, cached pipeline that reruns only what your code or parameters change."
+      "description": "Trustworthy, reproducible AI data analysis in Claude Code - the oryxflow plugin stops your coding agent building on stale data, verifies its own reruns, and records what produced every result."
     }
   ]
 }
