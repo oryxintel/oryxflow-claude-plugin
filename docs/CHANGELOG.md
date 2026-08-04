@@ -32,6 +32,22 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
      version + date, bump plugin.json to match, and add a fresh empty
      [Unreleased] back on top. See CLAUDE.md "Release". -->
 
+### Added
+- `reference.md` / `SKILL.md` - `flow.dependents(X)` / `flow.dependencies(X)`: ask
+  the DAG "what depends on X" / "what does X depend on" instead of `grep` or a
+  hand-rolled `requires()` walk. Accepts a class OR a `'family'` string (the string
+  never instantiates, so it works for a mid-DAG / fanned-out family); `paths=True`
+  gives the distinct routes. Placed next to `reset_downstream` (the read-only
+  companion, same graph walk), in the debug sections, and the Quick References.
+  Requires the oryxflow release that adds `Workflow.dependents` / `Workflow.dependencies`.
+- `reference.md` "Loading Data from Upstream Tasks" / `SKILL.md` "Modify an existing
+  task" + "Debug workflow issues" - the dead-dependency trap and `flow.check_inputs()`:
+  a declared `@requires` whose data `run()` never reads still forces its whole
+  upstream band on every cold build. `preview()`/`run()` warn (`UnusedInputWarning`,
+  joins `RunResult.warnings`); the fix is two deletions and needs no reset. Stated as
+  a DIFFERENT question from `dependents()` (real edge vs. dead data). Requires the
+  oryxflow release that adds `Workflow.check_inputs`.
+
 ## [26.8.2] - 2026-08-02
 
 ### Added

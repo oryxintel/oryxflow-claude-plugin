@@ -319,6 +319,37 @@ Selection rules - `self.input()` mirrors `requires()`:
 (For the by-name vs by-index rule and the silent-unknown-kwarg trap, see the
 cheat-sheet above.)
 
+**Every declared dependency must actually be READ.** A frame that is unpacked and
+discarded still forces its whole upstream band to be computed on every cold build -
+the scheduler honours the DECLARATION, not the usage. It is the classic slow-cold-build
+cause: a heavy upstream task (a long backtest, a big refit) is dragged in by a report
+that never looks at its output.
+
+```python
+@oryxflow.requires(ModelTrain, FeaturesTransform, SlowBacktest)
+class PredictRecent(oryxflow.tasks.TaskPqPandas):
+    def run(self):
+        df_model, df_feat, df_slow = self.inputLoad()
+        # df_slow is loaded and never used again -> SlowBacktest still runs every cold build
+        self.save(predict(df_model, df_feat))
+```
+
+`flow.check_inputs()` finds these (static AST read of each `run()`); `preview()` and
+`run()` warn about them automatically (a `UnusedInputWarning` that also joins
+`RunResult.warnings`, deduped per family). The fix is TWO deletions - the `@requires`
+argument AND its unpack binding - and **no reset is needed**: task identity is class +
+parameters, not dependencies, so removing a dead dependency does not change the
+dependent's identity and its cached output stays valid (the output is provably unchanged
+because the input was never read). Note `check_inputs()` reports three verdicts -
+`unused` / `clean` / `unanalyzed` - and a silent (`unanalyzed`) task is UNCHECKED, not
+blessed; coverage is well under 100% on any real project, so "found nothing" means "no
+*provable* dead deps", not "none exist". Suppress a deliberately-unused dependency
+(declared for ordering, or a side effect) with a `# oryxflow: input-unused` comment on the
+decorator. This is a DIFFERENT question from `flow.dependents()` (below): `dependents()`
+asks *does anything depend on X* and correctly reports a dead edge as a real edge;
+`check_inputs()` asks *is a declared edge actually used*. Neither substitutes for the
+other.
+
 ### Saving Multiple Outputs
 
 ```python
@@ -409,6 +440,13 @@ flow.reset_upstream(Anchor, only=Family)  # just that FAMILY within the cone (ev
 flow.resetAll()                           # entire workflow
 flow.run([TaskName()], forced_all=True)   # force this task + its upstream
 flow.run(forced_all_upstream=True)        # force everything
+
+# Ask the graph "what depends on X?" - DON'T grep or hand-roll a requires() walk
+flow.dependents(TaskName)                 # set of tasks between the root and X (reverse lookup)
+flow.dependents('TaskName')               # by family STRING - no instantiation, works mid-DAG
+flow.dependents(TaskName, paths=True)     # the ordered root->X routes (how MANY distinct paths)
+flow.dependencies(TaskName)               # X's full upstream cone (forward lookup)
+flow.check_inputs()                       # declared deps whose data run() never reads (see above)
 
 # Load outputs
 result = flow.outputLoad()                # Final task
@@ -958,6 +996,15 @@ class TrainModel(oryxflow.tasks.TaskPqPandas):
 - **Parameters not affecting task**: Check `significant=False` or parameter type
 - **Cannot load multiple outputs**: Mismatch between `persists` list and `save()` count
 - **Metadata not loading**: Not saved, or loading from wrong task (use `metaLoad(key=0)` for first dependency)
+- **Cold build slower than the work justifies / "why does this report drag in a heavy task"**:
+  a declared dependency whose data `run()` never reads still forces its whole upstream band.
+  Run `flow.check_inputs()` (or read the `UnusedInputWarning` in `preview()`/`run()` output) -
+  see "Loading Data from Upstream Tasks". This is NOT answered by a graph query: the edge is
+  real, only the data is dead.
+- **"What depends on this task?" / is a heavy task reachable, and by how many routes**: use
+  `flow.dependents(X)` (a class OR family string; `paths=True` for the distinct routes) - NOT
+  `grep` (it can't tell a real edge from a mention or scope to this flow) and NOT a hand-rolled
+  `requires()` walk. `flow.dependencies(X)` is the forward (upstream) direction.
 
 ---
 
@@ -1016,6 +1063,12 @@ result = flow.outputLoad()
 
 # Force re-run
 flow.reset(TaskName); flow.run()
+
+# Ask the graph, don't grep
+flow.dependents(TaskName)                 # what depends on X (reverse; class or 'family' string)
+flow.dependents(TaskName, paths=True)     # the distinct root->X routes
+flow.dependencies(TaskName)               # X's upstream cone (forward)
+flow.check_inputs()                       # declared deps whose data run() never reads
 
 # Multiple outputs
 class MyTask(oryxflow.tasks.TaskPqPandas):

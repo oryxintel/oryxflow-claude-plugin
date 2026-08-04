@@ -651,6 +651,16 @@ and the migration recipe: [dynamic-dags.md](dynamic-dags.md) (needs oryxflow >=
      commented-out toggle line in `run.py`. NOT bare `flow.reset` - it deletes one
      task's output only (see "Reset invalidates ONE task").
 
+**Remove the last use of an input**: when you delete the last reference to a frame
+in `run()`, delete the matching `@requires` argument AND its unpack binding in the
+same edit. Leaving the declaration behind keeps that dependency's WHOLE upstream
+band in every cold build to produce a frame nobody reads (a real, silent slow-build
+cause - a heavy backtest/refit dragged in for nothing). No reset is needed: task
+identity is class + parameters, not dependencies, so the dependent's cached output
+stays valid (the output can't have depended on data `run()` never read).
+`flow.check_inputs()` and the `UnusedInputWarning` in `preview()`/`run()` catch a
+stranded one if you miss it.
+
 **Add / remove / rename an output column** is this same loop: edit `run()`, update
 the docstring's `Out:` column list to match, then re-run and verify. Adding is
 safe; REMOVING or renaming a column breaks any downstream task that read it - auto
@@ -697,11 +707,31 @@ params['window'] = 90
 
 ### Debug workflow issues
 ```python
-flow.preview()                         # Preview what will run
-flow.complete()                        # Check completion
-df = flow.outputLoad(tasks.Task)       # Inspect outputs
-flow.reset(tasks.Task); flow.run()     # Force re-run
+flow.preview()                          # Preview what will run
+flow.complete()                         # Check completion
+df = flow.outputLoad(tasks.Task)        # Inspect outputs
+flow.reset(tasks.Task); flow.run()      # Force re-run
+flow.dependents(tasks.Task)             # what depends on X (reverse; class OR 'family' string)
+flow.dependents(tasks.Task, paths=True) # the distinct root->X routes
+flow.check_inputs()                     # declared deps whose data run() never reads
 ```
+
+**"Why is this cold build so slow / why does this report drag in a heavy task?"**
+First suspect a DEAD DEPENDENCY: a declared `@requires` whose data `run()` loads and
+never reads. The scheduler honours the declaration, so its whole upstream band runs
+on every cold build to make a discarded frame. `flow.check_inputs()` reports these
+(and `preview()`/`run()` already warn via `UnusedInputWarning`, which joins
+`RunResult.warnings`). This is NOT what a graph query finds - the edge is real, only
+the data is dead.
+
+**"What depends on this task?"** - use `flow.dependents(X)`, NOT `grep` (it can't
+tell a declared edge from a mention, or scope to this flow) and NOT a hand-rolled
+`requires()` walk (four shapes to normalize; `get_task()` on a mid-DAG fanned-out
+task raises). Pass a CLASS or a family STRING - the string form never instantiates,
+so it works for a mid-DAG / fanned-out family. `paths=True` shows how MANY distinct
+routes reach X. These two answer DIFFERENT questions: `dependents()` = *does anything
+depend on X* (reports declared edges, incl. dead ones); `check_inputs()` = *is a
+declared edge actually used*. Neither substitutes for the other.
 
 **See what ACTUALLY ran - query the `RunResult`, don't eyeball logs.** `flow.run()`
 returns a `RunResult`: ask it directly which tasks recomputed vs cache-hit. This is
@@ -799,7 +829,10 @@ CACHED on stale input, so the band recomputes PARTIALLY and which branches survi
 depends on walk order. With auto off, reach for
 `flow.reset_downstream(tasks.X)`; on a multi-final pipeline pass
 `task_downstream=` per final (it defaults to the flow's default task, so other
-branches are missed). Full mechanism: reference.md "When to reset".
+branches are missed). Full mechanism: reference.md "When to reset". To SEE that
+band without invalidating it (which tasks would recompute if X changed, and by how
+many routes), `flow.dependents(tasks.X)` / `flow.dependents(tasks.X, paths=True)` -
+the read-only companion to `reset_downstream`, same graph walk.
 
 The rules, in the order they come up:
 
@@ -881,6 +914,12 @@ CSV? The contract is its SCHEMA, not its container.
 
 **Saving**: `self.save(df)` (single), `self.save([df1, df2], from_list=True)`
 (multiple), `self.saveMeta({'model': model})` (models/configs).
+
+**Graph queries** (ask the DAG, don't grep): `flow.dependents(X)` - what depends on
+X (reverse; class OR `'family'` string, `paths=True` for distinct routes);
+`flow.dependencies(X)` - X's upstream cone; `flow.check_inputs()` - declared deps
+whose data `run()` never reads (a dead dependency that still costs a full upstream
+band; also warned in `preview()`/`run()`).
 
 ---
 
