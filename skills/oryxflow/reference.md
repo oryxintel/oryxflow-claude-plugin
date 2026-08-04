@@ -87,6 +87,32 @@ Reproducing a legacy CSV artifact does NOT make CSV the requirement - the
 contract is its SCHEMA (the named columns), not its container. An export
 convention inherited from a decade-old tool is a convention, not a spec.
 
+**`TaskAggregator` is a group node, not a data node.** Use it when the pipeline
+has SEVERAL endpoints and no single one is "the" result - declare them in
+`requires()` and make it the flow's final task:
+
+```python
+@oryxflow.requires({'report': BuildReport, 'export': ExportCsv})
+class All(oryxflow.tasks.TaskAggregator):
+    pass
+```
+
+- **It nests.** A `TaskAggregator` may depend on other aggregators mixed with
+  plain tasks, to any depth. `complete()`, `invalidate()` and `output()` just
+  recurse over `self.deps()`, and nothing distinguishes an aggregator dep from a
+  leaf one - so preview draws the nested tree, `run()` builds the whole graph,
+  and completeness/reset cascade correctly at any depth. No special handling.
+- **Never load data from it.** `outputLoad()` on an aggregator returns a bare
+  POSITIONAL list: the `requires()` KEYS are dropped, and an element is a nested
+  list or a plain value depending on whether that dep was itself an aggregator -
+  so the shape is ragged and only navigable by index. Run the aggregator, then
+  `flow.outputLoad(TheTask)` for the output you actually want. If you need
+  name-based access to several inputs, that task is a DATA task
+  (`self.inputLoad(task=...)`), not an aggregator.
+
+Not the same thing as the "aggregator" of a fan-out hierarchy in
+[dynamic-dags.md](dynamic-dags.md) - that is a COMBINING task with a real output.
+
 ### 3. Dependencies
 
 Declare with `@oryxflow.requires()` decorator. Auto-runs tasks in correct order.

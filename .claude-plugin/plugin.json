@@ -2,7 +2,7 @@
   "name": "oryxflow",
   "displayName": "oryxflow - Trustworthy AI Data Analysis",
   "description": "Trustworthy, reproducible AI data analysis in Claude Code. oryxflow is a data-science plugin that stops your coding agent building on stale data - it reruns exactly what your code, data, or parameters change, verifies the rerun happened, and records what produced every result. Finished work is reused, so the guarantee costs you less time, not more.",
-  "version": "26.7.29",
+  "version": "26.8.2",
   "author": {
     "name": "Oryx Intelligence LLC",
     "email": "dev@oryxintel.com"

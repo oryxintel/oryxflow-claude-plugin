@@ -74,6 +74,25 @@ branch's parameters, so `df.groupby('region')` works immediately. Adjust with
 
 Add a value to `cfg.REGIONS` and only the new branch runs; the rest are cached.
 
+### A list sized by the task's own parameters: a callable
+
+Any fanned value can be a function instead of a list. It is resolved against the
+task INSTANCE when the branches are built, so the fan-out is not fixed at import:
+
+```python
+@oryxflow.requires_each(RegionNarrative,
+                        region=lambda self: cfg.REGIONS[:self.n_regions])
+class Report(oryxflow.tasks.TaskMarkdown):
+    n_regions = oryxflow.IntParameter(default=3)
+```
+
+This changes which branches RUN, not just what the combining task does with them
+- `n_regions=3` bills three LLM calls, not thirty. That is the usual reason to
+reach for it: a parameter that trims cost or runtime, not just the report. The
+callable takes `self` and sees PARAMETERS only, never inputs (see "When the list
+is not known until the data is read"). Same thing in method form when you already
+write `requires()`: `self.requires_grid(Dep, x=...)`.
+
 ### A setting that follows from the fanned value: `derive=`
 
 When each branch needs a second thing determined by its value - a per-region source file, a
@@ -103,6 +122,9 @@ warning. `code_version` is not the fix; it reruns every branch.
 
 Do not fan out over the lookup (`region=REGIONS, source=SOURCE.values()`) - `requires_grid` takes
 the cartesian product, so that is N^2 branches.
+
+Not the same knob as a callable grid: `derive=` varies a setting WITHIN each
+branch; a callable varies WHICH branches exist.
 
 Derived names stay out of the dependency keys (`inputLoad(task='north')` unchanged) and off the
 combining task, exactly like fanned names.
@@ -307,7 +329,9 @@ above, and migration is the moment to remove it. But before you convert one:
 ## Where else to look
 
 - `reference.md` - `WorkflowMulti` (Pattern 1), the load/save cheat-sheet,
-  `reset_upstream` / `reset_downstream` semantics.
+  `reset_upstream` / `reset_downstream` semantics, and `TaskAggregator` for
+  grouping SEVERAL endpoints under one final task (an output-less group node -
+  not the combining tasks here, which all have outputs).
 - `ml-patterns.md` - the model-variant comparison and prod orchestration built on
   this.
 - Library docs: https://docs.oryxflow.dev/docs/advtasksdyn/index.md (the full

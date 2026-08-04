@@ -32,6 +32,28 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
      version + date, bump plugin.json to match, and add a fresh empty
      [Unreleased] back on top. See CLAUDE.md "Release". -->
 
+## [26.8.2] - 2026-08-02
+
+### Added
+- `reference.md` "Task Types" - `TaskAggregator` guidance beyond its table row:
+  use it as the final task when a pipeline has SEVERAL endpoints; it NESTS
+  (aggregators of aggregators mixed with plain tasks, any depth - `complete()` /
+  `invalidate()` / `output()` recurse over `deps()`, so preview, run and reset
+  cascade correctly); and never load data from it - `outputLoad()` drops the
+  `requires()` keys and returns a ragged POSITIONAL list, so read the specific
+  task instead. Disambiguated from the fan-out "aggregator" (a combining task
+  WITH an output) in `dynamic-dags.md`.
+- `dynamic-dags.md` "A list sized by the task's own parameters: a callable" - a
+  named subsection, with an example, for passing a function as a fanned value
+  (`region=lambda self: cfg.REGIONS[:self.n_regions]`). It was previously only a
+  trailing clause and a row in the decision table, while every example used a
+  module constant, so the callable read as import-time static. States the payoff
+  the docs left implicit - the callable is resolved per task INSTANCE, so a
+  parameter changes which branches RUN (cost / runtime), not just what the
+  combining task does with them - and disambiguates it from `derive=`
+  (`derive=` varies a setting WITHIN each branch; a callable varies WHICH
+  branches exist).
+
 ### Changed
 - `README.md`, `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`
   descriptions now lead with TRUST, then REPRODUCIBILITY, and place caching third
