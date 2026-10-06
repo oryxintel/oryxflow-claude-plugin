@@ -32,7 +32,90 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
      version + date, bump plugin.json to match, and add a fresh empty
      [Unreleased] back on top. See CLAUDE.md "Release". -->
 
+## [26.10.5] - 2026-10-05
+
 ### Added
+- BREAKING: `resources/template-minimal/pyproject.toml` - the scaffold is now an
+  installable project, and `/oryxflow:init-project` gains a step 4 that sets its
+  `name`, runs `pip install -e .` (or the uv / poetry equivalent) and checks
+  `import tasks` from a subdirectory. Without it, `import tasks` resolves only
+  from the project root, so an eval under `evals/`, a notebook under `eda/` or a
+  test in a subdirectory fails with `ModuleNotFoundError`. Floor baseline bumped
+  to `26.10.5`. Migration: `/oryxflow:update-project` (it now knows
+  `pyproject.toml`: adds one when the project has none, never rewrites an
+  existing one).
+- `skills/oryxflow/dynamic-dags.md` "Comparing the task's own value with others:
+  `requires_grid`" - a NOT-this / THIS example for a task that compares its own
+  `sector` with a `sector_compare`. `@oryxflow.requires_each` raises a `TypeError`
+  there, because the task declares the parameter it fans out over, so the method
+  form `self.requires_grid` is correct. The example also replaces the hand-written
+  `inputLoad(task=...).assign(...)` + `pd.concat` loop with
+  `self.inputLoadConcat(tagkeys=[...])`, which works on any dict-shaped
+  `requires()`. The "never declare the fanned-out parameter" gotcha now points
+  to this exception.
+- `SKILL.md` Compatibility - the reverse of the stale-library check: needing a
+  library API that no skill file mentions means the PLUGIN is probably stale, so
+  tell the user to run `/plugin marketplace update oryxflow`. A project agent on
+  an old plugin went to library source for fan-out and never said its skill was
+  out of date.
+
+- `commands/eval-plan.md` - `/oryxflow:eval-plan`: DECIDE what an LLM eval
+  measures before any code exists. Gathers the change, its call path and any
+  failure report from the repo, then settles four questions - the function under
+  test (production code, never a copy), the metric plus the coverage metric a
+  filtered rate is meaningless without, the guardrail that must not get worse,
+  and the baseline as a git ref materialized with `ev.git_tree(ref, paths)` -
+  and writes ONLY `evals/<name>/README.md`. Why the split from `eval-init`: an
+  eval designed after its scaffold exists gets designed around the scaffold.
+- `commands/eval-init.md` - `/oryxflow:eval-init`: copy
+  `resources/template-eval/` into `evals/<name>/` (skip-existing, never
+  overwriting), fill the declarations from the plan, check `oryxflow[evals]` is
+  installed, and finish with a 3-call SMOKE RUN - so a missing API key surfaces
+  as an error rather than an empty result that caches as a measurement. With no
+  plan present it runs the `eval-plan` flow inline and waits for a yes before
+  writing anything.
+- `commands/eval-cases.md` - `/oryxflow:eval-cases`: grow the case set from the
+  3 placeholder rows to a real 15-25. Harvests genuine cases out of the repo
+  first and says what it could NOT find, then proposes AXES rather than a case
+  list (controls, the needs-user-input trap, the mood pair), tags `synthetic=1`
+  on everything invented so the headline stays real-only, and `holdout=1` on any
+  case whose text is embedded in the prompt. Shows the diff before writing
+  `cases.csv`.
+- `commands/eval-run.md` - `/oryxflow:eval-run`: resolve the arms, print the
+  bill (cases x arms x reps, the cached/new split, cost, duration) and WAIT
+  unless `--yes`, run the sweep, then check the instrument before believing it - a
+  metric identically 0% or 100% in every arm is measuring the harness, so
+  investigate that before narrating any result. Then diagnose the failing rows,
+  report a mixed result as mixed, and never restate a verdict more confidently
+  than the library's ("inside noise at N reps" is not a winner). Writes
+  `results/<date>-<arms>.md`.
+- `resources/template-eval/` - the eval scaffold `/oryxflow:eval-init` copies:
+  `agent.py` (imports the PRODUCTION entry point), `eval.py` (the `TaskEval` -
+  params, metric, guardrail, slices, `code_version()`), `run_eval.py`
+  (`ev.cli(...)`, flags derived from the Parameters), a 3-row `cases.csv`
+  including one control, and `fixtures/` + `results/`. Carries the same
+  `PLACEHOLDER SCAFFOLD` markers as the other templates: `eval-init` fills the
+  declaration markers, `eval-cases` deletes the surviving case-set marker once
+  the set is real.
+- `skills/oryxflow/evals.md` - a new on-demand skill file carrying the eval
+  METHOD, which is the part a library cannot ship: the four questions, the
+  mandatory guardrail, reading a quality rate only after a coverage metric, real
+  vs synthetic cases and holdout, the git-ref baseline (and when an anchored
+  probe is right instead), judge rules (a different model family, raw output, no
+  optional fields), nothing between the model's output and the scorer, the
+  dead-metric heuristic, when to raise repeats, and how to read a verdict that
+  sits inside the noise.
+- `SKILL.md` "Evaluating a prompt change (LLM evals)" - the trigger for
+  `evals.md` plus two behaviors. (1) The QUICK-EVAL rule: a "quick eval" is
+  `ev.sweep(fn, ...)` in a scratch file - six lines, cached - NOT a hand-rolled
+  `asyncio.gather`, because a quick eval is the one you re-run most, so an
+  uncached run re-bills every case on every iteration and `ev.sweep` is shorter
+  anyway. (2) STALE-ARM awareness: after editing a prompt or template in a repo
+  with an `evals/` directory, say which arm went stale and name the cost, then
+  stop - suggest, never invoke (all four `eval-*` commands are
+  `disable-model-invocation: true`; two write files and one bills the user).
+  Requires the oryxflow release that adds `oryxflow.evals` (installed with the
+  `oryxflow[evals]` extra).
 - `reference.md` / `SKILL.md` - `flow.dependents(X)` / `flow.dependencies(X)`: ask
   the DAG "what depends on X" / "what does X depend on" instead of `grep` or a
   hand-rolled `requires()` walk. Accepts a class OR a `'family'` string (the string
@@ -47,6 +130,72 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
   joins `RunResult.warnings`); the fix is two deletions and needs no reset. Stated as
   a DIFFERENT question from `dependents()` (real edge vs. dead data). Requires the
   oryxflow release that adds `Workflow.check_inputs`.
+
+### Changed
+- `reference.md` - `inputLoadConcat()` was labelled "(fan-out only)", which led
+  an agent to hand-roll `inputLoad(task=...).assign(...)` + `pd.concat` after a
+  `requires_grid`. It now says it works on any dict-shaped `requires()` and
+  recommends `tagkeys=` to keep only the column that differs.
+- `SKILL.md` - the `dynamic-dags.md` pointer now names "a task's value vs a
+  comparison value", so that shape loads the file.
+
+- `commands/eval-plan.md` - new step 1b, **error analysis before the metric**: read
+  20-50 real outputs, open-code the problems, axial-code them into a counted
+  taxonomy, stop at saturation, and derive the metric from the most frequent mode.
+  The command previously derived the metric from a filed ticket, which reports the
+  failure somebody NOTICED rather than the failure distribution. Also: prefer
+  binary over 1-5 scales, and plan up front how a judge-scored metric gets
+  validated.
+- `skills/oryxflow/evals.md` - a judge must be validated against human labels
+  before anything it produced at scale is quoted; read Cohen's kappa rather than
+  raw agreement (which inflates under class imbalance); and an unvalidated judge
+  SHRINKS the measured effect rather than merely adding noise, so validating it
+  beats raising repeats when a judge-scored delta lands inside noise.
+- `skills/oryxflow/evals.md` - a perfect score is not a result: a single arm at
+  100% means the case set has stopped discriminating, and the answer is harder
+  cases.
+- `skills/oryxflow/evals.md` - lists what the per-case frame already carries, so an
+  agent checks for a column before computing one. Most of it was undocumented and
+  some of it was previously being discarded by the library: `expected` / `expected_*`
+  (a confusion matrix is now a crosstab, not a join by case name), per-evaluator
+  columns, `total_duration_s`, and token counts recorded with
+  `increment_eval_metric`, which the verdict reports as measured usage.
+- `resources/template-eval/eval.py`, `skills/oryxflow/evals.md` - an LLM judge
+  belongs in the `Evaluator`, not inside `agent.run_case()`: a judge failure is
+  then a scoring failure rather than a lost case, and returning a dict gives each
+  verdict field its own frame column instead of being flattened into the output
+  model by hand. The template pointed at a judge without ever showing its shape.
+- `resources/template-eval/agent.py`, `skills/oryxflow/evals.md` - say why
+  `case()` and the judge are `async`: nothing in oryxflow requires it, but
+  `concurrency` is scheduled as coroutines, so a blocking `def` runs the cases one
+  at a time while the setting still reads as honored (~5x wall clock, identical
+  numbers, no other sign).
+- `commands/eval-run.md` - the cost confirmation now offers the one-call probe
+  inline (`y/n/c`), so a first run no longer has to know `--check` exists.
+- `skills/oryxflow/evals.md` - documents `watch=` and `evaluators=` on
+  `ev.sweep`, both absent from the API table before: `watch=` names the files the
+  target READS (prompts, `.sql`, config, the agent module) and is the single most
+  important argument for cache correctness, and `evaluators=` is what lets the
+  function form score a case against its `expected` column at all. Also records
+  that the function form hashes the target's OWN source only, and that an
+  unwatched module that moves produces a `StalenessWarning` rather than a re-run.
+- `skills/oryxflow/evals.md` - third instrument failure added beside the
+  dead-metric and all-error ones: a metric only SOME rows carry a verdict for.
+  The rate is over the judged subset, and `NOT MEASURED` / `n/a` means whatever
+  fills that column never ran. `commands/eval-run.md` lists the matching output
+  lines so a run is not narrated over them.
+- `commands/eval-cases.md`, `skills/oryxflow/evals.md` - `arm` added to the
+  reserved metadata column names. It is the sweep's own label for a cell, and a
+  case column of that name is now refused by the library; the natural word for a
+  real axis ("an `outline` arm vs a `guidelines` arm") has to become `surface` /
+  `variant` / `write_arm`.
+
+### Fixed
+- `commands/eval-run.md` described `--check` as "project the bill, run nothing".
+  It is the opposite: it runs `preflight()` - ONE real, billed call - and prints
+  no bill. An agent following the old text would have told the user a billed
+  probe was free. Corrected in both places it appeared, and in
+  `skills/oryxflow/evals.md`.
 
 ## [26.8.2] - 2026-08-02
 

@@ -41,6 +41,10 @@ commands/
   update-project.md  # /oryxflow:update-project - update old project floor to latest
   check-standards.md # /oryxflow:check-standards - check names, style, docstrings
   migrate.md         # /oryxflow:migrate - restructure a messy project into a pipeline
+  eval-plan.md       # /oryxflow:eval-plan - decide what an LLM eval measures
+  eval-init.md       # /oryxflow:eval-init - scaffold an eval from that plan
+  eval-cases.md      # /oryxflow:eval-cases - grow the case set to a real 15-25
+  eval-run.md        # /oryxflow:eval-run - run an eval and interpret the result
 skills/
   oryxflow/
     SKILL.md         # skill entry point - ESSENTIALS only, always in context
@@ -49,6 +53,7 @@ skills/
 resources/
   template-minimal/  # the project scaffold init-project copies into a new project
   template-prod/     # graduated run-tier add-ons (run_prod.py, run_eda.py); copied by hand, NOT by init
+  template-eval/     # the eval scaffold eval-init copies into evals/<name>/
 docs/
   CHANGELOG.md       # user-facing change history
   design/
@@ -62,6 +67,20 @@ README.md            # install + quickstart for plugin users
 - **ASCII only.** No emojis/unicode/smart quotes - the skill itself mandates this
   for Windows safety, and the skill files practice it. Keep it that way.
 - **Wrap prose at ~78 columns.**
+- **Command naming is `<verb>-<noun>` - except the `eval-*` suite.**
+  `init-project`, `init-gitlfs`, `update-project`, `check-standards`, `migrate`:
+  the verb leads. The four eval commands invert it, DELIBERATELY - `eval-plan`,
+  `eval-init`, `eval-cases`, `eval-run` - so that typing `/oryxflow:eval`
+  surfaces all four. Evals are the only MULTI-command suite in the plugin, and
+  for a suite the grouping is worth more than the consistency. So: a new
+  standalone command takes `<verb>-<noun>`; invert only when you are adding to a
+  suite or starting one, and record the reason here rather than leaving the next
+  reader to file it as an oversight.
+- **A command that writes files, runs git or spends money is
+  `disable-model-invocation: true`** - the USER types it. That is why all five
+  original commands carry it and all four `eval-*` ones do too (two write files;
+  `eval-run` bills the user for API calls). The skill may name a command in
+  words; it never invokes one.
 - **Two-tier content split is load-bearing:** keep `SKILL.md` to the essentials
   an agent needs every time; push depth, tables, and long examples into
   `reference.md` (general) or `ml-patterns.md` (ML), each pointed to from
@@ -164,7 +183,7 @@ When you want consumers to pull the accumulated `[Unreleased]` changes:
    for the next cycle.
 2. **Floor baseline - decide, then stamp (usually SKIP).** The floor baseline is a
    SEPARATE number from the plugin version: it is the plugin version AS OF the last
-   MIGRATION-WORTHY scaffold change (currently `26.7.28`, at or below the plugin
+   MIGRATION-WORTHY scaffold change (currently `26.10.5`, at or below the plugin
    version). Bump it ONLY if a change in this release alters the scaffold in a way
    existing projects should adopt (`resources/template-minimal/**`, the project
    `CLAUDE.md`, wiring an old project lacks). Skill / docs / reference-only changes
@@ -185,8 +204,8 @@ verified, delete the `~/.claude/skills/oryxflow` copy so they cannot drift.
 `resources/template-minimal/` is the project scaffold that `init-project` copies
 into a new project. Edit it directly here - this repo is canonical for it. It
 ships the project wiring (`tasks.py`, `flow.py`, `run.py`, `cfg.py`,
-`flow_params.py`, `visualize.py`, `viz-template.ipynb`), the project `CLAUDE.md`,
-`docs/oryxflow-data.md`, `.creds.yaml.example`, an `eda/` package root, and the
+`flow_params.py`, `visualize.py`, `viz-template.ipynb`), `pyproject.toml`, the
+project `CLAUDE.md`, `docs/oryxflow-data.md`, `.creds.yaml.example`, an `eda/` package root, and the
 `data/`, `reports/`, and `reports/render/` dirs. Those three dirs are kept by a
 `.gitkeep` that must be FORCE-added (`git add -f`): they match the `.gitignore`
 `.*` dotfile rule, so a plain `git add` skips them. `tasks.py` / `flow_params.py`
@@ -201,6 +220,16 @@ tiers by lifecycle" guidance in `conventions.md`). Canonical here; edit directly
 It is NOT a floor file (nothing auto-reconciles it), so a change ships with just a
 changelog bullet - no floor-baseline bump. These files name project-specific tasks
 they cannot resolve, so they carry `PLACEHOLDER SCAFFOLD` markers (leave them).
+
+`resources/template-eval/` is the eval scaffold `/oryxflow:eval-init` copies into
+`evals/<name>/` in a USER's project - `agent.py`, `eval.py`, `run_eval.py`, a
+3-row `cases.csv`, `fixtures/`, `results/`. Canonical here; edit directly. Like
+the other templates it ships intentional `PLACEHOLDER SCAFFOLD` markers (leave
+them), but these are consumed in TWO stages: `/oryxflow:eval-init` fills the
+declaration markers from the eval's plan, and `/oryxflow:eval-cases` deletes the
+surviving case-set marker in `eval.py` once the placeholder rows are replaced by
+a real set. It is NOT a floor file (nothing auto-reconciles it), so a change
+ships with just a changelog bullet - no floor-baseline bump.
 
 ## Git
 

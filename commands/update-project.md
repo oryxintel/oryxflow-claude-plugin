@@ -50,6 +50,12 @@ proposing anything.
     ignore pattern the template introduced.
   - `.creds.yaml.example` - rarely if ever changes; touch only on request, or if
     the template added an example key.
+  - `pyproject.toml` - makes `import tasks` resolve outside the project root
+    (evals, `eda/`, tests). If the project has NONE, propose adding it: set `name`
+    and run the install + import check as in `/oryxflow:init-project` step 4, and
+    list the project's ACTUAL top-level modules in `py-modules` (a split
+    `tasks_<topic>.py` included). If it already has one, never rewrite it - at
+    most note any wiring module missing from its `py-modules`.
 - **SKELETON (reconcile structure only).** Files that ship as a placeholder and
   then get filled in. Update headers / structure / markers that changed in the
   template, but keep all real content the user has written:

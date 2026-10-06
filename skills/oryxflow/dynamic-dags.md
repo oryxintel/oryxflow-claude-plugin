@@ -129,6 +129,40 @@ branch; a callable varies WHICH branches exist.
 Derived names stay out of the dependency keys (`inputLoad(task='north')` unchanged) and off the
 combining task, exactly like fanned names.
 
+### Comparing the task's own value with others: `requires_grid`
+
+A task that puts its own `sector` side by side with a `sector_compare` fans out
+over `sector` and ALSO keeps `sector` as its identity. The decorator raises on
+that (see Gotchas). Use the method form, and still let `inputLoadConcat()` do the
+stacking:
+
+```python
+# NOT this - hand-rolled stacking, re-doing what inputLoadConcat does
+def run(self):
+    frames = [self.inputLoad(task=s).assign(sector=s)
+              for s in [self.sector, self.sector_compare]]
+    out = pd.concat(frames, ignore_index=True)
+
+# THIS
+class GrowthCompare(oryxflow.tasks.TaskPqPandas):
+    sector = oryxflow.Parameter()           # this task's own sector
+    sector_compare = oryxflow.Parameter()
+
+    def requires(self):
+        return self.requires_grid(GrowthPanel,
+                                  sector=[self.sector, self.sector_compare])
+
+    def run(self):
+        self.save(self.inputLoadConcat(tagkeys=['sector']))
+```
+
+`inputLoadConcat()` works on ANY dict-shaped `requires()`, not just the
+decorator's. By default it tags every parameter of each branch (`vintage` too);
+`tagkeys=` keeps only the one that differs.
+
+Do not rename `sector` to `sector_main` just to make the decorator accept it: the
+pipeline-wide `sector` you pass to the flow then no longer reaches this task.
+
 ### The cost of looping inside `run()` instead
 
 You get the same numbers from a `for` loop that builds a sub-`Workflow` per item.
@@ -299,7 +333,9 @@ above, and migration is the moment to remove it. But before you convert one:
   class definition. It would put one branch's value in the combining task's
   identity - one combining task per value, each combining all branches, at N times
   the cost. The combining task is where branches converge; it must not carry the
-  parameter they differ on.
+  parameter they differ on. Exception: the task compares ITS value with others
+  (`sector` vs `sector_compare`) - use `requires_grid` ("Comparing the task's own
+  value with others", above).
 - **A task cannot have both a hand-written `requires()` and a dependency
   decorator** - `TypeError`. Keep one: drop the decorator and use
   `self.requires_grid(...)` inside `requires()`, or delete the method.

@@ -21,7 +21,9 @@ when_to_use: >-
   task reruns automatically - verify it did); load or plot a task's output; explore or inspect
   the data (the opt-in deep dive); summarize what the pipeline does; or
   publish / render / export a report notebook to HTML (jupyter nbconvert), or
-  re-execute a notebook to refresh its outputs.
+  re-execute a notebook to refresh its outputs; or evaluate an LLM prompt /
+  template change ("is this prompt better?", "run a quick eval", a prompt A/B,
+  anything under an evals/ directory) - see "Evaluating a prompt change".
 argument-hint: "[explore]"
 allowed-tools: Read Edit Write Grep Glob Bash
 shell: powershell
@@ -44,7 +46,9 @@ library `CHANGELOG.md` is the source of truth for API/behavior; when the two
 disagree about library behavior, the library wins. If the running
 `oryxflow.__version__` is OLDER than the floor, the skill has run ahead of the
 library - say so instead of debugging a phantom (see reference.md "Diagnosing a
-regression / version bump").
+regression / version bump"). The reverse: if you need a library API none of
+these skill files mention, the PLUGIN is probably stale - tell the user to run
+`/plugin marketplace update oryxflow`, then work from the library docstring.
 
 **Key Principle**: Follow the established project structure. DO NOT create
 ad-hoc scripts or inline commands for workflow operations - use the existing
@@ -55,10 +59,11 @@ library reference (task types, advanced patterns, avoiding silent data errors,
 recipes, debugging); [conventions.md](conventions.md) for house conventions
 (project layout, code organization, naming columns / tasks / variables);
 [dynamic-dags.md](dynamic-dags.md) for work shaped like a LOOP (per-item fan-out,
-grids, per-X-then-combine hierarchies, porting a source full of `for` loops);
+a task's value vs a comparison value, grids, per-X-then-combine hierarchies, porting a source full of `for` loops);
 [ml-patterns.md](ml-patterns.md) for ML pipeline templates (features, training,
-SHAP, expanding-window backtests). Load whichever you need beyond the essentials
-below.
+SHAP, expanding-window backtests); [evals.md](evals.md) for measuring an LLM
+prompt change (the method: metric + guardrail, real vs synthetic cases, judge
+rules, reading a verdict). Load whichever you need beyond the essentials below.
 
 ---
 
@@ -129,7 +134,7 @@ run `eda/` scripts, or build the docs - that is opt-in exploration (below).
 
 While orienting, read the floor stamp in the project's `CLAUDE.md`
 (`<!-- oryxflow-floor: VERSION -->`). If it is missing, or its VERSION is older
-than the current floor baseline **26.7.29**, the scaffold floor predates the
+than the current floor baseline **26.10.5**, the scaffold floor predates the
 current template - suggest the user run `/oryxflow:update-project` to reconcile it
 (one line; do not nag or auto-run it).
 
@@ -716,6 +721,17 @@ flow.dependents(tasks.Task, paths=True) # the distinct root->X routes
 flow.check_inputs()                     # declared deps whose data run() never reads
 ```
 
+**"A task I already ran successfully now reports incomplete"** - CHECK THE WORKING
+DIRECTORY BEFORE RE-RUNNING. Output resolves against the current directory (`data/`
+beside wherever the run started), so a session that later runs from a subdirectory -
+or from another project root - looks at an empty cache and reports every task pending.
+Re-running is the expensive action (a metered API call gets paid for twice), so verify
+first: compare `os.getcwd()` and `flow.outputPath(tasks.X)` against where the earlier
+run wrote. oryxflow warns by itself when the local directory is empty and a populated
+one sits above it, but it CANNOT see the case where both directories hold output -
+there the only signal is a task you know you ran showing pending. Wrong directory: `cd`
+back and re-run nothing. Right directory: the task is genuinely stale, go ahead.
+
 **"Why is this cold build so slow / why does this report drag in a heavy task?"**
 First suspect a DEAD DEPENDENCY: a declared `@requires` whose data `run()` loads and
 never reads. The scheduler honours the declaration, so its whole upstream band runs
@@ -897,6 +913,52 @@ The rules, in the order they come up:
 
 ---
 
+## Evaluating a prompt change (LLM evals)
+
+"I changed a prompt and I don't know if it's better" is a MEASUREMENT, not a
+read-through. `oryxflow.evals` runs the cases across arms, caches every cell, and
+prints rates with confidence intervals. The METHOD - the four questions, the
+mandatory guardrail, coverage before quality, real vs synthetic cases, judge
+rules, distrusting your own instrument - lives in [evals.md](evals.md); load it on
+demand. Two behaviors belong here.
+
+**A "quick eval" is `ev.sweep(...)` in a scratch file - NOT hand-rolled asyncio.**
+Six lines, no class, no scaffold, every cell cached:
+
+```python
+import oryxflow.evals as ev                    # pip install "oryxflow[evals]"
+
+cases = ev.load_cases('cases.csv')             # or a plain list of dicts
+r = ev.sweep(run_turn, dataset=cases,          # run_turn = the LIVE function
+             metric=ev.Metric('yield', 'wrote'),
+             prompt_version=['prod', 'preship'], repeats=3)
+r.verdict()
+```
+
+Do NOT reach for `asyncio.gather` to "keep it quick". A quick eval is the one you
+re-run MOST - tweak the prompt, run it again, tweak again - so an uncached run
+re-bills every case on every iteration, and the ceremony you skipped was the part
+that made it cheap. `ev.sweep` is SHORTER than the asyncio, so there is nothing to
+trade away. Reach for `/oryxflow:eval-init` when the eval is worth KEEPING (a case
+set to grow, results to compare next month), not before.
+
+**Edited a prompt in a repo that has `evals/`? Say the arm went stale.** After
+editing a prompt or template, check for an `evals/` directory, work out which arm
+reads the file you changed, and volunteer it WITH THE COST:
+
+> I changed `prompts/reply.md`. There is an eval for this surface
+> (`evals/reply-tone/`) and its `live` arm is now stale - `/oryxflow:eval-run`
+> re-runs 24 calls (about $0.40). Worth it before trusting the wording.
+
+**Suggest; never invoke.** All four `eval-*` commands are manual - two write files
+and one spends the user's money, so the USER types them. Name the command and the
+bill, then stop. The four: `/oryxflow:eval-plan` decides what is measured (writes
+the plan, no code), `/oryxflow:eval-init` scaffolds it, `/oryxflow:eval-cases`
+grows the case set to a real 15-25, `/oryxflow:eval-run` runs it and interprets
+the result.
+
+---
+
 ## Quick Reference
 
 **Task types**: `TaskPqPandas` (DataFrames as Parquet, FASTEST - default),
@@ -931,6 +993,11 @@ band; also warned in `preview()`/`run()`).
   `WorkflowMulti`, and classifying a migration source's `for` loops. Load on
   demand whenever the ask involves "for each ...".
 - [ml-patterns.md](ml-patterns.md) - ML pipeline task templates. Load on demand.
+- [evals.md](evals.md) - measuring an LLM prompt / template / model change: the
+  four questions, the mandatory guardrail, coverage before quality, real vs
+  synthetic cases and holdout, the git-ref baseline, judge rules, the dead-metric
+  heuristic, and how to read a verdict that sits inside the noise. Load on demand
+  whenever the ask is "is this prompt better?" or the work is under `evals/`.
 - [d6tflow-migration.md](d6tflow-migration.md) - migrating a d6tflow-era project
   to oryxflow (the `d6tflow` -> `oryxflow` rename). Load on demand when the user
   asks; it does not auto-trigger.

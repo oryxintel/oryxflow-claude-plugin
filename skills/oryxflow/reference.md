@@ -252,7 +252,7 @@ a `flow`), and HOW MANY (all vs one):
 | Load ONE output (by name)    | `self.inputLoad(keys='a')`              | `flow.outputLoad(Task, keys='a')`  |
 | Pick ONE dependency          | `self.inputLoad(task='name')`           | -                                  |
 | Load metadata                | `self.metaLoad(key=0)`                   | `flow.outputLoadMeta(Task)`        |
-| Stack a fan-out's branches   | `self.inputLoadConcat()`                | -                                  |
+| Stack several deps into one  | `self.inputLoadConcat()`                | -                                  |
 | Group branches under one key | `self.inputLoad(flatten=False)`         | -                                  |
 
 Notes:
@@ -265,9 +265,12 @@ Notes:
 - TRAP: `load()`/`inputLoad()` swallow unknown kwargs silently, so a wrong
   selector returns the whole/default output with NO error - e.g.
   `load(persist='a')` (the kwarg is `keys=`, not `persist=`).
-- `inputLoadConcat()` (fan-out only) stacks the branch outputs and TAGS each row
-  with that branch's parameters, so `groupby` works straight away; silence a tag
-  with `tagkeys=[...]` / `tag=False`. It WARNS if it would row-stack a shared
+- `inputLoadConcat()` stacks the outputs of ANY dict-shaped `requires()` - a
+  decorator fan-out or a hand-written `self.requires_grid(...)` - and TAGS each
+  row with that dependency's parameters, so `groupby` works straight away. Never
+  hand-roll `inputLoad(task=k).assign(...)` + `pd.concat`. Keep only the tag that
+  differs with `tagkeys=[...]` (else every parameter becomes a column), or
+  `tag=False`. It WARNS if it would row-stack a shared
   dependency in with the branches - pass `task='<group>'` for just the branches,
   or `flatten=False` for one frame per group. See
   [dynamic-dags.md](dynamic-dags.md).
