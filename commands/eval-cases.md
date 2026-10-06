@@ -16,8 +16,9 @@ You write exactly two things: `evals/<name>/cases.csv`, and new files under
 `/oryxflow:eval-plan`; do not edit the plan yourself.
 
 Scope: an explicit `$ARGUMENTS` names the eval (a directory under `evals/`).
-Otherwise find the eval directories yourself; if there is more than one, ask
-which. If there is none, STOP - run `/oryxflow:eval-init` first.
+Otherwise find the eval directories yourself - the folders under `evals/` holding
+a `README.md` (`evals/data/` is the shared cache, not an eval); if there is more
+than one, ask which. If there is none, STOP - run `/oryxflow:eval-init` first.
 
 ## 1. Read what already exists
 

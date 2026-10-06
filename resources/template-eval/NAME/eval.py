@@ -4,23 +4,33 @@ README.md (written by /oryxflow:eval-plan) records what this measures and why -
 the metric, the guardrail, the baseline, the judgement calls and the known gaps.
 Read it before changing anything here.
 
-Run this from its own directory. Paths are relative, so a run from anywhere else
-fails immediately on cases.csv rather than quietly building a second cache.
+Launched from evals/ by ../run_eval_NAME.py, never from here: the shared cache
+(evals/data/) and _env.py live one level up. Files of THIS eval resolve from this
+file's own directory, so they are found whatever the working directory is.
 
-    python run_eval.py --check
-    python run_eval.py --prompt-version live --prompt-version baseline --repeats 3
+Each arm is cached in two stages: the model calls (keyed by code_version() and
+the code case() runs) and the scoring (keyed by the evaluators' code and
+configuration). Editing a scorer re-scores the stored outputs: no model calls.
+
+    cd evals
+    python run_eval_NAME.py --check
+    python run_eval_NAME.py --prompt-version live --prompt-version baseline --repeats 3
 """
+import pathlib
+
 import oryxflow
 import oryxflow.evals as ev
 from pydantic_evals import Dataset
 from pydantic_evals.evaluators import Evaluator, EvaluatorContext
 
-import agent
+from . import agent
+
+HERE = pathlib.Path(__file__).resolve().parent
 
 # A `holdout` row is dropped here and counted on CASES.excluded: a case whose text
 # is embedded in the prompt is scored against its own answer key, in every arm.
 # PLACEHOLDER SCAFFOLD - cases.csv still holds its 3 placeholder rows; delete this line when /oryxflow:eval-cases has replaced them.
-CASES = ev.load_cases('cases.csv', inputs=agent.Inputs)
+CASES = ev.load_cases(str(HERE / 'cases.csv'), inputs=agent.Inputs)
 
 
 class OutputOk(Evaluator):
@@ -53,8 +63,13 @@ class OutputOk(Evaluator):
         return bool(ctx.output.message.strip())
 
 
+# PLACEHOLDER SCAFFOLD - rename to <Name>Eval, unique across evals/ (they share one cache); delete this line when filled.
 class PromptEval(ev.TaskEval):
     """PLACEHOLDER SCAFFOLD - one line: the question this eval answers; delete this line when filled."""
+
+    # The arm every other arm is reported against: the verdict prints each arm's
+    # difference from it, with its interval, and names no winner.
+    baseline = 'baseline'
 
     # One Parameter per arm axis. Each becomes a repeatable CLI flag
     # (--prompt-version) and each value is one cached cell.
@@ -92,7 +107,10 @@ class PromptEval(ev.TaskEval):
         return await agent.run_case(inputs, prompt_version=self.prompt_version)
 
     def code_version(self):
-        """The bytes that actually decide this arm's result.
+        """The bytes that actually decide this arm's MODEL CALLS - what the arm reads.
+
+        Not the scorers: they key the scoring stage on their own, so editing one
+        re-scores the stored outputs without calling the model.
 
         Edit a prompt and re-run: the arms that read it recompute, the others are
         served from cache. That is the whole trick - no --reset to remember, and no

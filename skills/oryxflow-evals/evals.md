@@ -1,10 +1,16 @@
 # Evaluating an LLM prompt change (the method)
 
-Loaded ON DEMAND by the `oryxflow` skill - pull this in when the question is "I
-changed a prompt / template / model and I cannot tell whether it is better", or
-when working inside an `evals/` directory. Needs `pip install "oryxflow[evals]"`.
-For the general library reference see [reference.md](reference.md); the trigger
-and the quick-eval rule are in [SKILL.md](SKILL.md).
+Loaded ON DEMAND by the `oryxflow-evals` skill ([SKILL.md](SKILL.md)) - pull this
+in when the question is "I changed a prompt / template / model and I cannot tell
+whether it is better", when a plan changes one, or when working inside `evals/`.
+Needs `pip install "oryxflow[evals]>=26.10.6"` (pydantic-evals 2.x comes with it).
+
+**Read the docs before the source.** For any API below, fetch
+https://docs.oryxflow.dev/llms.txt (the LLM evals pages) and
+https://pydantic.dev/docs/ai/evals/ first; open library source only to settle
+what they leave open. The INSTALLED version wins over the docs - report a
+mismatch. pydantic-evals already ships most per-case scoring (see "Reuse before
+you write"), and an eval that re-implements it is the commonest waste.
 
 The library does the arithmetic - rates, intervals, the paired delta, guardrail
 marks, caching every cell so a re-run is free. This file is the part a library
@@ -27,29 +33,63 @@ and everything in this file exists to stop one of those four from lying to you.
 
 ---
 
-## Start cheap: a sweep in a scratch file
+## Where evals live: one `evals/` project
 
-Do NOT scaffold a directory to answer a one-off question. The whole eval fits in
-a scratch file, and it is CACHED, which is what makes it re-runnable:
-
-```python
-import oryxflow.evals as ev
-
-cases = ev.load_cases('cases.csv')          # or a plain list of dicts
-r = ev.sweep(run_turn, dataset=cases,       # run_turn = the LIVE function
-             metric=ev.Metric('yield', 'wrote'),
-             prompt_version=['prod', 'preship'], repeats=3)
-r.verdict()
+```
+evals/                         # the project dir - launch every eval from here
+  _env.py                      # once per repo: credentials + import path
+  data/                        # one cache for every eval
+  run_eval_<name>.py           # one per eval (or the whole probe, below)
+  <name>/                      # one package per kept eval
+    README.md  eval.py  agent.py  cases.csv  fixtures/  results/
 ```
 
-**Never hand-roll `asyncio.gather` for a "quick" eval.** A quick eval is the one
-you re-run MOST - tweak the prompt, run it again, tweak again - so an uncached
-run re-bills every case on every iteration. The caching is not ceremony; it is
-the reason the second run is free. `ev.sweep` is also SHORTER than the asyncio it
-replaces, so there is nothing to trade away.
+Run from `evals/`: the cache and every relative path resolve against the working
+directory, so a run from elsewhere builds a second, empty cache (`ev.cli` warns).
+Credentials and production imports are solved ONCE in `_env.py` - load credentials
+by absolute path, because a loader that resolves relative to the working directory
+finds nothing from here. **They work in-process:** an eval calls production code
+directly, so it is never "blocked on a dev server" or "needs keys Claude cannot
+have" - check `_env.py` before concluding that.
 
-Graduate to `/oryxflow:eval-init` when the eval is worth KEEPING - a case set to
-grow, a plan to record, results to compare against next month. Not before.
+## Start cheap: a probe that survives
+
+A one-off question does not need a scaffold, but it does need to SURVIVE. A
+gitignored `tmp/probe_*.py` answers the question once and is gone when the next
+change to the same surface asks it again. Write the probe as one committed file,
+`evals/run_eval_<name>.py`, and it is cached and re-runnable for the same effort:
+
+```python
+import _env  # noqa: F401 - credentials + import path, once per repo
+import oryxflow.evals as ev
+from pydantic import BaseModel
+from myapp.reply import run_turn   # the LIVE function: run_turn(inputs, prompt_version)
+
+
+class Turn(BaseModel):             # the inputs; every OTHER key becomes metadata,
+    request: str                   # which is what `where='control'` filters on
+
+
+CASES = [{'name': 'asks_for_edit', 'request': '...', 'control': False},
+         {'name': 'control_question', 'request': '...', 'control': True}]
+
+if __name__ == '__main__':
+    r = ev.sweep(run_turn, cases=ev.load_cases(CASES, inputs=Turn), baseline='prod',
+                 metric=ev.Metric('acted', 'acted'),
+                 guardrail=ev.Metric('acted on control', 'acted', where='control',
+                                     higher_is_better=False, budget=0.1),
+                 prompt_version=['prod', 'preship'], repeats=3)
+    r.verdict()
+    r.report()                                 # results/<date>-<name>.md - commit it
+```
+
+**Never hand-roll `asyncio.gather`, and never write the probe in `tmp/`.** A
+quick eval is the one you re-run MOST, so an uncached run re-bills every case on
+every iteration, and a deleted one re-checks nothing next time. `ev.sweep` is
+SHORTER than the asyncio it replaces.
+
+Graduate it to a `<name>/` folder with `/oryxflow:eval-init` when the cases are
+worth keeping in a file and the plan worth recording.
 
 ---
 
@@ -76,6 +116,17 @@ did not) -> *did it act*. A WRONG answer -> *is it right*, against an expected
 column. A SLOW one -> latency as a budget. When the output is one of a fixed set
 of labels, score it by comparison - an LLM judge on a closed label set buys
 nothing but cost, variance and a second model's opinion on a string equality test.
+
+**Never key a metric on labels the model writes itself.** A finding's rule name or
+strength, authored by the model, drifts across runs, so a metric keyed on it
+measures the model's naming, not its findings. Match on something the model cannot
+rename - the quoted span, a planted cue, the expected label.
+
+**Bars are references, not gates - and relative beats absolute.** Write down what
+the baseline scores and where you would act, before the run. An absolute bar the
+baseline itself cannot reach measures the model, not the change; observed bars
+like ">= 9/12" were missed, then rewritten as "B >= A" after the fact. Prefer "no
+worse than baseline on X" from the start, and expect to end in a judgement.
 
 ---
 
@@ -133,7 +184,7 @@ If coverage fell while quality rose, **that is the headline** - lead with it.
 ### Cases must be genuine
 
 Read each case's own fixture and ask: **would a correct model actually have to act
-here?** One harness scored correct refusals as FAILURES because its fixture asked
+here?** A fixture that names a state must actually BE in that state. One harness scored correct refusals as FAILURES because its fixture asked
 for a change that had already been made - the model was right and the eval was
 wrong, and it made a good prompt look broken. Either alter the fixture so the work
 is genuinely outstanding, or reclassify the row as a control and score it that way
@@ -205,6 +256,32 @@ silently as the live template moves and the anchors stop matching.
 shipped, which has no ref to check out. It MUST raise when its anchor is gone; a
 probe that silently no-ops is a baseline bug wearing a different hat. Probe, yes;
 baseline, no.
+
+---
+
+## Reuse before you write
+
+pydantic-evals ships most of what a case needs scored. Check here first:
+
+| you need | use |
+|---|---|
+| one yes/no judgement of fuzzy quality | `LLMJudge(rubric=, model=, include_input=)` |
+| a scored rubric with explicit steps | `GEval(criteria=, evaluation_steps=)` |
+| exact match on the expected answer | `EqualsExpected()`; `Equals`, `Contains`, `IsInstance` |
+| right tools, right arguments, right order | `ToolCorrectness`, `ArgumentCorrectness`, `TrajectoryMatch`, `HasMatchingSpan` |
+| a budget on tool calls / model requests | `MaxToolCalls`, `MaxModelRequests` |
+| a confusion matrix / precision-recall over a label | `ConfusionMatrixEvaluator`, `PrecisionRecallEvaluator` in `report_evaluators` |
+| per-case setup: stub a search API, seed a record | `CaseLifecycle` |
+
+Patterns that need no new API: a **model** is just another arm parameter (pinned to
+a snapshot, folded into `code_version()`); a **conversation** is one case whose
+`case()` replays every turn on the state the previous one returned and returns
+per-turn columns; **"zero false negatives"** on a flag is a confusion matrix over
+`expected`, read per class.
+
+Trace-reading evaluators (the tool-call ones, `HasMatchingSpan`) score while the
+run's trace exists, and only then. To keep a tool-call check re-scorable for free,
+have `case()` return the calls it made and score those.
 
 ---
 
@@ -294,6 +371,11 @@ whatever fills that column did not run, and there is no model result here at all
 Never state a verdict more confidently than the library did. Its hedging is a
 floor, not a suggestion.
 
+With a baseline arm (`baseline=`, or an arm named `baseline`) the verdict reports
+every arm's difference from it and names NO winner - on purpose. Real results are
+mixed, and the useful output is a written judgement: what moved against the plan's
+bar, what is inside noise, the trade-off, and what you would do and why.
+
 | What the block shows | What you say |
 |---|---|
 | Delta INSIDE the interval | *"inside noise at N reps; raise repeats before calling this real"* - no winner is named |
@@ -307,6 +389,11 @@ matters and sits inside the interval - the cost is linear in the reps, so quote 
 (`repeats=3 -> 5` is 2 more calls per case per arm) and let the user decide. Raise
 reps also when the task is high-variance (long free-form generation, temperature
 above zero); a deterministic classification barely needs more than one.
+
+Read the outputs, not only the rate: `r.side_by_side()` (or `--side-by-side`)
+writes every arm's output for the cases where the arms disagree, from the stored
+outputs, with no model calls. A scorer that rewards the wrong thing survives every
+rate and dies on the first read.
 
 Then do the part no library can do: **diagnose**. Group the failing rows by
 MECHANISM, not one by one - "the imperative phrasings pass and the interrogative
@@ -327,7 +414,7 @@ import oryxflow.evals as ev
 
 | Call | What it does |
 |---|---|
-| `ev.sweep(fn, *, cases=, metric=, guardrail=, slices=, repeats=, watch=, evaluators=, reset=, cost_per_call=, **arms)` | Run the cross product; returns `EvalResult`. Each keyword in `**arms` is an axis (`prompt_version=['prod', 'preship']`); a single-valued one is a fixed setting and stays out of the arm name. |
+| `ev.sweep(fn, *, cases=, metric=, guardrail=, slices=, repeats=, watch=, evaluators=, baseline=, reset=, rescore=, cost_per_call=, **arms)` | Run the cross product; returns `EvalResult`. Each keyword in `**arms` is an axis (`prompt_version=['prod', 'preship']`); a single-valued one is a fixed setting and stays out of the arm name. `baseline=` names the arm the others are reported against. `reset` re-calls the model; `rescore` re-runs only the scorers. |
 | `watch=` | Glob patterns (or a callable) for files the target READS - prompts, `.sql`, config, and the module holding your agent code. Without it they are outside the cache key, so editing a prompt re-runs NOTHING and you read last week's numbers. A pattern matching no file raises. **The single most important argument for cache correctness.** |
 | `evaluators=` | pydantic-evals evaluators for the generated dataset - how a case is scored against its `expected` column. The target sees only `inputs`, so a classifier eval needs this. |
 | `ev.Metric(label, column, where=None, higher_is_better=True, budget=None, coverage=None)` | One number. `column` = a BOOLEAN column averaged into a rate, or a callable on the frame. `where` = a boolean column name (`~col` negates), not a query. `budget=` makes it a guardrail; `coverage=` prints first. Rows carrying an `error` are dropped from every rate - a case that raised is not evidence either way - and so are rows whose metric column is NULL: unmeasured is not failed. |
@@ -337,11 +424,12 @@ import oryxflow.evals as ev
 | `ev.PromptArm(ref=/globs=, paths=, root=, subdir=)` | Where one arm READS its prompts and the cache key that MATCHES, in one object - `.dir()` and `.code_version()`. Written by hand they are two places, and an arm reading a checked-out tree while keyed on live files is a silent staleness bug. |
 | `LLMJudge(rubric=, model=, include_input=)` (pydantic-evals) | The judge for ONE yes/no question. Do not hand-write an Evaluator for that - this is a library, use it. Write your own only for several fields per case, or a verdict per item inside the output. |
 | `ev.Variant(old, new)` | Anchored replacement for an unshipped PROBE. Raises when the anchor is gone. |
-| `ev.TaskEval` | The keepable form: override `async def case(self, inputs)`; declare `metric` / `guardrail` / `slices` / `code_version()`. |
-| `ev.cli(Task)` | `run_eval.py` in three lines - gives `--check` (preflight only: ONE real call, no bill, no sweep), `--repeats`, `--concurrency`, `--reset`, `--csv`, `--yes`. The cost confirmation offers the same probe inline as `c`, so a first run does not have to know the flag exists. |
+| `ev.TaskEval` | The keepable form: override `async def case(self, inputs)`; declare `metric` / `guardrail` / `slices` / `code_version()` / optional `baseline`. Class names must be unique across `evals/` (one shared cache). |
+| `ev.cli(Task)` | `run_eval_<name>.py` in three lines - gives `--check` (preflight only: ONE real call, no bill, no sweep), `--repeats`, `--concurrency`, `--reset`, `--rescore`, `--side-by-side`, `--csv`, `--yes`. The cost confirmation offers the same probe inline as `c`, so a first run does not have to know the flag exists. |
 
 `EvalResult`: `.df` (per-case frame - one row per case x arm), `.verdict()`,
-`.report(path)`, `.best()` -> `(arm, value, interval, clean)`.
+`.report(path)`, `.side_by_side(path=None, all=False)`, `.best()` ->
+`(arm, value, interval, clean)`.
 
 **The frame already holds more than people reach for.** Before computing anything,
 check for a column: your output fields; `expected` / `expected_*` (the case's
@@ -399,13 +487,17 @@ them and the harness lies twice (a wrong rate, and a clean bill of health).
 Seams for a replacement runner: override `_evaluate()` and `_to_frame()` on
 `TaskEval`; everything downstream reads only the frame.
 
-`code_version()` on a `TaskEval` must cover the prompt/template files the arms
-actually read - that is what makes editing a prompt invalidate ONLY that arm
-instead of serving a stale cell. The function form's equivalent is `watch=`: it
-hashes the target function's OWN source and the case file, and nothing else, so
-a helper it calls or a template it renders needs naming explicitly. Forgetting is
-not silent - oryxflow raises a `StalenessWarning` saying the cached output is
-being reused despite a source change - but it is a warning, not a re-run.
+**Each cell is cached in two stages: the model calls, then the scoring.**
+`code_version()` on a `TaskEval` names what the ARM reads - prompt files, a git
+ref, a model id - and keys only the model-call stage, together with the code
+`case()` runs and the case set. The scorers key the scoring stage on their own
+(`scorer_version()`, default: every evaluator's code and configuration), so
+editing a scorer or a judge rubric re-scores the stored outputs with NO model
+calls - the bill says `re-scoring N arms from stored outputs`. The function
+form's equivalent of `code_version()` is `watch=`: files the target READS (it
+already follows the code the target calls). A missed file is not silent - a
+`StalenessWarning` says the cached output is being reused - but it is not a
+re-run.
 
 ---
 
@@ -414,13 +506,13 @@ being reused despite a source change - but it is a warning, not a re-run.
 All four are MANUAL (`disable-model-invocation: true`) - two write files and one
 spends money. Suggest them by name; never invoke one.
 
-1. `/oryxflow:eval-plan` - settle the four questions, write `evals/<name>/README.md`,
+1. `/oryxflow:eval-plan` - settle the questions, write `evals/<name>/README.md`,
    write no code.
-2. `/oryxflow:eval-init` - scaffold from the template, fill it from the plan, end
-   in a 3-call smoke run.
+2. `/oryxflow:eval-init` - scaffold from the template (`_env.py` once per repo),
+   fill it from the plan, end in a 3-call smoke run.
 3. `/oryxflow:eval-cases` - harvest real cases, propose axes, grow the set to 15-25.
-4. `/oryxflow:eval-run` - print the bill, run, check the harness, diagnose, write
-   `results/<date>-<arms>.md`.
+4. `/oryxflow:eval-run` - print the bill, run, check the harness, read the
+   side-by-side, write a judgement to `results/<date>-<arms>.md`.
 
 Skipping straight to `eval-init` is the common mistake: an eval whose metric was
 never argued measures whatever the scaffold happened to declare.

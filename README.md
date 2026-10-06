@@ -156,11 +156,16 @@ commands take that question to a defensible number:
 /oryxflow:eval-run     # run it, print the verdict, interpret the result
 ```
 
-`eval-plan` settles the four questions that decide whether an eval means
+These work in ANY Python repo - a web app's backend is the usual home - not only
+in a oryxflow data project. `evals/` becomes one small oryxflow project of its
+own: you launch every eval from it, it holds one cache, and `evals/_env.py`
+records once how this repo loads credentials and imports production code.
+
+`eval-plan` settles the questions that decide whether an eval means
 anything - the function under test, the metric, the guardrail that must not get
 worse, and the git ref to beat - with proposals drawn from your actual diff, and
 records the answers in `evals/<name>/README.md`. `eval-init` copies the eval
-template into `evals/<name>/`, wires it to those answers without overwriting
+template into `evals/`, wires it to those answers without overwriting
 anything, and finishes with a 3-call smoke run, so a missing API key surfaces as
 an error instead of an empty result that caches as a measurement. `eval-cases`
 harvests real cases out of the repository, says plainly what it could not find,
@@ -169,12 +174,35 @@ pairs) rather than a flat list. `eval-run` prints the projected bill and waits
 before spending anything, then checks the harness for a dead metric before it
 believes any number.
 
-Evals need the extra: `pip install "oryxflow[evals]"`. Every cell is cached, so a
-re-run costs nothing for what did not change - edit one prompt and only that arm
-re-runs, which is what makes iterating on wording affordable. All four are
+Evals need the library with its extra, in the environment that runs your
+production code: `pip install "oryxflow[evals]>=26.10.6"`. Every cell is cached,
+so a re-run costs nothing for what did not change - edit one prompt and only that
+arm re-runs; edit a scorer or a judge rubric and only the scoring re-runs, with no
+model calls. All four are
 manually triggered (two write files, and `eval-run` bills you for API calls); the
 skill will volunteer that an arm has gone stale, with the cost, but never runs one
 for you.
+
+### Getting an agent in another repo to use it
+
+1. Install the plugin for that project (or user-wide), as above.
+2. Install the library into that project's environment:
+   `pip install "oryxflow[evals]>=26.10.6"`.
+3. Optionally add this block to the project's `CLAUDE.md`, filled in, so every
+   session knows the project specifics without rediscovering them:
+
+```markdown
+## LLM evals
+- Evals live in `evals/` (oryxflow.evals); run every one FROM `evals/`.
+- `evals/_env.py` loads credentials from <where> and makes <package> importable.
+- A plan that changes a prompt, response schema, model or router input names the
+  eval that measures it, as a task in the plan. Extend an existing eval in
+  `evals/` before writing a new one; a quick probe is `evals/run_eval_<name>.py`.
+- Commands: /oryxflow:eval-plan -> eval-init -> eval-cases -> eval-run.
+```
+
+The `oryxflow-evals` skill triggers on its own when an agent plans or edits an LLM
+prompt; the block adds what only your project knows.
 
 ## Using the skill
 
@@ -326,13 +354,16 @@ oryxflow-claude-plugin/
 |   `-- eval-run.md        # /oryxflow:eval-run - run an eval and interpret it
 |-- resources/
 |   |-- template-minimal/  # the files init-project copies into a new project
-|   `-- template-eval/     # the files eval-init copies into evals/<name>/
+|   `-- template-eval/     # the files eval-init copies into a repo's evals/
 `-- skills/
     `-- oryxflow/
         |-- SKILL.md       # skill entry point (loaded into context)
         |-- reference.md   # full library reference, loaded on demand
         |-- conventions.md # house conventions (layout, code-org, naming), on demand
         `-- ml-patterns.md # ML pipeline task templates, loaded on demand
+    `-- oryxflow-evals/
+        |-- SKILL.md       # eval skill: any repo, plans and prompt edits
+        `-- evals.md       # the eval method, loaded on demand
 ```
 
 ## Resources

@@ -48,19 +48,20 @@ Keep these straight - changes go to different places:
 | `skills/oryxflow/conventions.md` | house conventions (project layout, code-org-by-subject, naming columns/tasks/vars, scaling a growing project) | on demand |
 | `skills/oryxflow/dynamic-dags.md` | loop-shaped work: the fan-out decision table (`requires_each` vs `WorkflowMulti` vs a plain loop), hierarchies, shared-input stacking, gotchas, and the `for`-loop migration recipe | on demand |
 | `skills/oryxflow/ml-patterns.md` | ML task templates (features, training, SHAP, backtest) + prod lifecycle | on demand |
-| `skills/oryxflow/evals.md` | the LLM-eval METHOD (four questions, mandatory guardrail, coverage before quality, real vs synthetic cases + holdout, git-ref baseline, judge rules, dead-metric heuristic, reading a verdict) | on demand |
+| `skills/oryxflow-evals/SKILL.md` | the eval skill: activates in ANY repo on planning/editing an LLM prompt, schema, model or router input; routes to `evals.md` and the commands | on activation |
+| `skills/oryxflow-evals/evals.md` | the LLM-eval METHOD (layout, the probe tier, the four questions, mandatory guardrail, coverage before quality, real vs synthetic cases + holdout, git-ref baseline, reuse-before-you-write, judge rules, dead-metric heuristic, reading a verdict) | on demand |
 | `commands/init-project.md` | `/oryxflow:init-project`; manual (`disable-model-invocation: true`) | on invoke |
 | `commands/init-gitlfs.md` | `/oryxflow:init-gitlfs`; manual (`disable-model-invocation: true`) | on invoke |
 | `commands/update-project.md` | `/oryxflow:update-project`; reconcile old project floor to latest scaffold; manual | on invoke |
 | `commands/check-standards.md` | `/oryxflow:check-standards`; check code against the house standards (naming, style, docstrings); manual. Points AT `conventions.md`/`SKILL.md` for the rules (does not restate them) | on invoke |
 | `commands/migrate.md` | `/oryxflow:migrate`; restructure a messy notebook/script project into a pipeline; PLAN-then-APPLY; manual. Points AT the skill files for the target shape | on invoke |
 | `commands/eval-plan.md` | `/oryxflow:eval-plan`; DECIDE what an eval measures (function under test, metric, guardrail, baseline ref); writes only `evals/<name>/README.md`, no code; manual | on invoke |
-| `commands/eval-init.md` | `/oryxflow:eval-init`; copy `template-eval/` into `evals/<name>/`, fill it from the plan, end in a 3-call smoke run; manual | on invoke |
+| `commands/eval-init.md` | `/oryxflow:eval-init`; copy `template-eval/` into the repo's `evals/` project (`_env.py` once, then `run_eval_<name>.py` + `<name>/`), fill it from the plan, end in a 3-call smoke run from `evals/`; manual | on invoke |
 | `commands/eval-cases.md` | `/oryxflow:eval-cases`; grow the case set from the 3 placeholder rows to a real 15-25 (harvest real, propose axes, tag real vs synthetic); manual | on invoke |
 | `commands/eval-run.md` | `/oryxflow:eval-run`; print the bill and wait, run the sweep, check the harness before believing a number, diagnose; SPENDS the user's money; manual | on invoke |
 | `resources/template-minimal/` | project scaffold (edited directly here) | copied by init |
 | `resources/template-prod/` | graduated run-tier add-ons (`run_prod.py`, `run_eda.py`); NOT copied by init - copied by hand when a project needs prod / comparison tiers | on graduation |
-| `resources/template-eval/` | eval scaffold (`agent.py`, `eval.py`, `run_eval.py`, a 3-row `cases.csv`, `fixtures/`, `results/`); edited directly here | copied by `eval-init` |
+| `resources/template-eval/` | eval scaffold for the `evals/` project: `_env.py` (once per repo), `run_eval_NAME.py`, and the `NAME/` package (`agent.py`, `eval.py`, a 3-row `cases.csv`, `fixtures/`, `results/`); edited directly here | copied by `eval-init` |
 | `docs/design/architecture.md` | this map | dev-time |
 | `docs/design/design-notes.md` | rationale (WHY) | dev-time |
 | `docs/CHANGELOG.md` | change history | dev-time |
@@ -116,9 +117,10 @@ data ignored or added before tracking would bypass LFS.
 ```
 /oryxflow:eval-plan  -> reads the diff + call path; settles four questions
                      -> writes evals/<name>/README.md ONLY (no code)
-/oryxflow:eval-init  -> SHELL copy of resources/template-eval/ (skip-existing)
-                     -> fills the declarations from that README
-                     -> 3-call smoke run (proves credentials + wiring)
+/oryxflow:eval-init  -> SHELL copy of resources/template-eval/ (skip-existing):
+                        _env.py once, run_eval_<name>.py, <name>/
+                     -> fills the declarations (and _env.py) from that README
+                     -> 3-call smoke run from evals/ (credentials + wiring)
 /oryxflow:eval-cases -> harvest real, propose axes, generate -> cases.csv
 /oryxflow:eval-run   -> bill -> confirm -> sweep -> results/<date>-<arms>.md
 ```
@@ -163,11 +165,12 @@ data doc) is opt-in (`/oryxflow:oryxflow explore` or a plain-language request).
 | Scaling LAYOUT (graduated `tasks.py` split, spine, axes, app) | `skills/oryxflow/conventions.md` "Scaling up" | - |
 | Fan-out / loop-shaped DAGs (`requires_each`, `requires_grid`, hierarchies, grids, migration recipe) | `skills/oryxflow/dynamic-dags.md` | keep the SKILL.md "Per-item work" trigger in sync (a rule with no trigger is never loaded) |
 | ML pipeline templates | `skills/oryxflow/ml-patterns.md` | - |
-| The eval METHOD (four questions, guardrail, real vs synthetic, judge rules, reading a verdict) | `skills/oryxflow/evals.md` | keep the SKILL.md "Evaluating a prompt change" trigger in sync (a rule with no trigger is never loaded) |
+| What activates evals in any repo | `skills/oryxflow-evals/SKILL.md` frontmatter | the `oryxflow` skill carries NO eval trigger (one owner); its "Evaluating a prompt change" section is only a pointer |
+| The eval METHOD (four questions, guardrail, real vs synthetic, judge rules, reading a verdict) | `skills/oryxflow-evals/evals.md` | keep `oryxflow-evals/SKILL.md` pointing at it (a rule with no trigger is never loaded) |
 | PROD lifecycle (`params_prod`, `RunAll...Prod`, selective resets, notebook->pipeline) | `skills/oryxflow/ml-patterns.md` "Productionizing" | - |
 | Any scaffold/template file (wiring, `CLAUDE.md`, data doc, `.gitignore`) | `resources/template-minimal/` directly | bump version + floor stamp (next row) |
 | A graduated run-tier file (`run_prod.py`, `run_eda.py`) | `resources/template-prod/` directly + guidance in `conventions.md` "Run tiers by lifecycle" | NOT copied by init / not a floor file; changelog bullet only |
-| An eval scaffold file (`eval.py`, `agent.py`, `run_eval.py`, `cases.csv`) | `resources/template-eval/` directly | NOT a floor file; changelog bullet only. A marker you ADD needs an owner - `eval-init` fills the declaration ones, `eval-cases` deletes the case-set one |
+| An eval scaffold file (`_env.py`, `run_eval_NAME.py`, `NAME/eval.py`, `NAME/agent.py`, `NAME/cases.csv`) | `resources/template-eval/` directly | NOT a floor file; changelog bullet only. A marker you ADD needs an owner - `eval-init` fills the declaration ones, `eval-cases` deletes the case-set one |
 | A reconcile-by-default FLOOR file (`CLAUDE.md`, `viz-template.ipynb`) | the template file, AND bump the floor baseline to the new version in BOTH the template `CLAUDE.md` `<!-- oryxflow-floor: VERSION -->` stamp and `SKILL.md`'s comparison value | the two must stay equal (the `.githooks/pre-commit` check blocks a commit if they differ) - the skill nudges a project stale when its stamp < SKILL's value |
 | A low-churn floor file (`.gitignore` - owned by `init-gitlfs` - or `.creds.yaml.example`) | the template file only | `update-project` treats these as additive / on-demand; a baseline bump is optional (low staleness value) |
 | Scaffold copy behavior / pre-flight | `commands/init-project.md` | - |

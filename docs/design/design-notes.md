@@ -936,6 +936,51 @@ command re-derives and re-prints the bill before spending anything, so the
 skill's estimate stays advisory and the gate that stops a run lives in one
 place.
 
+## Evals in any repo: one `evals/` project, a second skill, no gates
+
+Recorded 2026-10-06, from reading a downstream consumer project (an LLM web app)
+that had five hand-built evals and ~25 throwaway probe scripts.
+
+**Why `evals/` is ONE project, with a folder per eval.** The consumer's real cost
+was setup - where production code is importable from, how credentials load (its
+loader resolved relative to the working directory, so a run from the repo root
+"succeeded" with no credentials and empty results) - re-derived in every eval, in
+five different layouts. One launch directory, one cache and one `_env.py` solve it
+once. A folder per eval (rather than flat `eval_<name>.py` files) because half an
+eval is hand-maintained non-code - plan, cases, fixtures, committed results - and
+you work on evals one at a time. One `run_eval_<name>.py` per eval rather than a
+dispatcher, because `ev.cli(Cls)` derives its flags from one class. The shared
+cache keys on class name, so class names must be unique - `eval-init` enforces it.
+Rejected: one project per eval (the current shape before this change) - isolation
+nobody needed, at the price of the setup duplication that actually hurt.
+
+**Why probes are committed.** Plans in the consumer carried well-designed probes
+(arms, controls, pass bars) as gitignored `tmp/probe_*.py`, deleted after the
+decision. Two failures: placed outside the plan's task list, a task-by-task
+executor never ran them; and nothing re-checked a surface when it changed again
+two weeks later. A probe as `evals/run_eval_<name>.py` is the same effort, cached,
+and still there.
+
+**Why a second skill.** The `oryxflow` skill is described as a data-science skill,
+so an agent planning a router change in a web app never loads it - and that is
+where evals were needed. `oryxflow-evals` owns the eval trigger in any repo; the
+`oryxflow` skill keeps only a pointer (~40 lines lighter in every data session).
+It tells a planner to put the eval INSIDE the plan's tasks, but defers to project
+instructions that make evals optional: it then asks the plan to name the skipped
+eval rather than drop it silently.
+
+**Why no hard gates.** The probes set absolute pass bars, missed them, and
+rewrote them as "B >= A" after the fact; results were mixed (one label up, another
+down) far more often than pass/fail. So bars are written down before the run as
+REFERENCES, preferably relative to the baseline arm, and the run ends in a written
+judgement. The library mirrors it: with a baseline arm the verdict reports every
+arm against it and names no winner.
+
+**Why docs before source.** The probes and evals kept rebuilding what pydantic-evals
+ships (a hand-rolled `asyncio.gather` runner, a hand-written pydantic judge, tool
+stubs). Reading the docs first is the cheapest fix; the installed version still
+wins over them.
+
 ## Scaffolding: the init command and the template
 
 A new project is created by the `/oryxflow:init-project` slash command (commands

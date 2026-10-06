@@ -6,19 +6,16 @@ drifts from the shipping one the first time either is edited, and an eval scorin
 the copy measures nothing. If something has to change to make the entry point
 callable from here, change it in production.
 
-The project must be importable - installed (`pip install -e .`) or on PYTHONPATH.
+Production code is importable because evals/_env.py says how (an installed
+package, or a path it adds) - import _env BEFORE production code.
 """
-import pathlib
+from _env import ROOT  # first: _env makes the production import below resolve
 
 import oryxflow.evals as ev
 from pydantic import BaseModel
 
 # PLACEHOLDER SCAFFOLD - import the PRODUCTION entry point here; delete this line when filled.
 from myapp.assistant import respond
-
-# the repo root, so every path below is repo-relative and this eval behaves the
-# same whatever directory it was launched from
-ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 # The baseline is a git ref - the commit before the change - and the files the arms
 # read. PROMPT_GLOBS is what the live arm hashes into its code_version().
@@ -48,6 +45,9 @@ class Output(BaseModel):
     as a plausible model result. The framework already emits every long field twice:
     `<field>` in full, which is what the metric reads, and `<field>_preview` capped
     for display (TaskEval.preview_chars).
+
+    It is STORED and re-scored later, so carry everything a scorer needs - the tool
+    calls made, if one checks them: the run's trace is not stored.
     """
     # PLACEHOLDER SCAFFOLD - the fields the metric and guardrail read; delete this line when filled.
     message: str

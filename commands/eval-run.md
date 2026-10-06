@@ -1,5 +1,5 @@
 ---
-description: Run an oryxflow eval and interpret the result - resolve the arms, print the projected bill (cases x arms x reps, cached/new split, cost, duration) and wait for confirmation, run the sweep, check the harness for a dead metric before believing any number, then diagnose the failing rows and write results/<date>-<arms>.md. Bills the user - only ever run when asked.
+description: Run an oryxflow eval and interpret the result - resolve the arms, print the projected bill (cases x arms x reps, cached/new split, cost, duration) and wait for confirmation, run the sweep from evals/, check the harness for a dead metric before believing any number, read the outputs side by side, then write a judgement - not a pass/fail - to results/<date>-<arms>.md. Bills the user - only ever run when asked.
 disable-model-invocation: true
 ---
 
@@ -25,6 +25,8 @@ restate what the verdict block already prints - interpret it.
 - If `$ARGUMENTS` names arms (`prod vs preship`), use them.
 - If it does not, use the plan's baseline as one arm and the live code as the
   other. Say which two you picked and why, in one line, before the bill.
+- Every run launches FROM `evals/` (`cd evals`): the shared cache and `_env.py`
+  live there. A run from anywhere else warns and builds a second cache.
 - If the user named an arm the eval does not declare, STOP and list the arms that
   exist. Do not silently substitute a neighbour.
 
@@ -55,9 +57,10 @@ billed call, not zero; say so if you propose it.
 
 ## 3. Run, print the verdict, record it
 
-Run the sweep - `python run_eval.py` with the arm / `--repeats` / `--concurrency`
-flags, or `ev.sweep(...)` directly. Print the verdict block the library produces,
-verbatim. It already contains, and you must not paraphrase or recompute:
+Run the sweep from `evals/` - `python run_eval_<name>.py` with the arm /
+`--repeats` / `--concurrency` flags, or `ev.sweep(...)` directly. Print the
+verdict block the library produces, verbatim. It already contains, and you must
+not paraphrase or recompute:
 
 - the per-arm rate with `n` and a 95% confidence interval
 - the paired delta with its interval and an `outside noise` / `inside noise`
@@ -78,20 +81,28 @@ verbatim. It already contains, and you must not paraphrase or recompute:
 The shape:
 
 ```
-RunTurn | 4 cases x 3 arms x 1 rep = 12 calls
-  cached 8 | new 4
+ReplyEval | 22 cases x 2 arms x 3 reps = 132 calls
+  cached 66 | new 66
 
 YIELD (higher is better)
-  prod     100%  (4/4)   95% CI [51%, 100%]
-  preship    0%  (0/4)   95% CI [0%, 49%]
-  D  prod - preship  = +100pp  [+31pp, +100pp]   outside noise
+  baseline   64%  (42/66)   95% CI [51%, 75%]
+  live       91%  (60/66)   95% CI [82%, 96%]
+  D  live - baseline  = +27pp  [+15pp, +39pp]   outside noise
 
-VERDICT  prod wins the primary metric (+100pp, outside noise).
+VERDICT  live vs baseline on yield: +27pp [+15pp, +39pp], outside noise.
 ```
 
+With a baseline arm the verdict reports every arm AGAINST it and names no
+winner, on purpose: that is your job, in step 5.
+
+Add `--side-by-side` to the run (or re-run the same command with it - every cell is
+cached, so that costs nothing). It writes every arm's output for the cases where
+the arms disagree, plus failures, to
+`evals/<name>/results/<date>-<arms>-side-by-side.md`.
+
 Write the run up to `evals/<name>/results/<date>-<arms>.md`: the verdict block,
-the harness check from step 4, the diagnosis from step 5, and the proposed next
-arm. Print the path.
+the harness check from step 4, the judgement from step 5, and the proposed next
+arm. Print both paths. Both files get committed - small, and paid for.
 
 ## 4. CHECK THE HARNESS BEFORE YOU BELIEVE THE NUMBERS
 
@@ -122,12 +133,14 @@ The general rule behind it: **nothing may sit between the model's output and the
 scorer.** Any truncation, normalization or clean-up applied before scoring means
 you are measuring that transformation, not the prompt.
 
-Even with no flag raised, spot-check one failing row per arm before diagnosing.
+Even with no flag raised, spot-check one failing row per arm before diagnosing -
+the side-by-side file is the fastest way to read them.
 
-## 5. Diagnose - the part no library can do
+## 5. Diagnose and judge - the part no library can do
 
-A verdict without a mechanism is not actionable. Read the per-case frame and
-explain WHY.
+A verdict without a mechanism is not actionable, and the library deliberately
+names no winner. Read the per-case frame and the side-by-side file, explain WHY,
+and end in a judgement a person can act on.
 
 `result.df` is the escape hatch: one row per case x arm, with `case_name`, `arm`,
 one column per metadata key (so per-slice breakdowns work), one per assertion or
@@ -152,6 +165,11 @@ Produce:
 regressed a third is a MIXED RESULT, not a win - say so in those words. Do not
 lead with the improvement and bury the regression, and do not average them into
 one cheerful number.
+
+**Close with the judgement, in four short parts:** what moved (and against which
+reference in the plan's bar), what is inside noise, the trade-off if there is one,
+and what you would do - ship, iterate on a named arm, or gather cases - with the
+reason. The plan's bar is a reference point for that judgement, not a gate.
 
 ## 6. Never state a verdict more confidently than the library did
 
@@ -184,10 +202,16 @@ With no `$ARGUMENTS` in a directory that already has results:
 ## Reference
 
 - API: `import oryxflow.evals as ev`. `ev.sweep(...)` returns an `EvalResult` with
-  `.df` (the per-case frame), `.verdict()`, `.report(path=None)`, `.best()`.
-- CLI (`run_eval.py`): `--check` (preflight ONLY - one real call, no bill, no
-  sweep), `--repeats`, `--concurrency`, `--reset` (drops cached cells, so it
-  re-bills them - confirm first), `--csv`, `--yes`. The cost confirmation also
-  offers that same probe inline as `c`.
+  `.df` (the per-case frame), `.verdict()`, `.report(path=None)`,
+  `.side_by_side(path=None, all=False)`, `.best()`. Docs:
+  https://docs.oryxflow.dev/llms.txt - read them before the source.
+- CLI (`run_eval_<name>.py`, run from `evals/`): `--check` (preflight ONLY - one
+  real call, no bill, no sweep), `--repeats`, `--concurrency`, `--reset` (drops
+  BOTH stages, so it re-bills the model calls - confirm first), `--rescore`
+  (re-runs only the scorers over stored outputs: no model calls, but an LLM judge
+  still bills per case), `--side-by-side`, `--csv`, `--yes`. The cost confirmation also offers that
+  same probe inline as `c`.
+- A scorer or judge-rubric edit costs no model calls: the bill shows
+  `re-scoring N arms from stored outputs`. Say so when proposing one.
 - Raise `--repeats` before believing a small delta; that is the answer to "inside
   noise", and its cost is linear in the reps - quote it when you propose it.

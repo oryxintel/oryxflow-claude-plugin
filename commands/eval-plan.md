@@ -14,8 +14,9 @@ around the scaffold. The six answers below are the whole eval; the code is
 bookkeeping. Target directory: `${CLAUDE_PROJECT_DIR}`.
 
 `$ARGUMENTS` (optional) is the eval name, and/or a hint at what changed. With no
-argument, name the eval after the surface under test (`evals/reply-tone/`), and
-confirm the name with the six proposals.
+argument, name the eval after the surface under test (`evals/reply_tone/`), and
+confirm the name with the six proposals. The name becomes a Python package:
+lowercase, underscores, no dashes.
 
 ## 1. Gather the context first - shell and read, never guesswork
 
@@ -33,7 +34,15 @@ cannot find it, say so and ASK; do not invent a plausible answer.
   metric in question 2, so quote it rather than paraphrasing.
 - **Existing evals.** Does `evals/` exist? If `evals/<name>/README.md` already
   exists, STOP and report it - offer to revise it, and change nothing until the
-  user answers.
+  user answers. An existing eval on the SAME surface is usually better extended
+  (a new arm, more cases) than duplicated - say so if you find one. If
+  `evals/_env.py` exists, read it: it already answers how this repo's evals
+  import production code and load credentials (Q6).
+- **The libraries' docs, before their source.** Read
+  https://docs.oryxflow.dev/llms.txt (the LLM evals pages) and
+  https://pydantic.dev/docs/ai/evals/ before proposing any API. pydantic-evals
+  already ships judges, tool-call checks and confusion matrices - propose those
+  rather than hand-written ones. The installed version wins over the docs.
 
 Report what you found and, plainly, what you could not find.
 
@@ -226,9 +235,14 @@ In an observed eval, output quality moving 31% to 100% only meant anything
 because yield moved 1.62 to 2.42 in the same direction. Propose it as
 `ev.Metric(..., coverage=ev.Metric(...))` so the runner prints coverage first.
 
-**Name the BAR: two numbers, not one.** What the current prompt scores today, and
-the value at which the user would act. A threshold chosen after seeing the result
-is not a threshold.
+**Name the BAR as reference points, not a gate.** What the baseline scores today,
+and roughly where the user would act - written down before the run, because a
+reference chosen after seeing the result is not one. It is not a pass/fail: real
+results are mixed (one label up, another down), and the run ends in a written
+judgement against these numbers, not a verdict computed from them. Prefer bars
+RELATIVE to the baseline arm ("no worse than baseline on X") over absolute ones:
+an absolute bar the baseline itself cannot reach measures the model, not the
+change - observed, and rewritten after the fact.
 
 **State the hypothesis test, and check the case count can resolve it.** The
 verdict IS the test: H0 is that the arms are equal, the test is a paired bootstrap
@@ -275,7 +289,7 @@ Q2's number.
 **Name the control cases the guardrail reads.** Cases where doing nothing is
 correct, roughly a fifth of the set. Two or three cannot move a rate.
 
-### Q6. Where do the cases come from, and how does the run authenticate?
+### Q6. Where do the cases come from, and how does the run launch?
 
 **The case set needs a SOURCE, not a description.** "Documents across a range of
 genres" is a rule for a good set; someone still has to produce it. Propose:
@@ -292,10 +306,18 @@ set, and Q5's guardrail reads them), which fixture files a case column points at
 and whether they exist today, and any case whose text is embedded in a prompt
 (that one is `holdout`, or it scores against its own answer key).
 
-**Credentials: one line naming where the key lives** - the environment variable
-or secret store, and who has access. oryxflow never reads or stores one; this is
-about the person running it having what they need. NEVER write a key, token or
-internal hostname into the plan file.
+**The launch facts** - every eval in the repo runs from `evals/`, and
+`evals/_env.py` is where these two land, once per repo (reuse it if it exists):
+
+- **Credentials: where they live, and HOW they load** - the environment variable,
+  secret store or file, and whether the loader resolves relative to the working
+  directory. A loader that does will find nothing from `evals/`; the plan says
+  which absolute path to load from instead. oryxflow never reads or stores a key.
+  NEVER write a key, token or internal hostname into the plan file.
+- **Where the production code lives, and how it becomes importable** - the
+  package's directory and the `pyproject.toml` that owns it (often not the repo
+  root), and whether it is installed (`pip install -e <dir>`) or needs a path
+  added.
 
 ## 2b. The executability check - run it on your own six answers
 
@@ -316,8 +338,9 @@ sentence, ASK rather than leaving it for the executor.
 3. **Every input file exists or has an owner.** A case column holding
    `@fixtures/handbook.md` has promised a file. List them; say which exist.
 4. **The model handle has an import path.** Not "two model families" - the module
-   to import, the two model ids, and what puts that module on `sys.path`. One
-   line, and it is the difference between executable and not.
+   to import, the two model ids, and what makes that module importable from
+   `evals/` (an installed package, or the path `_env.py` adds). One line, and it
+   is the difference between executable and not.
 5. **The table's unit and columns are written down** (Q4), every gate number
    names a column or a callable over the listed columns, and every gate is marked
    runnable NOW or BLOCKED on something nobody has written yet. If the headline
@@ -331,9 +354,9 @@ sentence, ASK rather than leaving it for the executor.
    carries one label.
 8. **The guardrail beats the degenerate strategy** (Q5), and is not an algebraic
    restatement of the metric.
-9. **The first run's shape is written down.** The `--check` line, the smoke run,
-   and one line of what a correct result looks like. A wiring failure otherwise
-   reads as a measurement.
+9. **The first run's shape is written down.** The `--check` line (run from
+   `evals/`), the smoke run, and one line of what a correct result looks like. A
+   wiring failure otherwise reads as a measurement.
 
 Report which of the nine the plan satisfies and which it cannot yet, in one short
 block. An item you cannot satisfy belongs in `Known gaps` with what would close
@@ -383,7 +406,8 @@ Reads `<template path>`. Production code, never a copy: <why>.
 
 `<label>` - <the one number>, computed from `<column>` produced by <what>.
 Coverage: `<label>` - <why the subset needs one>. (Or: not a filtered rate.)
-Bar: baseline scores <value> today; act at <value>.
+Bar (a reference for the written judgement, not a gate): baseline scores <value>
+today; worth acting on at about <value>.
 Test: paired bootstrap of the difference, clustered by case; an interval spanning
 zero names no winner. Smallest difference worth acting on: <value>.
 At <count> cases that is detectable about <value> of the time. <Enough, or where
@@ -420,8 +444,11 @@ Slices: `<column>`, `<column>`.
 
 ## Running it
 
-Credentials: `<ENV_VAR>` / <secret store>, held by <who>. (Never the key itself.)
-First run: `python run_eval.py --check`, then a 3-case smoke run.
+Credentials: `<ENV_VAR>` / <secret store / file>, held by <who>; loaded <how - by
+absolute path from evals/_env.py>. (Never the key itself.)
+Production code: `<package>` in `<dir>`, importable by <`pip install -e <dir>` / a
+path in evals/_env.py>.
+First run, from `evals/`: `python run_eval_<name>.py --check`, then a 3-case smoke run.
 A correct smoke result looks like: <one line>.
 
 ## Judgement calls

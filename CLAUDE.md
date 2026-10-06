@@ -25,9 +25,11 @@ as instructions for this session.
 
 ## What this plugin is
 
-A single-skill Claude Code plugin. It ships the `oryxflow` skill, which activates
-when a user works in a oryxflow data-science project. This repo is also its own
-marketplace, so it can be installed directly from git or a local path.
+A Claude Code plugin with two skills: `oryxflow`, which activates when a user
+works in a oryxflow data-science project, and `oryxflow-evals`, which activates
+in ANY Python repo when an LLM prompt / schema / model change is planned or
+made. This repo is also its own marketplace, so it can be installed directly
+from git or a local path.
 
 ## Layout
 
@@ -50,10 +52,13 @@ skills/
     SKILL.md         # skill entry point - ESSENTIALS only, always in context
     reference.md     # full reference - loaded ON DEMAND, not by default
     ml-patterns.md   # ML pipeline task templates - loaded ON DEMAND
+  oryxflow-evals/
+    SKILL.md         # eval skill entry point - any repo, always-loaded description
+    evals.md         # the eval METHOD - loaded ON DEMAND
 resources/
   template-minimal/  # the project scaffold init-project copies into a new project
   template-prod/     # graduated run-tier add-ons (run_prod.py, run_eda.py); copied by hand, NOT by init
-  template-eval/     # the eval scaffold eval-init copies into evals/<name>/
+  template-eval/     # the eval scaffold eval-init copies into the repo's evals/
 docs/
   CHANGELOG.md       # user-facing change history
   design/
@@ -222,8 +227,10 @@ changelog bullet - no floor-baseline bump. These files name project-specific tas
 they cannot resolve, so they carry `PLACEHOLDER SCAFFOLD` markers (leave them).
 
 `resources/template-eval/` is the eval scaffold `/oryxflow:eval-init` copies into
-`evals/<name>/` in a USER's project - `agent.py`, `eval.py`, `run_eval.py`, a
-3-row `cases.csv`, `fixtures/`, `results/`. Canonical here; edit directly. Like
+a USER's `evals/` directory, which is ONE oryxflow project: `_env.py` (credentials
++ import path, copied once per repo), `run_eval_NAME.py` and the `NAME/` package
+(`agent.py`, `eval.py`, a 3-row `cases.csv`, `fixtures/`, `results/`), which
+`eval-init` renames to `<name>`. Canonical here; edit directly. Like
 the other templates it ships intentional `PLACEHOLDER SCAFFOLD` markers (leave
 them), but these are consumed in TWO stages: `/oryxflow:eval-init` fills the
 declaration markers from the eval's plan, and `/oryxflow:eval-cases` deletes the
