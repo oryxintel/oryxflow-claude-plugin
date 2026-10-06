@@ -50,8 +50,8 @@ created vs skipped (for the report) - again via shell (e.g. compare directory
 listings), not by reading file contents.
 
 The template contains the project wiring (`cfg.py`, `flow_params.py`, `flow.py`,
-`run.py`, `tasks.py`, `visualize.py`, `viz-template.ipynb`), `CLAUDE.md`,
-`.gitignore`, `.creds.yaml.example`, and `docs/oryxflow-data.md`. `tasks.py` and
+`run.py`, `tasks.py`, `visualize.py`, `viz-template.ipynb`), `pyproject.toml`,
+`CLAUDE.md`, `.gitignore`, `.creds.yaml.example`, and `docs/oryxflow-data.md`. `tasks.py` and
 `flow_params.py` ship with a `PLACEHOLDER SCAFFOLD` marker (and `tasks.py`'s
 module + task docstrings are placeholders); `docs/oryxflow-data.md` ships with a
 `PLACEHOLDER` marker on line 1. Those markers are intentional - leave them; they
@@ -63,10 +63,31 @@ documentation lives in the code's docstrings, not a separate doc.)
 Ensure an empty `data/` exists in the target (it is gitignored; oryxflow writes
 per-task parquet outputs there).
 
-## 4. Report
+## 4. Install the project
+
+The scaffold is a flat set of modules at the project root, so `import tasks` only
+resolves from the root until the project is installed. Install it now - an eval
+under `evals/`, a test in a subdirectory and a notebook under `eda/` all import
+the project, and all fail with `ModuleNotFoundError` until this runs.
+
+1. If `pyproject.toml` still carries the template's `name = "project"`, set it to
+   the target directory's name (lowercase, non-alphanumerics as dashes) and drop
+   the comment beside it.
+2. Install it editable, in THIS project's interpreter:
+   - uv project (`uv.lock`, `[tool.uv]`): `uv pip install -e .`
+   - poetry (`poetry.lock`): `poetry install`
+   - venv / conda env: `pip install -e .`
+3. Confirm it took: `python -c "import tasks"` from a SUBDIRECTORY (e.g. `eda/`).
+
+If the install or the import check fails, print the command and its output and
+STOP. Do not report a finished scaffold whose imports do not resolve - report
+what failed and hand back.
+
+## 5. Report
 
 Tell the user exactly which files were CREATED and which were SKIPPED (already
-present). If `CLAUDE.md` was skipped, note the template version lives at
+present), and the exact install command you ran. If `CLAUDE.md` was skipped, note
+the template version lives at
 `${CLAUDE_PLUGIN_ROOT}/resources/template-minimal/CLAUDE.md` for them to diff.
 
 Finish with the next steps: the scaffold runs as-is (`python run.py`) but does no

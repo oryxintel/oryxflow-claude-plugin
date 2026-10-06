@@ -1,0 +1,22 @@
+# Makes this project installable, so `import tasks` / `import flow` resolve the same
+# from a notebook, a test, a subdirectory or an eval - not only from the repo root.
+#
+#     pip install -e .
+#
+# /oryxflow:init-project runs that for you. Re-run it after adding a dependency.
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "project"          # set to this project's name (lowercase, dashes)
+version = "0.1.0"
+requires-python = ">=3.9"
+dependencies = ["oryxflow"]
+
+[tool.setuptools]
+# Flat layout: the modules sit at the repo root. List every new top-level module
+# here (e.g. a tasks.py split into tasks_features.py / tasks_model.py).
+# run.py is deliberately absent - it is a script you execute, not one you import.
+py-modules = ["cfg", "flow", "flow_params", "tasks", "visualize"]

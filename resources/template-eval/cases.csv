@@ -1,0 +1,4 @@
+name,request,context,kind,control,synthetic,holdout
+placeholder_action,"PLACEHOLDER - a real request the assistant should act on. These three rows are scaffolding, not a case set: /oryxflow:eval-cases replaces them with 15-25 cases harvested from real material.",,action,false,0,0
+placeholder_control,"PLACEHOLDER - a request where doing NOTHING is correct. Keep at least one control row: without controls, a prompt that acts on everything scores 100% and ships a regression.",,control,true,0,0
+placeholder_needs_input,"PLACEHOLDER - a request the assistant cannot fulfil without something only the user has. Correct behavior is to ask for it while still doing what it can, which is what separates handled from punted. synthetic=1 marks an INVENTED case; the headline is harvested cases only (synthetic=0), invented ones reported beside it. holdout=1 withholds a case whose text is embedded in the prompt, from every arm.",,needs_input,false,1,0

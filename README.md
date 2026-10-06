@@ -49,6 +49,15 @@ Already installed? Two things to know:
 - Migrate an old `d6tflow` project to `oryxflow`: with the skill active, just ask
   (e.g. "migrate from d6tflow to oryxflow using the plugin's d6tflow migration
   instructions"). It is a guided rename, not a slash command.
+- Measure a prompt change instead of guessing: run `/oryxflow:eval-plan` to
+  decide what the eval measures - it writes the plan, no code.
+- Scaffold that eval: run `/oryxflow:eval-init` - it copies the eval template,
+  fills it from the plan, and ends in a 3-call smoke run that proves the wiring.
+- Grow the case set from the 3 placeholders to a real 15-25: run
+  `/oryxflow:eval-cases`.
+- Run it and read the verdict: run `/oryxflow:eval-run`. Evals need
+  `pip install "oryxflow[evals]"`, and a re-run costs nothing for the cells that
+  did not change - edit one prompt and only that arm re-runs.
 - Use it: just start working in a oryxflow project and the skill auto-activates,
   or invoke it manually with `/oryxflow:oryxflow`.
 
@@ -135,6 +144,38 @@ and applies only what you approve - never overwriting your `tasks.py` / wiring o
 your data doc's real content. The skill also points you here on its own when it
 notices a project whose floor predates the current scaffold.
 
+## Measure a prompt change
+
+Changed a prompt or a template and cannot tell whether it is better? Four
+commands take that question to a defensible number:
+
+```
+/oryxflow:eval-plan    # decide what is measured - writes the plan, no code
+/oryxflow:eval-init    # scaffold the eval from the plan, ending in a smoke run
+/oryxflow:eval-cases   # grow the case set from 3 placeholders to a real 15-25
+/oryxflow:eval-run     # run it, print the verdict, interpret the result
+```
+
+`eval-plan` settles the four questions that decide whether an eval means
+anything - the function under test, the metric, the guardrail that must not get
+worse, and the git ref to beat - with proposals drawn from your actual diff, and
+records the answers in `evals/<name>/README.md`. `eval-init` copies the eval
+template into `evals/<name>/`, wires it to those answers without overwriting
+anything, and finishes with a 3-call smoke run, so a missing API key surfaces as
+an error instead of an empty result that caches as a measurement. `eval-cases`
+harvests real cases out of the repository, says plainly what it could not find,
+and proposes the axes the set is missing (controls, needs-user-input, mood
+pairs) rather than a flat list. `eval-run` prints the projected bill and waits
+before spending anything, then checks the harness for a dead metric before it
+believes any number.
+
+Evals need the extra: `pip install "oryxflow[evals]"`. Every cell is cached, so a
+re-run costs nothing for what did not change - edit one prompt and only that arm
+re-runs, which is what makes iterating on wording affordable. All four are
+manually triggered (two write files, and `eval-run` bills you for API calls); the
+skill will volunteer that an arm has gone stale, with the cost, but never runs one
+for you.
+
 ## Using the skill
 
 Once installed, the skill is always available - there is nothing to turn on per
@@ -148,7 +189,9 @@ checking code against the standards, and restructuring a messy project into a
 pipeline are separate, manually-triggered commands - `/oryxflow:init-project`,
 `/oryxflow:init-gitlfs`, `/oryxflow:update-project`, `/oryxflow:check-standards`,
 and `/oryxflow:migrate` - they are not auto-invoked, since they write files, run
-git, or edit your code.
+git, or edit your code. The four eval commands - `/oryxflow:eval-plan`,
+`/oryxflow:eval-init`, `/oryxflow:eval-cases` and `/oryxflow:eval-run` - are
+manual for the same reason, plus one more: a run spends money on API calls.
 
 Things you can ask, in plain language:
 
@@ -276,9 +319,14 @@ oryxflow-claude-plugin/
 |   |-- init-gitlfs.md     # /oryxflow:init-gitlfs - put data/ under Git LFS
 |   |-- update-project.md  # /oryxflow:update-project - update an old project's floor
 |   |-- check-standards.md # /oryxflow:check-standards - check names, style, docstrings
-|   `-- migrate.md         # /oryxflow:migrate - restructure a messy project into a pipeline
+|   |-- migrate.md         # /oryxflow:migrate - restructure a messy project into a pipeline
+|   |-- eval-plan.md       # /oryxflow:eval-plan - decide what an eval measures
+|   |-- eval-init.md       # /oryxflow:eval-init - scaffold an eval from the plan
+|   |-- eval-cases.md      # /oryxflow:eval-cases - grow the case set to a real 15-25
+|   `-- eval-run.md        # /oryxflow:eval-run - run an eval and interpret it
 |-- resources/
-|   `-- template-minimal/  # the files init-project copies into a new project
+|   |-- template-minimal/  # the files init-project copies into a new project
+|   `-- template-eval/     # the files eval-init copies into evals/<name>/
 `-- skills/
     `-- oryxflow/
         |-- SKILL.md       # skill entry point (loaded into context)

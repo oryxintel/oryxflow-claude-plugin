@@ -1,0 +1,3 @@
+# Long case inputs live here as files, one per blob, and a cases.csv cell points at
+# one with @fixtures/<name>.md - which is what keeps a flat CSV usable with realistic
+# inputs instead of repeating a document down a column.
