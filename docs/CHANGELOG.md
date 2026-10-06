@@ -26,55 +26,6 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
 
 ## [Unreleased]
 
-### Added
-- `skills/oryxflow-evals/` - a second, small skill that owns LLM evals in ANY
-  Python repo, not only oryxflow data projects. It triggers on planning or
-  editing a prompt / response schema / model / router input, and says: a plan
-  that changes LLM behavior names its eval INSIDE its tasks (a step outside the
-  task list is one a task-by-task executor never runs); a quick probe is a
-  committed `evals/run_eval_<name>.py` using `ev.sweep`, not a `tmp/` script;
-  read the oryxflow and pydantic-evals docs before their source. The data-science
-  `oryxflow` skill never fired in an app repo, which is where evals were needed.
-- `resources/template-eval/_env.py` - credentials and the production import path,
-  written ONCE per repo and imported by every eval. Credentials load by absolute
-  path, because a loader that resolves relative to the working directory finds
-  nothing from `evals/`.
-- `skills/oryxflow-evals/evals.md` - "Reuse before you write" (the pydantic-evals
-  judges, tool-call evaluators, confusion matrices and `CaseLifecycle`, plus the
-  model-as-axis, conversation-replay and zero-false-negative patterns that need no
-  new API); never key a metric on labels the model writes itself; bars relative
-  to the baseline, not absolute; credentials work in-process.
-
-### Changed
-- `resources/template-eval/`, `commands/eval-init.md` - `evals/` is now ONE oryxflow
-  project: one launch directory, one shared `data/` cache, one `_env.py`, then a
-  `run_eval_<name>.py` and a `<name>/` package per eval (README, `eval.py`,
-  `agent.py`, `cases.csv`, `fixtures/`, `results/`). `eval-init` creates the shared
-  files once (skip-existing), renames `NAME` / the eval class (class names must be
-  unique: the cache is shared), pins `oryxflow[evals]>=26.10.5`, and runs the smoke
-  run from `evals/`. Eval files resolve from their own folder, not the working
-  directory.
-- `commands/eval-plan.md` - Q4's bar is a reference for a written judgement, not a
-  gate, and relative to the baseline arm where possible; Q6 records the launch
-  facts (where credentials come from and how they load; where the production
-  package lives and how it becomes importable). Eval names are package names
-  (`reply_tone`). Reads the docs before proposing an API.
-- `commands/eval-run.md` - runs from `evals/`; with a baseline arm the library
-  names no winner, so the report ends in a judgement (what moved, what is inside
-  noise, the trade-off, what to do); writes the side-by-side file
-  (`--side-by-side`) beside the results; `--rescore` re-scores without model
-  calls.
-- `skills/oryxflow/SKILL.md` - the eval section shrinks to a pointer at
-  `oryxflow-evals`, and the eval triggers move to that skill: ~40 fewer lines in
-  every oryxflow-project session.
-- `skills/oryxflow/evals.md` moved to `skills/oryxflow-evals/evals.md`.
-
-<!-- Add bullets here as you work (Added / Changed / Removed). They stay
-     UNPUBLISHED - plugin.json keeps the last released version, so consumers see
-     nothing - until you cut a release: rename this heading to the new
-     version + date, bump plugin.json to match, and add a fresh empty
-     [Unreleased] back on top. See CLAUDE.md "Release". -->
-
 ## [26.10.5] - 2026-10-05
 
 ### Added
@@ -173,6 +124,23 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
   joins `RunResult.warnings`); the fix is two deletions and needs no reset. Stated as
   a DIFFERENT question from `dependents()` (real edge vs. dead data). Requires the
   oryxflow release that adds `Workflow.check_inputs`.
+- `skills/oryxflow-evals/` - a second, small skill that owns LLM evals in ANY
+  Python repo, not only oryxflow data projects. It triggers on planning or
+  editing a prompt / response schema / model / router input, and says: a plan
+  that changes LLM behavior names its eval INSIDE its tasks (a step outside the
+  task list is one a task-by-task executor never runs); a quick probe is a
+  committed `evals/run_eval_<name>.py` using `ev.sweep`, not a `tmp/` script;
+  read the oryxflow and pydantic-evals docs before their source. The data-science
+  `oryxflow` skill never fired in an app repo, which is where evals were needed.
+- `resources/template-eval/_env.py` - credentials and the production import path,
+  written ONCE per repo and imported by every eval. Credentials load by absolute
+  path, because a loader that resolves relative to the working directory finds
+  nothing from `evals/`.
+- `skills/oryxflow-evals/evals.md` - "Reuse before you write" (the pydantic-evals
+  judges, tool-call evaluators, confusion matrices and `CaseLifecycle`, plus the
+  model-as-axis, conversation-replay and zero-false-negative patterns that need no
+  new API); never key a metric on labels the model writes itself; bars relative
+  to the baseline, not absolute; credentials work in-process.
 
 ### Changed
 - `reference.md` - `inputLoadConcat()` was labelled "(fan-out only)", which led
@@ -232,6 +200,34 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
   case column of that name is now refused by the library; the natural word for a
   real axis ("an `outline` arm vs a `guidelines` arm") has to become `surface` /
   `variant` / `write_arm`.
+- `resources/template-eval/`, `commands/eval-init.md` - `evals/` is now ONE oryxflow
+  project: one launch directory, one shared `data/` cache, one `_env.py`, then a
+  `run_eval_<name>.py` and a `<name>/` package per eval (README, `eval.py`,
+  `agent.py`, `cases.csv`, `fixtures/`, `results/`). `eval-init` creates the shared
+  files once (skip-existing), renames `NAME` / the eval class (class names must be
+  unique: the cache is shared), pins `oryxflow[evals]>=26.10.5`, and runs the smoke
+  run from `evals/`. Eval files resolve from their own folder, not the working
+  directory.
+- `commands/eval-plan.md` - Q4's bar is a reference for a written judgement, not a
+  gate, and relative to the baseline arm where possible; Q6 records the launch
+  facts (where credentials come from and how they load; where the production
+  package lives and how it becomes importable). Eval names are package names
+  (`reply_tone`). Reads the docs before proposing an API.
+- `commands/eval-run.md` - runs from `evals/`; with a baseline arm the library
+  names no winner, so the report ends in a judgement (what moved, what is inside
+  noise, the trade-off, what to do); writes the side-by-side file
+  (`--side-by-side`) beside the results; `--rescore` re-scores without model
+  calls.
+- `skills/oryxflow/SKILL.md` - the eval section shrinks to a pointer at
+  `oryxflow-evals`, and the eval triggers move to that skill: ~40 fewer lines in
+  every oryxflow-project session.
+- `skills/oryxflow/evals.md` moved to `skills/oryxflow-evals/evals.md`.
+
+<!-- Add bullets here as you work (Added / Changed / Removed). They stay
+     UNPUBLISHED - plugin.json keeps the last released version, so consumers see
+     nothing - until you cut a release: rename this heading to the new
+     version + date, bump plugin.json to match, and add a fresh empty
+     [Unreleased] back on top. See CLAUDE.md "Release". -->
 
 ### Fixed
 - `commands/eval-run.md` described `--check` as "project the bill, run nothing".
