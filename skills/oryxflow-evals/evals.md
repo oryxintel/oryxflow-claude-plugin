@@ -3,7 +3,7 @@
 Loaded ON DEMAND by the `oryxflow-evals` skill ([SKILL.md](SKILL.md)) - pull this
 in when the question is "I changed a prompt / template / model and I cannot tell
 whether it is better", when a plan changes one, or when working inside `evals/`.
-Needs `pip install "oryxflow[evals]>=26.10.6"` (pydantic-evals 2.x comes with it).
+Needs `pip install "oryxflow[evals]>=26.10.5"` (pydantic-evals 2.x comes with it).
 
 **Read the docs before the source.** For any API below, fetch
 https://docs.oryxflow.dev/llms.txt (the LLM evals pages) and

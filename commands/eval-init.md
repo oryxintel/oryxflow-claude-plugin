@@ -158,9 +158,9 @@ environment and STOP. Do not install anything yourself.
 **a. `oryxflow[evals]`** - `python -c "import oryxflow.evals"`. The fix names the
 minimum version, because older releases have no `oryxflow.evals`:
 
-- uv project (`uv.lock`, `[tool.uv]`): `uv pip install "oryxflow[evals]>=26.10.6"`
-- poetry (`poetry.lock`): `poetry add "oryxflow[evals]>=26.10.6"`
-- venv / conda env: `pip install "oryxflow[evals]>=26.10.6"`
+- uv project (`uv.lock`, `[tool.uv]`): `uv pip install "oryxflow[evals]>=26.10.5"`
+- poetry (`poetry.lock`): `poetry add "oryxflow[evals]>=26.10.5"`
+- venv / conda env: `pip install "oryxflow[evals]>=26.10.5"`
 
 Quote the extras bracket - unquoted `oryxflow[evals]` is a glob in zsh. If the
 production package pins its dependencies in a subdirectory's `pyproject.toml`,

@@ -22,7 +22,7 @@ mandatory guardrail, baselines, judges, reading a verdict - is in
 **Read the docs before the source.** https://docs.oryxflow.dev/llms.txt (the LLM
 evals pages) and https://pydantic.dev/docs/ai/evals/ . pydantic-evals already ships
 judges, tool-call checks and confusion matrices; reuse them. The INSTALLED version
-wins over the docs. Install: `pip install "oryxflow[evals]>=26.10.6"`.
+wins over the docs. Install: `pip install "oryxflow[evals]>=26.10.5"`.
 
 **A plan that changes LLM behavior names its eval.** Put the eval inside the
 plan's TASKS, not in a "before merging" note - a step outside the task list is a

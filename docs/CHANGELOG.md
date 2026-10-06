@@ -51,7 +51,7 @@ log to diagnose a regression). Three load-bearing tokens, matching the library's
   `run_eval_<name>.py` and a `<name>/` package per eval (README, `eval.py`,
   `agent.py`, `cases.csv`, `fixtures/`, `results/`). `eval-init` creates the shared
   files once (skip-existing), renames `NAME` / the eval class (class names must be
-  unique: the cache is shared), pins `oryxflow[evals]>=26.10.6`, and runs the smoke
+  unique: the cache is shared), pins `oryxflow[evals]>=26.10.5`, and runs the smoke
   run from `evals/`. Eval files resolve from their own folder, not the working
   directory.
 - `commands/eval-plan.md` - Q4's bar is a reference for a written judgement, not a

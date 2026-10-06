@@ -175,7 +175,7 @@ before spending anything, then checks the harness for a dead metric before it
 believes any number.
 
 Evals need the library with its extra, in the environment that runs your
-production code: `pip install "oryxflow[evals]>=26.10.6"`. Every cell is cached,
+production code: `pip install "oryxflow[evals]>=26.10.5"`. Every cell is cached,
 so a re-run costs nothing for what did not change - edit one prompt and only that
 arm re-runs; edit a scorer or a judge rubric and only the scoring re-runs, with no
 model calls. All four are
@@ -187,7 +187,7 @@ for you.
 
 1. Install the plugin for that project (or user-wide), as above.
 2. Install the library into that project's environment:
-   `pip install "oryxflow[evals]>=26.10.6"`.
+   `pip install "oryxflow[evals]>=26.10.5"`.
 3. Optionally add this block to the project's `CLAUDE.md`, filled in, so every
    session knows the project specifics without rediscovering them:
 
